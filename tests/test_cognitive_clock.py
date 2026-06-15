@@ -1,3 +1,5 @@
+import pytest
+
 from hex_cortex.core.cognitive_clock import (
     CognitiveClock,
     CognitiveTickContext,
@@ -99,7 +101,7 @@ def test_cognitive_clock_rejects_too_many_ticks() -> None:
     def noop(_context: CognitiveTickContext) -> None:
         return None
 
-    try:
+    with pytest.raises(ValueError, match="max_ticks"):
         clock.run(
             task=task,
             mode=CognitiveMode.REFLEX,
@@ -108,7 +110,3 @@ def test_cognitive_clock_rejects_too_many_ticks() -> None:
                 RegisteredTick(TickName.ACTION, noop),
             ],
         )
-    except ValueError as exc:
-        assert "max_ticks" in str(exc)
-    else:
-        raise AssertionError("expected ValueError")
