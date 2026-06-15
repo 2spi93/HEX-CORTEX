@@ -2,7 +2,7 @@
 
 **Cellular World Model Intelligence**
 
-HEX-CORTEX is an experimental AI architecture designed around small specialized cells, sparse activation, a global cognitive workspace, local-first memory retrieval, memory compression, procedural skill memory, replay consolidation, sleep replay batches, conservative pruning, a canonical append-only spine, controlled self-improvement, a bounded cognitive clock, a health-aware cell registry, and a JEPA-inspired world-model layer.
+HEX-CORTEX is an experimental AI architecture designed around small specialized cells, sparse activation, a global cognitive workspace, local-first memory retrieval, memory compression, procedural skill memory, replay consolidation, sleep replay batches, conservative pruning, a canonical append-only spine, controlled self-improvement, a bounded cognitive clock, a health-aware cell registry, a local cortex pipeline, and a JEPA-inspired world-model layer.
 
 The goal is not to build one oversized model. The goal is to build a modular cognitive system where intelligence emerges from health-aware routing, bounded execution, memory compression, replay consolidation, skill reuse, conservative pruning, prediction, criticism, lineage, controlled self-improvement, and controlled action.
 
@@ -48,6 +48,7 @@ intelligence = specialized cells
 
 ```text
 input
+→ local cortex pipeline
 → cognitive clock start
 → canonical spine event
 → local knowledge index
@@ -172,6 +173,19 @@ Quarantine unstable cells.
 Never rewrite canonical history.
 ```
 
+## Cortex pipeline law
+
+```text
+Receive task.
+Retrieve bounded context.
+Match procedural skills.
+Route through healthy cells.
+Run bounded clock ticks.
+Replay into compressed memory.
+Emit pruning decisions.
+Keep every step traceable in the spine.
+```
+
 ## Repository status
 
 This repository starts with the foundation only:
@@ -181,6 +195,7 @@ This repository starts with the foundation only:
 - memory architecture
 - self-improvement architecture
 - Pydantic contracts
+- local cortex pipeline
 - health-aware thalamic router
 - bounded cognitive clock
 - health-aware cell registry
@@ -220,6 +235,7 @@ src/hex_cortex/
     workspace.py
     cognitive_clock.py
     cell_registry.py
+    cortex_pipeline.py
   memory/
     schemas.py
     local_index.py
@@ -256,6 +272,7 @@ tests/
   test_replay_engine.py
   test_sleep_replay.py
   test_pruning_engine.py
+  test_cortex_pipeline.py
 ```
 
 ## Current target
