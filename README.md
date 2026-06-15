@@ -207,6 +207,7 @@ This repository starts with the foundation only:
 - self-improvement architecture
 - Pydantic contracts
 - local CLI entrypoint
+- local inspect CLI
 - local cortex pipeline
 - health-aware thalamic router
 - bounded cognitive clock
@@ -259,6 +260,14 @@ Bootstrap a reusable active skill:
 
 ```bash
 python -m hex_cortex.cli --bootstrap-skill .hex-cortex/skills.jsonl --skill-name "memory workflow" --skill-trigger memory --skill-step hydrate --skill-step retrieve --pretty
+```
+
+Inspect local state without running a task:
+
+```bash
+python -m hex_cortex.cli --inspect-spine .hex-cortex/spine.jsonl --pretty
+python -m hex_cortex.cli --inspect-memory .hex-cortex/memory.jsonl --pretty
+python -m hex_cortex.cli --inspect-skills .hex-cortex/skills.jsonl --pretty
 ```
 
 Persist canonical events between CLI runs:
@@ -354,4 +363,4 @@ tests/
 
 ## Current target
 
-Build **HEX-CORTEX v0.1**: a local-first cognitive kernel that can retrieve compact memory, hydrate persisted memories into a local index, hydrate active persisted skills into a procedural skill library, bootstrap new procedural skills locally, run bounded cognitive ticks, route tasks into health-aware deterministic cells, reuse validated procedural skills, replay canonical events into compressed memory, persist compressed memories, batch consolidate replay reports, emit conservative pruning decisions, maintain a compact workspace, record persistent append-only cognitive lineage, evaluate improvement hypotheses, score confidence, expose its internal decisions for replay, and run as a local CLI tool.
+Build **HEX-CORTEX v0.1**: a local-first cognitive kernel that can inspect local state, retrieve compact memory, hydrate persisted memories into a local index, hydrate active persisted skills into a procedural skill library, bootstrap new procedural skills locally, run bounded cognitive ticks, route tasks into health-aware deterministic cells, reuse validated procedural skills, replay canonical events into compressed memory, persist compressed memories, batch consolidate replay reports, emit conservative pruning decisions, maintain a compact workspace, record persistent append-only cognitive lineage, evaluate improvement hypotheses, score confidence, expose its internal decisions for replay, and run as a local CLI tool.
