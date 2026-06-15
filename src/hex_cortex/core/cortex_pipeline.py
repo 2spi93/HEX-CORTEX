@@ -101,3 +101,121 @@ class CortexPipeline:
             CellSpec(cell_id="critic_cell", role=CellRole.CRITIC, domains=["safety"]),
             CellSpec(cell_id="action_cell", role=CellRole.ACTION, domains=["action"]),
         ]
+
+    def _append_task_received(self, task: Task) -> None:
+        self.spine.append(
+            event_type="task.received",
+            task_id=task.task_id,
+            source="CortexPipeline",
+            payload={
+                "content": task.content,
+                "domain_hints": task.domain_hints,
+                "novelty": task.novelty,
+                "risk": task.risk,
+                "uncertainty": task.uncertainty,
+            },
+        )
+
+    def _retrieve(self, task: Task) -> ContextPacket:
+        packet = self.retrieval_router.retrieve(RetrievalQuery(query=task.content))
+        self.spine.append(
+            event_type="retrieval.packet",
+            task_id=task.task_id,
+            source="RetrievalRouter",
+            payload={
+                "method": packet.method.value,
+                "result_count": len(packet.results),
+                "used_memory_ids": [result.entry_id for result in packet.results],
+                "total_chars": packet.total_chars,
+                "truncated": packet.truncated,
+            },
+        )
+        return packet
+
+    def _match_skills(self, task: Task) -> list[SkillRecord]:
+        skills = self.skill_library.search(task.domain_hints)
+        self.spine.append(
+            event_type="skill.lookup",
+            task_id=task.task_id,
+            source="SkillLibrary",
+            payload={
+                "trigger_tags": task.domain_hints,
+                "matched_skill_ids": [skill.skill_id for skill in skills],
+            },
+        )
+        return skills
+
+    def _append_routing_decision(self, decision: RoutingDecision) -> None:
+        self.spine.append(
+            event_type="routing.decision",
+            task_id=decision.task_id,
+            source="ThalamicRouter",
+            payload={
+                "mode": decision.mode.value,
+                "selected_cells": decision.selected_cells,
+                "max_ticks": decision.budget.max_ticks,
+                "max_cells": decision.budget.max_cells,
+                "rationale": decision.rationale,
+            },
+        )
+
+    def _append_replay_report(self, report: ReplayReport) -> None:
+        self.spine.append(
+            event_type="replay.report",
+            task_id=report.task_id,
+            source="ReplayEngine",
+            payload={
+                "status": report.status.value,
+                "event_count": report.event_count,
+                "memory_id": report.memory.memory_id if report.memory else None,
+            },
+        )
+
+    def _append_pruning_report(
+        self,
+        task_id: str,
+        report: PruningBatchReport,
+    ) -> None:
+        self.spine.append(
+            event_type="pruning.report",
+            task_id=task_id,
+            source="PruningEngine",
+            payload={
+                "decision_count": len(report.decisions),
+                "keep_count": report.keep_count,
+                "degrade_count": report.degrade_count,
+                "archive_count": report.archive_count,
+                "quarantine_count": report.quarantine_count,
+            },
+        )
+
+    @staticmethod
+    def _ticks(
+        context_packet: ContextPacket,
+        matched_skills: list[SkillRecord],
+        decision: RoutingDecision,
+    ) -> list[RegisteredTick]:
+        return [
+            RegisteredTick(
+                TickName.RETRIEVAL,
+                lambda _ctx: {
+                    "method": context_packet.method.value,
+                    "result_count": len(context_packet.results),
+                },
+            ),
+            RegisteredTick(
+                TickName.ROUTING,
+                lambda _ctx: {
+                    "mode": decision.mode.value,
+                    "selected_cells": decision.selected_cells,
+                },
+            ),
+            RegisteredTick(
+                TickName.WORKSPACE,
+                lambda _ctx: {"matched_skill_count": len(matched_skills)},
+            ),
+            RegisteredTick(
+                TickName.ACTION,
+                lambda _ctx: {"decision": "local_cortex_pass_completed"},
+            ),
+        ]
