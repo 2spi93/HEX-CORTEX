@@ -195,6 +195,7 @@ This repository starts with the foundation only:
 - memory architecture
 - self-improvement architecture
 - Pydantic contracts
+- local CLI entrypoint
 - local cortex pipeline
 - health-aware thalamic router
 - bounded cognitive clock
@@ -225,10 +226,28 @@ pytest
 ruff check .
 ```
 
+## Local CLI
+
+Run one local pipeline pass and print stable JSON:
+
+```bash
+python -m hex_cortex.cli "Classify this local task" --domain intent --novelty 0.2 --risk 0.2 --uncertainty 0.2
+```
+
+Pretty-print JSON:
+
+```bash
+python -m hex_cortex.cli "Analyze this bounded task" --pretty
+```
+
+The CLI does not call a remote model, start a server, or execute external actions.
+
 ## Project layout
 
 ```text
 src/hex_cortex/
+  __init__.py
+  cli.py
   core/
     schemas.py
     router.py
@@ -261,6 +280,7 @@ docs/
   SELF_IMPROVEMENT.md
 
 tests/
+  test_cli.py
   test_router.py
   test_retrieval_router.py
   test_memory_compression.py
@@ -277,4 +297,4 @@ tests/
 
 ## Current target
 
-Build **HEX-CORTEX v0.1**: a local-first cognitive kernel that can retrieve compact memory, run bounded cognitive ticks, route tasks into health-aware deterministic cells, reuse validated procedural skills, replay canonical events into compressed memory, batch consolidate replay reports, emit conservative pruning decisions, maintain a compact workspace, record append-only cognitive lineage, evaluate improvement hypotheses, score confidence, and expose its internal decisions for replay.
+Build **HEX-CORTEX v0.1**: a local-first cognitive kernel that can retrieve compact memory, run bounded cognitive ticks, route tasks into health-aware deterministic cells, reuse validated procedural skills, replay canonical events into compressed memory, batch consolidate replay reports, emit conservative pruning decisions, maintain a compact workspace, record append-only cognitive lineage, evaluate improvement hypotheses, score confidence, expose its internal decisions for replay, and run as a local CLI tool.
