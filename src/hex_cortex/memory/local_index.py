@@ -48,7 +48,11 @@ class LocalKnowledgeIndex:
         self._entries.pop(entry_id, None)
         self._dirty = True
 
-    def exact_search(self, query: str, required_tags: list[str] | None = None) -> list[IndexEntry]:
+    def exact_search(
+        self,
+        query: str,
+        required_tags: list[str] | None = None,
+    ) -> list[IndexEntry]:
         """Return entries containing the raw query string."""
 
         normalized_query = query.strip().lower()
@@ -65,7 +69,11 @@ class LocalKnowledgeIndex:
                 hits.append(entry)
         return hits
 
-    def lexical_scores(self, query: str, required_tags: list[str] | None = None) -> list[tuple[IndexEntry, float]]:
+    def lexical_scores(
+        self,
+        query: str,
+        required_tags: list[str] | None = None,
+    ) -> list[tuple[IndexEntry, float]]:
         """Score entries with a lightweight BM25-inspired lexical formula."""
 
         self._rebuild_if_needed()
