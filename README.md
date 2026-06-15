@@ -4,7 +4,7 @@
 
 HEX-CORTEX is an experimental AI architecture designed around small specialized cells, sparse activation, a global cognitive workspace, local-first memory retrieval, memory compression, a canonical append-only spine, controlled self-improvement, a bounded cognitive clock, a health-aware cell registry, and a JEPA-inspired world-model layer.
 
-The goal is not to build one oversized model. The goal is to build a modular cognitive system where intelligence emerges from routing, bounded execution, memory compression, prediction, criticism, replay, lineage, controlled self-improvement, and controlled action.
+The goal is not to build one oversized model. The goal is to build a modular cognitive system where intelligence emerges from health-aware routing, bounded execution, memory compression, prediction, criticism, replay, lineage, controlled self-improvement, and controlled action.
 
 ## Core thesis
 
@@ -46,8 +46,8 @@ input
 → local knowledge index
 → retrieval router
 → bounded context packet
-→ thalamic routing
 → health-aware cell registry
+→ thalamic routing
 → sparse cell activation
 → global workspace
 → world model prediction
@@ -111,6 +111,16 @@ Quarantine unstable cells.
 Never route through quarantined cells.
 ```
 
+## Router law
+
+```text
+Build bounded budget from task pressure.
+Ask the registry for available cells.
+Score only health-adjusted cells.
+Select sparse active cells.
+Reject routing if no healthy cell exists.
+```
+
 ## Repository status
 
 This repository starts with the foundation only:
@@ -120,7 +130,7 @@ This repository starts with the foundation only:
 - memory architecture
 - self-improvement architecture
 - Pydantic contracts
-- minimal thalamic router
+- health-aware thalamic router
 - bounded cognitive clock
 - health-aware cell registry
 - minimal global workspace
