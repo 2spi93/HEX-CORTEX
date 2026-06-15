@@ -56,7 +56,12 @@ class SkillLibrary:
             if skill.status == SkillStatus.ACTIVE
         ]
 
-    def search(self, trigger_tags: list[str], *, include_candidates: bool = False) -> list[SkillRecord]:
+    def search(
+        self,
+        trigger_tags: list[str],
+        *,
+        include_candidates: bool = False,
+    ) -> list[SkillRecord]:
         """Search skills by trigger tags, highest confidence first.
 
         Empty tag queries return active skills sorted by confidence.
