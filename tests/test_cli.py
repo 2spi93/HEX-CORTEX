@@ -3,6 +3,8 @@ import json
 from hex_cortex.cli import main, summarize_result
 from hex_cortex.core.cortex_pipeline import CortexPipeline
 from hex_cortex.core.schemas import Task
+from hex_cortex.evolver.schemas import SkillRecord, SkillStatus
+from hex_cortex.evolver.skill_jsonl_store import SkillJsonlStore
 
 
 def test_cli_outputs_stable_json(capsys) -> None:
@@ -99,6 +101,31 @@ def test_cli_hydrates_memory_jsonl_into_index(tmp_path, capsys) -> None:
     assert second_payload["hydrated_memory_count"] == 1
     assert second_payload["retrieval_result_count"] >= 1
     assert second_payload["retrieval_method"] == "exact"
+
+
+def test_cli_hydrates_active_skills_jsonl(tmp_path, capsys) -> None:
+    skills_path = tmp_path / "skills.jsonl"
+    active_skill = SkillRecord(
+        name="memory workflow",
+        description="Use hydrated memory before reasoning.",
+        trigger_tags=["memory"],
+        workflow_steps=["hydrate", "retrieve", "verify"],
+        confidence=0.9,
+        status=SkillStatus.ACTIVE,
+    )
+    candidate_skill = SkillRecord(
+        name="candidate workflow",
+        description="Not active yet.",
+        trigger_tags=["memory"],
+        status=SkillStatus.CANDIDATE,
+    )
+    SkillJsonlStore(skills_path).save([active_skill, candidate_skill])
+
+    main(["Use memory workflow", "--domain", "memory", "--skills-jsonl", str(skills_path)])
+    payload = json.loads(capsys.readouterr().out)
+
+    assert payload["hydrated_skill_count"] == 1
+    assert payload["matched_skill_count"] == 1
 
 
 def test_summarize_result_matches_pipeline_output_contract() -> None:
