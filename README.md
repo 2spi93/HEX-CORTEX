@@ -2,7 +2,7 @@
 
 **Cellular World Model Intelligence**
 
-HEX-CORTEX is an experimental AI architecture designed around small specialized cells, sparse activation, a global cognitive workspace, local-first memory retrieval, memory compression, procedural skill memory, replay consolidation, sleep replay batches, conservative pruning, a persistent canonical spine, controlled self-improvement, a bounded cognitive clock, a health-aware cell registry, a local cortex pipeline, and a JEPA-inspired world-model layer.
+HEX-CORTEX is an experimental AI architecture designed around small specialized cells, sparse activation, a global cognitive workspace, local-first memory retrieval, memory compression, procedural skill memory, replay consolidation, sleep replay batches, conservative pruning, a persistent canonical spine, persistent local memory, controlled self-improvement, a bounded cognitive clock, a health-aware cell registry, a local cortex pipeline, and a JEPA-inspired world-model layer.
 
 The goal is not to build one oversized model. The goal is to build a modular cognitive system where intelligence emerges from health-aware routing, bounded execution, memory compression, replay consolidation, skill reuse, conservative pruning, prediction, criticism, lineage, controlled self-improvement, and controlled action.
 
@@ -18,6 +18,7 @@ intelligence = specialized cells
              + index-first memory
              + procedural skill memory
              + persistent canonical lineage
+             + persistent local memory
              + replay consolidation
              + sleep replay batches
              + conservative pruning
@@ -64,6 +65,7 @@ input
 → action
 → memory compression
 → replay consolidation
+→ local memory persistence
 → sleep replay batch
 → pruning decision
 → self-improvement candidate
@@ -78,6 +80,7 @@ Lexical search first.
 Semantic fallback only when needed.
 Small context packet always.
 Compress after use.
+Persist compressed memories when requested.
 ```
 
 ## Canonical spine law
@@ -209,6 +212,7 @@ This repository starts with the foundation only:
 - local knowledge index
 - retrieval router
 - deterministic memory compression spine
+- persistent local memory store
 - persistent append-only canonical spine
 - deterministic evolution selector
 - unit tests
@@ -247,6 +251,18 @@ Persist canonical events between CLI runs:
 python -m hex_cortex.cli "Persistent local task" --spine-jsonl .hex-cortex/spine.jsonl
 ```
 
+Persist compressed memories between CLI runs:
+
+```bash
+python -m hex_cortex.cli "Memory task" --memory-jsonl .hex-cortex/memory.jsonl
+```
+
+Persist both lineage and compressed memories:
+
+```bash
+python -m hex_cortex.cli "Durable task" --spine-jsonl .hex-cortex/spine.jsonl --memory-jsonl .hex-cortex/memory.jsonl
+```
+
 The CLI does not call a remote model, start a server, or execute external actions.
 
 ## Project layout
@@ -264,6 +280,7 @@ src/hex_cortex/
     cortex_pipeline.py
   memory/
     schemas.py
+    jsonl_store.py
     local_index.py
     retrieval_router.py
     compression.py
@@ -292,6 +309,7 @@ tests/
   test_router.py
   test_retrieval_router.py
   test_memory_compression.py
+  test_memory_jsonl_store.py
   test_canonical_spine.py
   test_spine_jsonl_store.py
   test_evolver.py
@@ -306,4 +324,4 @@ tests/
 
 ## Current target
 
-Build **HEX-CORTEX v0.1**: a local-first cognitive kernel that can retrieve compact memory, run bounded cognitive ticks, route tasks into health-aware deterministic cells, reuse validated procedural skills, replay canonical events into compressed memory, batch consolidate replay reports, emit conservative pruning decisions, maintain a compact workspace, record persistent append-only cognitive lineage, evaluate improvement hypotheses, score confidence, expose its internal decisions for replay, and run as a local CLI tool.
+Build **HEX-CORTEX v0.1**: a local-first cognitive kernel that can retrieve compact memory, run bounded cognitive ticks, route tasks into health-aware deterministic cells, reuse validated procedural skills, replay canonical events into compressed memory, persist compressed memories, batch consolidate replay reports, emit conservative pruning decisions, maintain a compact workspace, record persistent append-only cognitive lineage, evaluate improvement hypotheses, score confidence, expose its internal decisions for replay, and run as a local CLI tool.
