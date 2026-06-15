@@ -230,7 +230,11 @@ def test_cli_inspects_memory_jsonl(tmp_path, capsys) -> None:
 
 def test_cli_inspects_skills_jsonl(tmp_path, capsys) -> None:
     skills_path = tmp_path / "skills.jsonl"
-    active_skill = SkillRecord(name="active", description="Active skill", status=SkillStatus.ACTIVE)
+    active_skill = SkillRecord(
+        name="active",
+        description="Active skill",
+        status=SkillStatus.ACTIVE,
+    )
     archived_skill = SkillRecord(
         name="archived",
         description="Archived skill",
@@ -261,6 +265,67 @@ def test_cli_rejects_multiple_inspect_modes(tmp_path) -> None:
                 str(memory_path),
             ]
         )
+
+
+def test_cli_profile_persists_spine_and_memory(tmp_path, capsys) -> None:
+    profile = tmp_path / "profile"
+
+    main(["Profile task", "--profile", str(profile)])
+    first_payload = json.loads(capsys.readouterr().out)
+    main(["Profile task", "--profile", str(profile)])
+    second_payload = json.loads(capsys.readouterr().out)
+
+    assert (profile / "spine.jsonl").exists()
+    assert (profile / "memory.jsonl").exists()
+    assert first_payload["profile_path"] == str(profile)
+    assert first_payload["persisted_memory_count"] == 1
+    assert second_payload["persisted_event_count"] > first_payload["persisted_event_count"]
+    assert second_payload["persisted_memory_count"] == 2
+    assert second_payload["hydrated_memory_count"] == 1
+    assert second_payload["retrieval_method"] == "exact"
+
+
+def test_cli_profile_hydrates_skills(tmp_path, capsys) -> None:
+    profile = tmp_path / "profile"
+    skills_path = profile / "skills.jsonl"
+    SkillJsonlStore(skills_path).save(
+        [
+            SkillRecord(
+                name="memory workflow",
+                description="Use hydrated memory before reasoning.",
+                trigger_tags=["memory"],
+                status=SkillStatus.ACTIVE,
+            )
+        ]
+    )
+
+    main(["Use profile skill", "--profile", str(profile), "--domain", "memory"])
+    payload = json.loads(capsys.readouterr().out)
+
+    assert payload["hydrated_skill_count"] == 1
+    assert payload["matched_skill_count"] == 1
+
+
+def test_cli_profile_respects_explicit_path_overrides(tmp_path, capsys) -> None:
+    profile = tmp_path / "profile"
+    explicit_memory = tmp_path / "memory.jsonl"
+
+    main(
+        [
+            "Override memory path",
+            "--profile",
+            str(profile),
+            "--memory-jsonl",
+            str(explicit_memory),
+        ]
+    )
+    payload = json.loads(capsys.readouterr().out)
+
+    assert (profile / "spine.jsonl").exists()
+    assert not (profile / "memory.jsonl").exists()
+    assert explicit_memory.exists()
+    assert payload["profile_path"] == str(profile)
+    assert payload["persisted_memory_count"] == 1
 
 
 def test_summarize_result_matches_pipeline_output_contract() -> None:
