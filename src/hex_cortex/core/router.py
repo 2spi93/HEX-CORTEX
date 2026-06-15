@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from hex_cortex.core.cell_registry import CellRegistry
 from hex_cortex.core.schemas import (
     CellSpec,
     CognitiveBudget,
@@ -71,8 +72,12 @@ class ThalamicRouter:
             raise ValueError("cannot route without registered cells")
 
         budget = self.build_budget(task)
+        routable_cells = [cell for cell in cells if cell.trust_score > 0.0]
+        if not routable_cells:
+            raise ValueError("cannot route without healthy cells")
+
         scored_cells = sorted(
-            ((cell, self._score_cell(task, cell)) for cell in cells),
+            ((cell, self._score_cell(task, cell)) for cell in routable_cells),
             key=lambda item: item[1],
             reverse=True,
         )
@@ -85,9 +90,14 @@ class ThalamicRouter:
             budget=budget,
             rationale=(
                 f"selected {len(selected)} cells in {budget.mode.value} mode "
-                f"from {len(cells)} registered cells"
+                f"from {len(routable_cells)} healthy cells"
             ),
         )
+
+    def route_registered(self, task: Task, registry: CellRegistry) -> RoutingDecision:
+        """Route a task through a health-aware cell registry."""
+
+        return self.route(task, registry.available())
 
     def _score_cell(self, task: Task, cell: CellSpec) -> float:
         domain_match = self._domain_match(task, cell)
