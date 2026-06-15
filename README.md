@@ -2,7 +2,7 @@
 
 **Cellular World Model Intelligence**
 
-HEX-CORTEX is an experimental AI architecture designed around small specialized cells, sparse activation, a global cognitive workspace, local-first memory retrieval, memory compression, procedural skill memory, replay consolidation, sleep replay batches, conservative pruning, a canonical append-only spine, controlled self-improvement, a bounded cognitive clock, a health-aware cell registry, a local cortex pipeline, and a JEPA-inspired world-model layer.
+HEX-CORTEX is an experimental AI architecture designed around small specialized cells, sparse activation, a global cognitive workspace, local-first memory retrieval, memory compression, procedural skill memory, replay consolidation, sleep replay batches, conservative pruning, a persistent canonical spine, controlled self-improvement, a bounded cognitive clock, a health-aware cell registry, a local cortex pipeline, and a JEPA-inspired world-model layer.
 
 The goal is not to build one oversized model. The goal is to build a modular cognitive system where intelligence emerges from health-aware routing, bounded execution, memory compression, replay consolidation, skill reuse, conservative pruning, prediction, criticism, lineage, controlled self-improvement, and controlled action.
 
@@ -17,7 +17,7 @@ intelligence = specialized cells
              + global workspace
              + index-first memory
              + procedural skill memory
-             + canonical lineage
+             + persistent canonical lineage
              + replay consolidation
              + sleep replay batches
              + conservative pruning
@@ -86,6 +86,7 @@ Compress after use.
 Append events.
 Never rewrite cognition.
 Verify hash chain.
+Persist as JSONL when requested.
 Project state from events.
 Replay before trusting memory.
 ```
@@ -208,7 +209,7 @@ This repository starts with the foundation only:
 - local knowledge index
 - retrieval router
 - deterministic memory compression spine
-- append-only canonical spine
+- persistent append-only canonical spine
 - deterministic evolution selector
 - unit tests
 
@@ -240,6 +241,12 @@ Pretty-print JSON:
 python -m hex_cortex.cli "Analyze this bounded task" --pretty
 ```
 
+Persist canonical events between CLI runs:
+
+```bash
+python -m hex_cortex.cli "Persistent local task" --spine-jsonl .hex-cortex/spine.jsonl
+```
+
 The CLI does not call a remote model, start a server, or execute external actions.
 
 ## Project layout
@@ -263,6 +270,7 @@ src/hex_cortex/
   spine/
     schemas.py
     canonical_spine.py
+    jsonl_store.py
   evolver/
     schemas.py
     selector.py
@@ -285,6 +293,7 @@ tests/
   test_retrieval_router.py
   test_memory_compression.py
   test_canonical_spine.py
+  test_spine_jsonl_store.py
   test_evolver.py
   test_cognitive_clock.py
   test_cell_registry.py
@@ -297,4 +306,4 @@ tests/
 
 ## Current target
 
-Build **HEX-CORTEX v0.1**: a local-first cognitive kernel that can retrieve compact memory, run bounded cognitive ticks, route tasks into health-aware deterministic cells, reuse validated procedural skills, replay canonical events into compressed memory, batch consolidate replay reports, emit conservative pruning decisions, maintain a compact workspace, record append-only cognitive lineage, evaluate improvement hypotheses, score confidence, expose its internal decisions for replay, and run as a local CLI tool.
+Build **HEX-CORTEX v0.1**: a local-first cognitive kernel that can retrieve compact memory, run bounded cognitive ticks, route tasks into health-aware deterministic cells, reuse validated procedural skills, replay canonical events into compressed memory, batch consolidate replay reports, emit conservative pruning decisions, maintain a compact workspace, record persistent append-only cognitive lineage, evaluate improvement hypotheses, score confidence, expose its internal decisions for replay, and run as a local CLI tool.
