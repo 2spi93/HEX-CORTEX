@@ -2,7 +2,7 @@
 
 **Cellular World Model Intelligence**
 
-HEX-CORTEX is an experimental AI architecture designed around small specialized cells, sparse activation, a global cognitive workspace, local-first memory retrieval, memory compression, procedural skill memory, replay consolidation, a canonical append-only spine, controlled self-improvement, a bounded cognitive clock, a health-aware cell registry, and a JEPA-inspired world-model layer.
+HEX-CORTEX is an experimental AI architecture designed around small specialized cells, sparse activation, a global cognitive workspace, local-first memory retrieval, memory compression, procedural skill memory, replay consolidation, sleep replay batches, a canonical append-only spine, controlled self-improvement, a bounded cognitive clock, a health-aware cell registry, and a JEPA-inspired world-model layer.
 
 The goal is not to build one oversized model. The goal is to build a modular cognitive system where intelligence emerges from health-aware routing, bounded execution, memory compression, replay consolidation, skill reuse, prediction, criticism, lineage, controlled self-improvement, and controlled action.
 
@@ -19,6 +19,7 @@ intelligence = specialized cells
              + procedural skill memory
              + canonical lineage
              + replay consolidation
+             + sleep replay batches
              + controlled self-improvement
              + predictive world model
              + critic / immune system
@@ -60,6 +61,7 @@ input
 → action
 → memory compression
 → replay consolidation
+→ sleep replay batch
 → self-improvement candidate
 → cognitive clock completion
 ```
@@ -147,6 +149,16 @@ Compress into reusable memory.
 Refuse consolidation if lineage is broken.
 ```
 
+## Sleep replay law
+
+```text
+Collect task ids.
+Replay each task.
+Count consolidated / empty / failed reports.
+Expose consolidated memories.
+Do not execute skills during batch replay.
+```
+
 ## Repository status
 
 This repository starts with the foundation only:
@@ -161,6 +173,7 @@ This repository starts with the foundation only:
 - health-aware cell registry
 - procedural skill library
 - replay engine
+- sleep replay batch engine
 - minimal global workspace
 - local knowledge index
 - retrieval router
@@ -208,6 +221,7 @@ src/hex_cortex/
   replay/
     schemas.py
     replay_engine.py
+    sleep_replay.py
 
 docs/
   ARCHITECTURE.md
@@ -225,8 +239,9 @@ tests/
   test_cell_registry.py
   test_skill_library.py
   test_replay_engine.py
+  test_sleep_replay.py
 ```
 
 ## Current target
 
-Build **HEX-CORTEX v0.1**: a local-first cognitive kernel that can retrieve compact memory, run bounded cognitive ticks, route tasks into health-aware deterministic cells, reuse validated procedural skills, replay canonical events into compressed memory, maintain a compact workspace, record append-only cognitive lineage, evaluate improvement hypotheses, score confidence, and expose its internal decisions for replay.
+Build **HEX-CORTEX v0.1**: a local-first cognitive kernel that can retrieve compact memory, run bounded cognitive ticks, route tasks into health-aware deterministic cells, reuse validated procedural skills, replay canonical events into compressed memory, batch consolidate replay reports, maintain a compact workspace, record append-only cognitive lineage, evaluate improvement hypotheses, score confidence, and expose its internal decisions for replay.
