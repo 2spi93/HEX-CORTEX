@@ -6,7 +6,7 @@ from enum import StrEnum
 from typing import Any
 from uuid import uuid4
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 
 class MemorySensitivity(StrEnum):
@@ -24,6 +24,14 @@ class RetrievalMethod(StrEnum):
     LEXICAL = "lexical"
     SEMANTIC_FALLBACK = "semantic_fallback"
     EMPTY = "empty"
+
+
+class ReplayOutcome(StrEnum):
+    """Outcome of reusing a compressed memory rule."""
+
+    UNKNOWN = "unknown"
+    SUCCESS = "success"
+    FAILURE = "failure"
 
 
 class MemoryRecord(BaseModel):
@@ -110,14 +118,68 @@ class ContextPacket(BaseModel):
     truncated: bool = False
 
 
+class EpisodeSummary(BaseModel):
+    """Compressed description of one cognitive episode."""
+
+    episode_id: str = Field(default_factory=lambda: f"epi_{uuid4().hex}")
+    task_id: str
+    goal: str
+    active_cells: list[str] = Field(default_factory=list)
+    used_memory_ids: list[str] = Field(default_factory=list)
+    outcome: ReplayOutcome = ReplayOutcome.UNKNOWN
+    observations: list[str] = Field(default_factory=list)
+    errors: list[str] = Field(default_factory=list)
+    confidence: float = Field(default=0.5, ge=0.0, le=1.0)
+
+    @field_validator("goal")
+    @classmethod
+    def goal_must_not_be_empty(cls, value: str) -> str:
+        if not value.strip():
+            raise ValueError("episode goal must not be empty")
+        return value
+
+
+class TacitRule(BaseModel):
+    """Reusable compressed rule learned from episodes."""
+
+    rule_id: str = Field(default_factory=lambda: f"rule_{uuid4().hex}")
+    claim: str
+    applies_to: list[str] = Field(default_factory=list)
+    source_event_ids: list[str] = Field(default_factory=list)
+    source_episode_ids: list[str] = Field(default_factory=list)
+    success_count: int = Field(default=0, ge=0)
+    failure_count: int = Field(default=0, ge=0)
+    confidence: float = Field(default=0.5, ge=0.0, le=1.0)
+
+    @field_validator("claim")
+    @classmethod
+    def claim_must_not_be_empty(cls, value: str) -> str:
+        if not value.strip():
+            raise ValueError("rule claim must not be empty")
+        return value
+
+    @model_validator(mode="after")
+    def rule_must_have_lineage(self) -> TacitRule:
+        if not self.source_event_ids and not self.source_episode_ids:
+            raise ValueError("tacit rules require source event or episode lineage")
+        return self
+
+
 class CompressionRecord(BaseModel):
     """A record of memory compression from raw material to reusable knowledge."""
 
     compression_id: str = Field(default_factory=lambda: f"cmp_{uuid4().hex}")
     source_event_ids: list[str]
+    source_episode_id: str | None = None
     summary: str
-    extracted_rules: list[str] = Field(default_factory=list)
+    extracted_rules: list[TacitRule] = Field(default_factory=list)
     confidence: float = Field(default=0.5, ge=0.0, le=1.0)
+
+    @model_validator(mode="after")
+    def compression_must_have_lineage(self) -> CompressionRecord:
+        if not self.source_event_ids and self.source_episode_id is None:
+            raise ValueError("compression records require source lineage")
+        return self
 
 
 class SurpriseEvent(BaseModel):
