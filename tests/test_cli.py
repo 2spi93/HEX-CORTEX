@@ -128,6 +128,56 @@ def test_cli_hydrates_active_skills_jsonl(tmp_path, capsys) -> None:
     assert payload["matched_skill_count"] == 1
 
 
+def test_cli_bootstraps_skill_jsonl(tmp_path, capsys) -> None:
+    skills_path = tmp_path / "skills.jsonl"
+
+    exit_code = main(
+        [
+            "--bootstrap-skill",
+            str(skills_path),
+            "--skill-name",
+            "memory workflow",
+            "--skill-description",
+            "Use local memory before reasoning.",
+            "--skill-trigger",
+            "memory",
+            "--skill-step",
+            "hydrate",
+            "--skill-step",
+            "retrieve",
+        ]
+    )
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    assert skills_path.exists()
+    assert payload["bootstrapped_skill_count"] == 1
+    assert payload["active_skill_count"] == 1
+    assert payload["skill_name"] == "memory workflow"
+    assert payload["skill_status"] == "active"
+
+
+def test_cli_bootstrapped_skill_can_be_hydrated(tmp_path, capsys) -> None:
+    skills_path = tmp_path / "skills.jsonl"
+    main(
+        [
+            "--bootstrap-skill",
+            str(skills_path),
+            "--skill-name",
+            "memory workflow",
+            "--skill-trigger",
+            "memory",
+        ]
+    )
+    capsys.readouterr()
+
+    main(["Use memory workflow", "--domain", "memory", "--skills-jsonl", str(skills_path)])
+    payload = json.loads(capsys.readouterr().out)
+
+    assert payload["hydrated_skill_count"] == 1
+    assert payload["matched_skill_count"] == 1
+
+
 def test_summarize_result_matches_pipeline_output_contract() -> None:
     result = CortexPipeline().run(
         Task(
