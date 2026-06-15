@@ -32,8 +32,8 @@ def test_spine_appends_hash_chained_events() -> None:
 def test_spine_projects_counts_and_latest_hash() -> None:
     spine = CanonicalSpine()
     spine.append(event_type="task.received", task_id="task_1", source="test")
-    latest = spine.append(event_type="task.received", task_id="task_2", source="test")
-    spine.append(event_type="memory.compressed", task_id="task_1", source="memory")
+    spine.append(event_type="task.received", task_id="task_2", source="test")
+    latest = spine.append(event_type="memory.compressed", task_id="task_1", source="memory")
 
     projection = spine.project()
 
@@ -41,7 +41,7 @@ def test_spine_projects_counts_and_latest_hash() -> None:
     assert projection.task_count == 2
     assert projection.event_type_counts["task.received"] == 2
     assert projection.latest_sequence_number == 3
-    assert projection.latest_event_hash != latest.event_hash
+    assert projection.latest_event_hash == latest.event_hash
 
 
 def test_spine_filters_events_for_task_and_latest_by_type() -> None:
@@ -74,7 +74,7 @@ def test_spine_detects_internal_tampering() -> None:
     )
 
     # Deliberately mutate private state to verify the integrity checker.
-    spine._events[0].payload["goal"] = "tampered"  # noqa: SLF001
+    spine._events[0].payload["goal"] = "tampered"
 
     report = spine.verify_integrity()
 
