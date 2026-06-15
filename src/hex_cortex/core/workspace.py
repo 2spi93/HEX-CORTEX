@@ -10,7 +10,13 @@ from hex_cortex.core.schemas import CognitiveMode, Hypothesis, WorkspaceState
 class GlobalWorkspace:
     """Small inspectable state shared by active cells."""
 
-    def __init__(self, task_id: str, goal: str, mode: CognitiveMode, active_cells: list[str]) -> None:
+    def __init__(
+        self,
+        task_id: str,
+        goal: str,
+        mode: CognitiveMode,
+        active_cells: list[str],
+    ) -> None:
         self.state = WorkspaceState(
             task_id=task_id,
             goal=goal,
@@ -43,4 +49,5 @@ class GlobalWorkspace:
 
         base_confidence = fmean(h.confidence for h in self.state.hypotheses)
         issue_penalty = min(0.5, 0.1 * len(self.state.contradictions))
-        self.state.confidence = max(0.0, min(1.0, base_confidence - issue_penalty))
+        confidence = max(0.0, min(1.0, base_confidence - issue_penalty))
+        self.state.confidence = round(confidence, 10)
