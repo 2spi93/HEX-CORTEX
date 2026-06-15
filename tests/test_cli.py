@@ -1,10 +1,14 @@
 import json
 
+import pytest
+
 from hex_cortex.cli import main, summarize_result
 from hex_cortex.core.cortex_pipeline import CortexPipeline
 from hex_cortex.core.schemas import Task
 from hex_cortex.evolver.schemas import SkillRecord, SkillStatus
 from hex_cortex.evolver.skill_jsonl_store import SkillJsonlStore
+from hex_cortex.memory.jsonl_store import LocalMemoryJsonlStore
+from hex_cortex.memory.schemas import MemoryRecord
 
 
 def test_cli_outputs_stable_json(capsys) -> None:
@@ -192,6 +196,71 @@ def test_cli_bootstrapped_skill_can_be_hydrated(tmp_path, capsys) -> None:
 
     assert payload["hydrated_skill_count"] == 1
     assert payload["matched_skill_count"] == 1
+
+
+def test_cli_inspects_spine_jsonl(tmp_path, capsys) -> None:
+    spine_path = tmp_path / "spine.jsonl"
+    main(["Trace inspectable task", "--spine-jsonl", str(spine_path)])
+    capsys.readouterr()
+
+    main(["--inspect-spine", str(spine_path)])
+    payload = json.loads(capsys.readouterr().out)
+
+    assert payload["inspect_type"] == "spine"
+    assert payload["exists"] is True
+    assert payload["integrity_ok"] is True
+    assert payload["total_events"] > 0
+    assert payload["task_count"] == 1
+
+
+def test_cli_inspects_memory_jsonl(tmp_path, capsys) -> None:
+    memory_path = tmp_path / "memory.jsonl"
+    memory = MemoryRecord(title="m", body="b", tags=["compressed"])
+    LocalMemoryJsonlStore(memory_path).save([memory])
+
+    main(["--inspect-memory", str(memory_path)])
+    payload = json.loads(capsys.readouterr().out)
+
+    assert payload["inspect_type"] == "memory"
+    assert payload["exists"] is True
+    assert payload["total_memory_count"] == 1
+    assert payload["visible_memory_count"] == 1
+    assert payload["tag_counts"] == {"compressed": 1}
+
+
+def test_cli_inspects_skills_jsonl(tmp_path, capsys) -> None:
+    skills_path = tmp_path / "skills.jsonl"
+    active_skill = SkillRecord(name="active", description="Active skill", status=SkillStatus.ACTIVE)
+    archived_skill = SkillRecord(
+        name="archived",
+        description="Archived skill",
+        status=SkillStatus.ARCHIVED,
+    )
+    SkillJsonlStore(skills_path).save([active_skill, archived_skill])
+
+    main(["--inspect-skills", str(skills_path)])
+    payload = json.loads(capsys.readouterr().out)
+
+    assert payload["inspect_type"] == "skills"
+    assert payload["exists"] is True
+    assert payload["total_skill_count"] == 2
+    assert payload["active_skill_count"] == 1
+    assert payload["archived_skill_count"] == 1
+
+
+def test_cli_rejects_multiple_inspect_modes(tmp_path) -> None:
+    spine_path = tmp_path / "spine.jsonl"
+    memory_path = tmp_path / "memory.jsonl"
+
+    with pytest.raises(ValueError, match="only one inspect mode"):
+        main(
+            [
+                "--inspect-spine",
+                str(spine_path),
+                "--inspect-memory",
+                str(memory_path),
+            ]
+        )
 
 
 def test_summarize_result_matches_pipeline_output_contract() -> None:
