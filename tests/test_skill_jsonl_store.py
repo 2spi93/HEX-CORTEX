@@ -37,6 +37,18 @@ def test_skill_jsonl_store_saves_and_loads_records(tmp_path) -> None:
     ]
 
 
+def test_skill_jsonl_store_appends_record_and_returns_count(tmp_path) -> None:
+    path = tmp_path / "skills.jsonl"
+    store = SkillJsonlStore(path)
+
+    first_count = store.append(make_skill("memory"))
+    second_count = store.append(make_skill("logic"))
+
+    assert first_count == 1
+    assert second_count == 2
+    assert len(store.load()) == 2
+
+
 def test_skill_jsonl_store_returns_active_skills_only(tmp_path) -> None:
     active = make_skill("active", SkillStatus.ACTIVE)
     candidate = make_skill("candidate", SkillStatus.CANDIDATE)
