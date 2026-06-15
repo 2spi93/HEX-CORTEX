@@ -64,7 +64,7 @@ class CellRegistry:
     def by_role(self, role: CellRole) -> list[CellSpec]:
         """Return all non-quarantined cells for a role."""
 
-        return [cell for cell in self.cells if cell.role == role]
+        return [cell for cell in self.available() if cell.role == role]
 
     def matching_domains(self, domains: list[str]) -> list[CellSpec]:
         """Return cells matching at least one requested domain.
@@ -73,12 +73,12 @@ class CellRegistry:
         """
 
         if not domains:
-            return self.cells
+            return self.available()
 
         requested = {domain.lower() for domain in domains}
         return [
             cell
-            for cell in self.cells
+            for cell in self.available()
             if requested.intersection({domain.lower() for domain in cell.domains})
         ]
 
@@ -130,10 +130,10 @@ class CellRegistry:
         return updated
 
     def available(self) -> list[CellSpec]:
-        """Return cells that are not quarantined."""
+        """Return health-adjusted cells that are not quarantined."""
 
         return [
-            cell
+            self._apply_health(cell)
             for cell in self._cells.values()
             if not self._health_for(cell.cell_id).quarantine
         ]
