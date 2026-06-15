@@ -32,7 +32,10 @@ class EvolutionSelector:
         if total_weight <= 0:
             return 0.0
 
-        passed_weight = sum(metric.weight * self._metric_value(metric) for metric in evaluation.metrics)
+        passed_weight = sum(
+            metric.weight * self._metric_value(metric)
+            for metric in evaluation.metrics
+        )
         return max(0.0, min(1.0, passed_weight / total_weight))
 
     def decide(
