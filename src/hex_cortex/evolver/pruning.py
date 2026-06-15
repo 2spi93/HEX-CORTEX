@@ -109,12 +109,19 @@ class PruningEngine:
                 "memory_confidence_below_degrade_threshold",
                 memory.confidence,
             )
-        return self._decision("memory", memory.memory_id, PruningAction.KEEP, "memory_healthy", memory.confidence)
+        return self._decision(
+            "memory",
+            memory.memory_id,
+            PruningAction.KEEP,
+            "memory_healthy",
+            memory.confidence,
+        )
 
     def decide_rule(self, rule: TacitRule) -> PruningDecision:
         total = rule.success_count + rule.failure_count
         failure_ratio = rule.failure_count / total if total else 0.0
-        if rule.confidence < self.archive_threshold and rule.failure_count > rule.success_count:
+        more_failures = rule.failure_count > rule.success_count
+        if rule.confidence < self.archive_threshold and more_failures:
             return self._decision(
                 "rule",
                 rule.rule_id,
@@ -130,25 +137,80 @@ class PruningEngine:
                 "rule_failure_ratio_too_high",
                 rule.confidence,
             )
-        return self._decision("rule", rule.rule_id, PruningAction.KEEP, "rule_healthy", rule.confidence)
+        return self._decision(
+            "rule",
+            rule.rule_id,
+            PruningAction.KEEP,
+            "rule_healthy",
+            rule.confidence,
+        )
 
     def decide_skill(self, skill: SkillRecord) -> PruningDecision:
         if skill.status == SkillStatus.ARCHIVED:
-            return self._decision("skill", skill.skill_id, PruningAction.KEEP, "skill_already_archived", skill.confidence)
+            return self._decision(
+                "skill",
+                skill.skill_id,
+                PruningAction.KEEP,
+                "skill_already_archived",
+                skill.confidence,
+            )
         if skill.confidence < self.archive_threshold:
-            return self._decision("skill", skill.skill_id, PruningAction.ARCHIVE, "skill_confidence_below_archive_threshold", skill.confidence)
+            return self._decision(
+                "skill",
+                skill.skill_id,
+                PruningAction.ARCHIVE,
+                "skill_confidence_below_archive_threshold",
+                skill.confidence,
+            )
         if skill.confidence < self.degrade_threshold:
-            return self._decision("skill", skill.skill_id, PruningAction.DEGRADE, "skill_confidence_below_degrade_threshold", skill.confidence)
-        return self._decision("skill", skill.skill_id, PruningAction.KEEP, "skill_healthy", skill.confidence)
+            return self._decision(
+                "skill",
+                skill.skill_id,
+                PruningAction.DEGRADE,
+                "skill_confidence_below_degrade_threshold",
+                skill.confidence,
+            )
+        return self._decision(
+            "skill",
+            skill.skill_id,
+            PruningAction.KEEP,
+            "skill_healthy",
+            skill.confidence,
+        )
 
     def decide_cell(self, health: CellHealth) -> PruningDecision:
         if health.quarantine:
-            return self._decision("cell", health.cell_id, PruningAction.QUARANTINE, "cell_already_quarantined", health.trust_score)
-        if health.trust_score < self.quarantine_threshold and health.failure_count >= 3:
-            return self._decision("cell", health.cell_id, PruningAction.QUARANTINE, "cell_trust_below_quarantine_threshold", health.trust_score)
+            return self._decision(
+                "cell",
+                health.cell_id,
+                PruningAction.QUARANTINE,
+                "cell_already_quarantined",
+                health.trust_score,
+            )
+        repeated_failure = health.failure_count >= 3
+        if health.trust_score < self.quarantine_threshold and repeated_failure:
+            return self._decision(
+                "cell",
+                health.cell_id,
+                PruningAction.QUARANTINE,
+                "cell_trust_below_quarantine_threshold",
+                health.trust_score,
+            )
         if health.requires_double_check:
-            return self._decision("cell", health.cell_id, PruningAction.DEGRADE, "cell_requires_double_check", health.trust_score)
-        return self._decision("cell", health.cell_id, PruningAction.KEEP, "cell_healthy", health.trust_score)
+            return self._decision(
+                "cell",
+                health.cell_id,
+                PruningAction.DEGRADE,
+                "cell_requires_double_check",
+                health.trust_score,
+            )
+        return self._decision(
+            "cell",
+            health.cell_id,
+            PruningAction.KEEP,
+            "cell_healthy",
+            health.trust_score,
+        )
 
     def decide_batch(
         self,
