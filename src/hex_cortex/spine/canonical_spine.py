@@ -15,10 +15,7 @@ from hex_cortex.spine.schemas import CanonicalSpineEvent, SpineIntegrityReport, 
 
 
 class CanonicalSpine:
-    """In-memory append-only event spine.
-
-    v0.1 is intentionally in-memory. Durable JSONL storage comes later.
-    """
+    """Append-only event spine with hash-chain verification."""
 
     def __init__(self) -> None:
         self._events: list[CanonicalSpineEvent] = []
@@ -70,6 +67,18 @@ class CanonicalSpine:
         )
         self._events.append(event)
         return event.model_copy(deep=True)
+
+    def replace_events(self, events: list[CanonicalSpineEvent]) -> None:
+        """Replace the in-memory event list with a verified event sequence."""
+
+        previous_events = self._events
+        self._events = [event.model_copy(deep=True) for event in events]
+        integrity = self.verify_integrity()
+        if integrity.ok:
+            return
+        self._events = previous_events
+        reason = integrity.reason or "unknown_integrity_error"
+        raise ValueError(f"invalid canonical spine events: {reason}")
 
     def events_for_task(self, task_id: str) -> list[CanonicalSpineEvent]:
         return [event.model_copy(deep=True) for event in self._events if event.task_id == task_id]
@@ -159,5 +168,10 @@ class CanonicalSpine:
             "created_at": created_at.isoformat(),
             "prev_event_hash": prev_event_hash,
         }
-        encoded = json.dumps(canonical_payload, sort_keys=True, separators=(",", ":"), default=str)
+        encoded = json.dumps(
+            canonical_payload,
+            sort_keys=True,
+            separators=(",", ":"),
+            default=str,
+        )
         return hashlib.sha256(encoded.encode("utf-8")).hexdigest()
