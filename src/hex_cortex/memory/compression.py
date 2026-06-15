@@ -97,7 +97,11 @@ class MemoryCompressionSpine:
             }
         )
 
-    def _extract_rules(self, episode: EpisodeSummary, source_event_ids: list[str]) -> list[TacitRule]:
+    def _extract_rules(
+        self,
+        episode: EpisodeSummary,
+        source_event_ids: list[str],
+    ) -> list[TacitRule]:
         rules: list[TacitRule] = []
         domains = self._domains_from_episode(episode)
 
@@ -120,7 +124,10 @@ class MemoryCompressionSpine:
             cell_path = " → ".join(episode.active_cells)
             rules.append(
                 TacitRule(
-                    claim=f"For tasks like '{episode.goal}', the cell path {cell_path} was useful.",
+                    claim=(
+                        f"For tasks like '{episode.goal}', the cell path "
+                        f"{cell_path} was useful."
+                    ),
                     applies_to=domains,
                     source_event_ids=source_event_ids,
                     source_episode_ids=[episode.episode_id],
@@ -133,7 +140,8 @@ class MemoryCompressionSpine:
             rules.append(
                 TacitRule(
                     claim=(
-                        f"For tasks like '{episode.goal}', retrieve prior memory before deep reasoning."
+                        f"For tasks like '{episode.goal}', retrieve prior memory "
+                        "before deep reasoning."
                     ),
                     applies_to=[*domains, "memory"],
                     source_event_ids=source_event_ids,
@@ -159,7 +167,10 @@ class MemoryCompressionSpine:
 
     @staticmethod
     def _domains_from_episode(episode: EpisodeSummary) -> list[str]:
-        words = [word.strip(".,:;!?()[]{}'\"").lower() for word in episode.goal.split()]
+        words = [
+            word.strip(".,:;!?()[]{}'\"").lower()
+            for word in episode.goal.split()
+        ]
         return sorted({word for word in words if len(word) >= 4})[:8]
 
     @staticmethod
