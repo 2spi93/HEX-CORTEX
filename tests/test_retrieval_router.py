@@ -4,7 +4,12 @@ from hex_cortex.memory.schemas import IndexEntry, RetrievalMethod, RetrievalQuer
 
 
 def test_tokenize_handles_basic_french_terms() -> None:
-    assert tokenize("Mémoire compressée, index-first!") == ["mémoire", "compressée", "index", "first"]
+    assert tokenize("Mémoire compressée, index-first!") == [
+        "mémoire",
+        "compressée",
+        "index",
+        "first",
+    ]
 
 
 def test_retrieval_prefers_exact_match() -> None:
