@@ -252,17 +252,44 @@ def test_cli_inspects_skills_jsonl(tmp_path, capsys) -> None:
     assert payload["archived_skill_count"] == 1
 
 
+def test_cli_inspects_profile(tmp_path, capsys) -> None:
+    profile = tmp_path / "profile"
+    skills_path = profile / "skills.jsonl"
+    SkillJsonlStore(skills_path).save(
+        [
+            SkillRecord(
+                name="memory workflow",
+                description="Use hydrated memory before reasoning.",
+                trigger_tags=["memory"],
+                status=SkillStatus.ACTIVE,
+            )
+        ]
+    )
+    main(["Profile inspect task", "--profile", str(profile)])
+    capsys.readouterr()
+
+    main(["--inspect-profile", str(profile)])
+    payload = json.loads(capsys.readouterr().out)
+
+    assert payload["inspect_type"] == "profile"
+    assert payload["exists"] is True
+    assert payload["spine"]["total_events"] > 0
+    assert payload["spine"]["integrity_ok"] is True
+    assert payload["memory"]["total_memory_count"] == 1
+    assert payload["skills"]["active_skill_count"] == 1
+
+
 def test_cli_rejects_multiple_inspect_modes(tmp_path) -> None:
+    profile = tmp_path / "profile"
     spine_path = tmp_path / "spine.jsonl"
-    memory_path = tmp_path / "memory.jsonl"
 
     with pytest.raises(ValueError, match="only one inspect mode"):
         main(
             [
+                "--inspect-profile",
+                str(profile),
                 "--inspect-spine",
                 str(spine_path),
-                "--inspect-memory",
-                str(memory_path),
             ]
         )
 
