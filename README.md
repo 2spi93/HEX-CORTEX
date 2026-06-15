@@ -2,9 +2,9 @@
 
 **Cellular World Model Intelligence**
 
-HEX-CORTEX is an experimental AI architecture designed around small specialized cells, sparse activation, a global cognitive workspace, local-first memory retrieval, memory compression, procedural skill memory, replay consolidation, sleep replay batches, a canonical append-only spine, controlled self-improvement, a bounded cognitive clock, a health-aware cell registry, and a JEPA-inspired world-model layer.
+HEX-CORTEX is an experimental AI architecture designed around small specialized cells, sparse activation, a global cognitive workspace, local-first memory retrieval, memory compression, procedural skill memory, replay consolidation, sleep replay batches, conservative pruning, a canonical append-only spine, controlled self-improvement, a bounded cognitive clock, a health-aware cell registry, and a JEPA-inspired world-model layer.
 
-The goal is not to build one oversized model. The goal is to build a modular cognitive system where intelligence emerges from health-aware routing, bounded execution, memory compression, replay consolidation, skill reuse, prediction, criticism, lineage, controlled self-improvement, and controlled action.
+The goal is not to build one oversized model. The goal is to build a modular cognitive system where intelligence emerges from health-aware routing, bounded execution, memory compression, replay consolidation, skill reuse, conservative pruning, prediction, criticism, lineage, controlled self-improvement, and controlled action.
 
 ## Core thesis
 
@@ -20,6 +20,7 @@ intelligence = specialized cells
              + canonical lineage
              + replay consolidation
              + sleep replay batches
+             + conservative pruning
              + controlled self-improvement
              + predictive world model
              + critic / immune system
@@ -39,8 +40,9 @@ intelligence = specialized cells
 9. **No cognition without lineage**: every decision should be traceable to task, cells, workspace state, and confidence.
 10. **Memory is compressed experience**: raw logs are not intelligence; replayable compressed patterns are.
 11. **Replay before trust**: canonical events are replayed into compact episode memory before reuse.
-12. **Self-improvement is gated**: hypotheses must be evaluated, scored, and rollback-safe before promotion.
-13. **Criticism is native**: every high-impact answer must pass through a critic or immune gate.
+12. **Prune noise conservatively**: weak artifacts are degraded or archived by decision, not deleted from history.
+13. **Self-improvement is gated**: hypotheses must be evaluated, scored, and rollback-safe before promotion.
+14. **Criticism is native**: every high-impact answer must pass through a critic or immune gate.
 
 ## Cognitive loop
 
@@ -62,6 +64,7 @@ input
 → memory compression
 → replay consolidation
 → sleep replay batch
+→ pruning decision
 → self-improvement candidate
 → cognitive clock completion
 ```
@@ -159,6 +162,16 @@ Expose consolidated memories.
 Do not execute skills during batch replay.
 ```
 
+## Pruning law
+
+```text
+Emit pruning decisions only.
+Keep protected memories.
+Degrade weak artifacts before archiving.
+Quarantine unstable cells.
+Never rewrite canonical history.
+```
+
 ## Repository status
 
 This repository starts with the foundation only:
@@ -174,6 +187,7 @@ This repository starts with the foundation only:
 - procedural skill library
 - replay engine
 - sleep replay batch engine
+- conservative pruning engine
 - minimal global workspace
 - local knowledge index
 - retrieval router
@@ -182,7 +196,7 @@ This repository starts with the foundation only:
 - deterministic evolution selector
 - unit tests
 
-No heavy model inference, GPU serving, vector database, autonomous code modification, arbitrary skill execution, or training code is included in the initial version.
+No heavy model inference, GPU serving, vector database, autonomous code modification, arbitrary skill execution, destructive pruning, or training code is included in the initial version.
 
 ## Quick start
 
@@ -218,6 +232,7 @@ src/hex_cortex/
     schemas.py
     selector.py
     skill_library.py
+    pruning.py
   replay/
     schemas.py
     replay_engine.py
@@ -240,8 +255,9 @@ tests/
   test_skill_library.py
   test_replay_engine.py
   test_sleep_replay.py
+  test_pruning_engine.py
 ```
 
 ## Current target
 
-Build **HEX-CORTEX v0.1**: a local-first cognitive kernel that can retrieve compact memory, run bounded cognitive ticks, route tasks into health-aware deterministic cells, reuse validated procedural skills, replay canonical events into compressed memory, batch consolidate replay reports, maintain a compact workspace, record append-only cognitive lineage, evaluate improvement hypotheses, score confidence, and expose its internal decisions for replay.
+Build **HEX-CORTEX v0.1**: a local-first cognitive kernel that can retrieve compact memory, run bounded cognitive ticks, route tasks into health-aware deterministic cells, reuse validated procedural skills, replay canonical events into compressed memory, batch consolidate replay reports, emit conservative pruning decisions, maintain a compact workspace, record append-only cognitive lineage, evaluate improvement hypotheses, score confidence, and expose its internal decisions for replay.
