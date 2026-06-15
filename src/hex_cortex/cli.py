@@ -117,6 +117,12 @@ def build_parser() -> argparse.ArgumentParser:
         default=None,
         help="Dry-run memory pruning for a profile without mutating files.",
     )
+    parser.add_argument(
+        "--apply-memory-pruning-profile",
+        type=Path,
+        default=None,
+        help="Apply memory pruning for a profile after writing a backup.",
+    )
     parser.add_argument("--skill-name", default=None, help="Skill name for bootstrap mode.")
     parser.add_argument(
         "--skill-description",
@@ -193,9 +199,9 @@ def main(argv: list[str] | None = None) -> int:
         _write_json(inspect_payload, pretty=args.pretty)
         return 0
 
-    if args.prune_memory_profile is not None:
-        payload = prune_memory_profile(args.prune_memory_profile)
-        _write_json(payload, pretty=args.pretty)
+    pruning_payload = _pruning_payload(args)
+    if pruning_payload is not None:
+        _write_json(pruning_payload, pretty=args.pretty)
         return 0
 
     if args.bootstrap_skill is not None:
@@ -279,12 +285,27 @@ def _inspect_payload(args: argparse.Namespace) -> dict[str, object] | None:
     return None
 
 
+def _pruning_payload(args: argparse.Namespace) -> dict[str, object] | None:
+    modes = [
+        args.prune_memory_profile is not None,
+        args.apply_memory_pruning_profile is not None,
+    ]
+    if sum(modes) > 1:
+        raise ValueError("only one pruning mode can be used at a time")
+    if args.prune_memory_profile is not None:
+        return prune_memory_profile(args.prune_memory_profile)
+    if args.apply_memory_pruning_profile is not None:
+        return apply_memory_pruning_profile(args.apply_memory_pruning_profile)
+    return None
+
+
 def inspect_profile(profile: Path) -> dict[str, object]:
     """Inspect all standard JSONL files in a profile directory."""
 
     spine_path = profile / "spine.jsonl"
     memory_path = profile / "memory.jsonl"
     skills_path = profile / "skills.jsonl"
+    pruning = memory_pruning_summary(profile)
     return {
         "inspect_type": "profile",
         "path": str(profile),
@@ -292,6 +313,7 @@ def inspect_profile(profile: Path) -> dict[str, object]:
         "spine": inspect_spine(spine_path),
         "memory": inspect_memory(memory_path),
         "skills": inspect_skills(skills_path),
+        "memory_pruning": pruning,
     }
 
 
@@ -346,18 +368,53 @@ def inspect_skills(path: Path) -> dict[str, object]:
     }
 
 
+def memory_pruning_summary(profile: Path) -> dict[str, object]:
+    payload = prune_memory_profile(profile)
+    return {
+        "dry_run": True,
+        "changed_count": payload["changed_count"],
+        "archive_count": payload["archive_count"],
+        "degrade_count": payload["degrade_count"],
+        "keep_count": payload["keep_count"],
+        "visible_before": payload["visible_before"],
+        "visible_after": payload["visible_after"],
+    }
+
+
 def prune_memory_profile(profile: Path) -> dict[str, object]:
     """Dry-run memory pruning for one local profile."""
 
+    return _memory_pruning_payload(profile, dry_run=True)
+
+
+def apply_memory_pruning_profile(profile: Path) -> dict[str, object]:
+    """Apply memory pruning for one local profile after backup."""
+
+    return _memory_pruning_payload(profile, dry_run=False)
+
+
+def _memory_pruning_payload(profile: Path, *, dry_run: bool) -> dict[str, object]:
     memory_path = profile / "memory.jsonl"
-    memories = LocalMemoryJsonlStore(memory_path).load()
+    backup_path = profile / "memory.prune-backup.jsonl"
+    store = LocalMemoryJsonlStore(memory_path)
+    memories = store.load()
     decisions = PruningEngine().decide_batch(memories=memories)
-    application = MemoryPruningApplication(memories).apply(decisions, dry_run=True)
+    application = MemoryPruningApplication(memories).apply(decisions, dry_run=dry_run)
+    backup_written = False
+    persisted_memory_count = len(memories)
+    if not dry_run:
+        LocalMemoryJsonlStore(backup_path).save(memories)
+        persisted_memory_count = store.save(application.memories)
+        backup_written = True
     return {
         "prune_type": "memory_profile",
-        "dry_run": True,
+        "dry_run": dry_run,
+        "applied": not dry_run,
+        "backup_written": backup_written,
+        "backup_path": str(backup_path) if backup_written else None,
         "profile_path": str(profile),
         "memory_path": str(memory_path),
+        "persisted_memory_count": persisted_memory_count,
         "total_memory_count": application.total_memory_count,
         "decision_count": application.decision_count,
         "changed_count": application.changed_count,
