@@ -2,7 +2,7 @@
 
 **Cellular World Model Intelligence**
 
-HEX-CORTEX is an experimental AI architecture designed around small specialized cells, sparse activation, a global cognitive workspace, local-first memory retrieval, and a JEPA-inspired world-model layer.
+HEX-CORTEX is an experimental AI architecture designed around small specialized cells, sparse activation, a global cognitive workspace, local-first memory retrieval, memory compression, and a JEPA-inspired world-model layer.
 
 The goal is not to build one oversized model. The goal is to build a modular cognitive system where intelligence emerges from routing, memory compression, prediction, criticism, replay, and controlled action.
 
@@ -43,7 +43,8 @@ input
 → world model prediction
 → critic / immune check
 → action
-→ memory / replay
+→ memory compression
+→ replay
 ```
 
 ## Memory / retrieval law
@@ -68,6 +69,7 @@ This repository starts with the foundation only:
 - minimal global workspace
 - local knowledge index
 - retrieval router
+- deterministic memory compression spine
 - unit tests
 
 No heavy model inference, GPU serving, vector database, or training code is included in the initial version.
@@ -96,6 +98,7 @@ src/hex_cortex/
     schemas.py
     local_index.py
     retrieval_router.py
+    compression.py
 
 docs/
   ARCHITECTURE.md
@@ -105,8 +108,9 @@ docs/
 tests/
   test_router.py
   test_retrieval_router.py
+  test_memory_compression.py
 ```
 
 ## Current target
 
-Build **HEX-CORTEX v0.1**: a local-first cognitive kernel that can retrieve compact memory, route tasks into small deterministic cells, maintain a compact workspace, score confidence, and expose its internal decisions for replay.
+Build **HEX-CORTEX v0.1**: a local-first cognitive kernel that can retrieve compact memory, route tasks into small deterministic cells, compress experience into replayable rules, maintain a compact workspace, score confidence, and expose its internal decisions for replay.
