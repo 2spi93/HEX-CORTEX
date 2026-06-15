@@ -17,6 +17,18 @@ class MemorySensitivity(StrEnum):
     HIGH = "high"
 
 
+class MemoryType(StrEnum):
+    """Semantic role of a stored memory."""
+
+    EPISODE = "episode"
+    SEMANTIC = "semantic"
+    PROCEDURAL_HINT = "procedural_hint"
+    PROJECT_STATE = "project_state"
+    OPERATOR_PREFERENCE = "operator_preference"
+    FAILURE_PATTERN = "failure_pattern"
+    DECISION_RULE = "decision_rule"
+
+
 class RetrievalMethod(StrEnum):
     """Retrieval method used to build a context packet."""
 
@@ -45,10 +57,15 @@ class MemoryRecord(BaseModel):
     body: str
     tags: list[str] = Field(default_factory=list)
     source_event_ids: list[str] = Field(default_factory=list)
+    memory_type: MemoryType = MemoryType.EPISODE
     confidence: float = Field(default=0.5, ge=0.0, le=1.0)
     sensitivity: MemorySensitivity = MemorySensitivity.LOW
     visible: bool = True
     deletable: bool = True
+    access_count: int = Field(default=0, ge=0)
+    last_accessed_at: str | None = None
+    supersedes_memory_ids: list[str] = Field(default_factory=list)
+    conflicts_with_memory_ids: list[str] = Field(default_factory=list)
     reason_for_storage: str | None = None
 
     @field_validator("title", "body")
