@@ -350,6 +350,7 @@ def inspect_memory(path: Path) -> dict[str, object]:
     records = store.load()
     visible_count = sum(1 for record in records if record.visible)
     tag_counts = Counter(tag for record in records for tag in record.tags)
+    type_counts = Counter(record.memory_type.value for record in records)
     return {
         "inspect_type": "memory",
         "path": str(path),
@@ -358,6 +359,7 @@ def inspect_memory(path: Path) -> dict[str, object]:
         "visible_memory_count": visible_count,
         "hidden_memory_count": len(records) - visible_count,
         "tag_counts": dict(sorted(tag_counts.items())),
+        "memory_type_counts": dict(sorted(type_counts.items())),
     }
 
 
