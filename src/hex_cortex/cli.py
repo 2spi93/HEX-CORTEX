@@ -86,6 +86,12 @@ def build_parser() -> argparse.ArgumentParser:
         help="Append one validated SkillRecord to the given skills JSONL path.",
     )
     parser.add_argument(
+        "--inspect-profile",
+        type=Path,
+        default=None,
+        help="Inspect a profile directory without running a task.",
+    )
+    parser.add_argument(
         "--inspect-spine",
         type=Path,
         default=None,
@@ -242,12 +248,15 @@ def _profile_file(profile: Path | None, filename: str) -> Path | None:
 
 def _inspect_payload(args: argparse.Namespace) -> dict[str, object] | None:
     modes = [
+        args.inspect_profile is not None,
         args.inspect_spine is not None,
         args.inspect_memory is not None,
         args.inspect_skills is not None,
     ]
     if sum(modes) > 1:
         raise ValueError("only one inspect mode can be used at a time")
+    if args.inspect_profile is not None:
+        return inspect_profile(args.inspect_profile)
     if args.inspect_spine is not None:
         return inspect_spine(args.inspect_spine)
     if args.inspect_memory is not None:
@@ -255,6 +264,22 @@ def _inspect_payload(args: argparse.Namespace) -> dict[str, object] | None:
     if args.inspect_skills is not None:
         return inspect_skills(args.inspect_skills)
     return None
+
+
+def inspect_profile(profile: Path) -> dict[str, object]:
+    """Inspect all standard JSONL files in a profile directory."""
+
+    spine_path = profile / "spine.jsonl"
+    memory_path = profile / "memory.jsonl"
+    skills_path = profile / "skills.jsonl"
+    return {
+        "inspect_type": "profile",
+        "path": str(profile),
+        "exists": profile.exists(),
+        "spine": inspect_spine(spine_path),
+        "memory": inspect_memory(memory_path),
+        "skills": inspect_skills(skills_path),
+    }
 
 
 def inspect_spine(path: Path) -> dict[str, object]:
