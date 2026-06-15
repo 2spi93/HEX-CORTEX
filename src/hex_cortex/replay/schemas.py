@@ -17,6 +17,15 @@ class ReplayStatus(StrEnum):
     INTEGRITY_FAILED = "integrity_failed"
 
 
+class SleepReplayStatus(StrEnum):
+    """Batch sleep replay status."""
+
+    EMPTY = "empty"
+    COMPLETED = "completed"
+    PARTIAL = "partial"
+    INTEGRITY_FAILED = "integrity_failed"
+
+
 class ReplayReport(BaseModel):
     """Result of replaying one task from canonical events."""
 
@@ -28,4 +37,17 @@ class ReplayReport(BaseModel):
     episode: EpisodeSummary | None = None
     compression: CompressionRecord | None = None
     memory: MemoryRecord | None = None
+    reason: str | None = None
+
+
+class SleepReplayReport(BaseModel):
+    """Result of consolidating several tasks during a sleep replay pass."""
+
+    status: SleepReplayStatus
+    requested_task_count: int = Field(ge=0)
+    consolidated_count: int = Field(ge=0)
+    empty_count: int = Field(ge=0)
+    failed_count: int = Field(ge=0)
+    memory_count: int = Field(ge=0)
+    reports: list[ReplayReport] = Field(default_factory=list)
     reason: str | None = None
