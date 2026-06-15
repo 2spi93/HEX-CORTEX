@@ -6,6 +6,7 @@ import argparse
 import json
 import sys
 from collections import Counter
+from dataclasses import dataclass
 from pathlib import Path
 
 from hex_cortex.core.cortex_pipeline import CortexPipeline, CortexPipelineResult
@@ -19,6 +20,16 @@ from hex_cortex.memory.local_index import LocalKnowledgeIndex
 from hex_cortex.memory.schemas import MemoryRecord
 from hex_cortex.spine.canonical_spine import CanonicalSpine
 from hex_cortex.spine.jsonl_store import CanonicalSpineJsonlStore
+
+
+@dataclass(frozen=True)
+class ProfilePaths:
+    """Resolved local profile paths."""
+
+    profile: Path | None
+    spine_jsonl: Path | None
+    memory_jsonl: Path | None
+    skills_jsonl: Path | None
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -44,6 +55,12 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--risk", type=float, default=0.5)
     parser.add_argument("--uncertainty", type=float, default=0.5)
     parser.add_argument("--latency-budget-ms", type=int, default=2_000)
+    parser.add_argument(
+        "--profile",
+        type=Path,
+        default=None,
+        help="Local profile directory for spine, memory, and skills JSONL files.",
+    )
     parser.add_argument(
         "--spine-jsonl",
         type=Path,
@@ -123,6 +140,7 @@ def summarize_result(
     persisted_memory_count: int | None = None,
     hydrated_memory_count: int | None = None,
     hydrated_skill_count: int | None = None,
+    profile_path: str | None = None,
 ) -> dict[str, object]:
     """Convert a pipeline result into stable CLI JSON."""
 
@@ -138,6 +156,8 @@ def summarize_result(
         "pruning_decisions": len(result.pruning_report.decisions),
         "clock_completed": result.clock_completed,
     }
+    if profile_path is not None:
+        payload["profile_path"] = profile_path
     if persisted_event_count is not None:
         payload["persisted_event_count"] = persisted_event_count
     if persisted_memory_count is not None:
@@ -167,6 +187,7 @@ def main(argv: list[str] | None = None) -> int:
     if args.content is None:
         parser.error("content is required unless an inspect or bootstrap mode is used")
 
+    paths = resolve_profile_paths(args)
     task = Task(
         content=args.content,
         domain_hints=args.domains,
@@ -176,17 +197,17 @@ def main(argv: list[str] | None = None) -> int:
         latency_budget_ms=args.latency_budget_ms,
     )
 
-    spine = _load_spine(args.spine_jsonl)
-    index, hydrated_memory_count = _load_memory_index(args.memory_jsonl)
-    skill_library, hydrated_skill_count = _load_skill_library(args.skills_jsonl)
+    spine = _load_spine(paths.spine_jsonl)
+    index, hydrated_memory_count = _load_memory_index(paths.memory_jsonl)
+    skill_library, hydrated_skill_count = _load_skill_library(paths.skills_jsonl)
     result = CortexPipeline(
         spine=spine,
         index=index,
         skill_library=skill_library,
     ).run(task)
-    persisted_event_count = _save_spine(args.spine_jsonl, spine)
+    persisted_event_count = _save_spine(paths.spine_jsonl, spine)
     persisted_memory_count = _save_memory(
-        args.memory_jsonl,
+        paths.memory_jsonl,
         result.replay_report.memory,
     )
     payload = summarize_result(
@@ -195,9 +216,28 @@ def main(argv: list[str] | None = None) -> int:
         persisted_memory_count=persisted_memory_count,
         hydrated_memory_count=hydrated_memory_count,
         hydrated_skill_count=hydrated_skill_count,
+        profile_path=str(paths.profile) if paths.profile is not None else None,
     )
     _write_json(payload, pretty=args.pretty)
     return 0
+
+
+def resolve_profile_paths(args: argparse.Namespace) -> ProfilePaths:
+    """Resolve explicit JSONL paths with optional profile defaults."""
+
+    profile = args.profile
+    return ProfilePaths(
+        profile=profile,
+        spine_jsonl=args.spine_jsonl or _profile_file(profile, "spine.jsonl"),
+        memory_jsonl=args.memory_jsonl or _profile_file(profile, "memory.jsonl"),
+        skills_jsonl=args.skills_jsonl or _profile_file(profile, "skills.jsonl"),
+    )
+
+
+def _profile_file(profile: Path | None, filename: str) -> Path | None:
+    if profile is None:
+        return None
+    return profile / filename
 
 
 def _inspect_payload(args: argparse.Namespace) -> dict[str, object] | None:
