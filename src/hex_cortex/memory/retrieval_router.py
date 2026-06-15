@@ -71,7 +71,11 @@ class RetrievalRouter:
         )
 
     @staticmethod
-    def _result_from_entry(entry: IndexEntry, score: float, method: RetrievalMethod) -> RetrievalResult:
+    def _result_from_entry(
+        entry: IndexEntry,
+        score: float,
+        method: RetrievalMethod,
+    ) -> RetrievalResult:
         snippet = entry.text.strip().replace("\n", " ")
         if len(snippet) > 500:
             snippet = f"{snippet[:497]}..."
