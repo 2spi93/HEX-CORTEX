@@ -9,6 +9,8 @@ from pathlib import Path
 
 from hex_cortex.core.cortex_pipeline import CortexPipeline, CortexPipelineResult
 from hex_cortex.core.schemas import Task
+from hex_cortex.evolver.skill_jsonl_store import SkillJsonlStore
+from hex_cortex.evolver.skill_library import SkillLibrary
 from hex_cortex.memory.index_hydrator import MemoryIndexHydrator
 from hex_cortex.memory.jsonl_store import LocalMemoryJsonlStore
 from hex_cortex.memory.local_index import LocalKnowledgeIndex
@@ -48,6 +50,12 @@ def build_parser() -> argparse.ArgumentParser:
         default=None,
         help="Optional JSONL path used to load and append consolidated memories.",
     )
+    parser.add_argument(
+        "--skills-jsonl",
+        type=Path,
+        default=None,
+        help="Optional JSONL path used to load active procedural skills.",
+    )
     parser.add_argument("--pretty", action="store_true", help="Pretty-print JSON output.")
     return parser
 
@@ -58,6 +66,7 @@ def summarize_result(
     persisted_event_count: int | None = None,
     persisted_memory_count: int | None = None,
     hydrated_memory_count: int | None = None,
+    hydrated_skill_count: int | None = None,
 ) -> dict[str, object]:
     """Convert a pipeline result into stable CLI JSON."""
 
@@ -79,6 +88,8 @@ def summarize_result(
         payload["persisted_memory_count"] = persisted_memory_count
     if hydrated_memory_count is not None:
         payload["hydrated_memory_count"] = hydrated_memory_count
+    if hydrated_skill_count is not None:
+        payload["hydrated_skill_count"] = hydrated_skill_count
     return payload
 
 
@@ -97,7 +108,12 @@ def main(argv: list[str] | None = None) -> int:
 
     spine = _load_spine(args.spine_jsonl)
     index, hydrated_memory_count = _load_memory_index(args.memory_jsonl)
-    result = CortexPipeline(spine=spine, index=index).run(task)
+    skill_library, hydrated_skill_count = _load_skill_library(args.skills_jsonl)
+    result = CortexPipeline(
+        spine=spine,
+        index=index,
+        skill_library=skill_library,
+    ).run(task)
     persisted_event_count = _save_spine(args.spine_jsonl, spine)
     persisted_memory_count = _save_memory(
         args.memory_jsonl,
@@ -108,6 +124,7 @@ def main(argv: list[str] | None = None) -> int:
         persisted_event_count=persisted_event_count,
         persisted_memory_count=persisted_memory_count,
         hydrated_memory_count=hydrated_memory_count,
+        hydrated_skill_count=hydrated_skill_count,
     )
     indent = 2 if args.pretty else None
     json.dump(payload, sys.stdout, indent=indent, sort_keys=True)
@@ -128,6 +145,13 @@ def _load_memory_index(path: Path | None) -> tuple[LocalKnowledgeIndex, int | No
     memories = LocalMemoryJsonlStore(path).visible()
     hydrated_count = MemoryIndexHydrator(index).hydrate(memories)
     return index, hydrated_count
+
+
+def _load_skill_library(path: Path | None) -> tuple[SkillLibrary, int | None]:
+    if path is None:
+        return SkillLibrary(), None
+    skills = SkillJsonlStore(path).active()
+    return SkillLibrary(skills), len(skills)
 
 
 def _save_spine(path: Path | None, spine: CanonicalSpine) -> int | None:
