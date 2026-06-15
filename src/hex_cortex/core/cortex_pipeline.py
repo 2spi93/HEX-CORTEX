@@ -195,7 +195,7 @@ class CortexPipeline:
         matched_skills: list[SkillRecord],
         decision: RoutingDecision,
     ) -> list[RegisteredTick]:
-        return [
+        planned_ticks = [
             RegisteredTick(
                 TickName.RETRIEVAL,
                 lambda _ctx: {
@@ -219,3 +219,4 @@ class CortexPipeline:
                 lambda _ctx: {"decision": "local_cortex_pass_completed"},
             ),
         ]
+        return planned_ticks[: decision.budget.max_ticks]
