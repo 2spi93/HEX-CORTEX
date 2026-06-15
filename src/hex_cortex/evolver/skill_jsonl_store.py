@@ -41,6 +41,13 @@ class SkillJsonlStore:
                 handle.write(f"{record.model_dump_json()}\n")
         return len(records)
 
+    def append(self, record: SkillRecord) -> int:
+        """Append one skill record and return the new total count."""
+
+        records = self.load()
+        records.append(record)
+        return self.save(records)
+
     def active(self) -> list[SkillRecord]:
         """Return active skills that can be hydrated into the skill library."""
 
