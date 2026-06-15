@@ -2,9 +2,9 @@
 
 **Cellular World Model Intelligence**
 
-HEX-CORTEX is an experimental AI architecture designed around small specialized cells, sparse activation, a global cognitive workspace, and a JEPA-inspired world-model layer.
+HEX-CORTEX is an experimental AI architecture designed around small specialized cells, sparse activation, a global cognitive workspace, local-first memory retrieval, and a JEPA-inspired world-model layer.
 
-The goal is not to build one oversized model. The goal is to build a modular cognitive system where intelligence emerges from routing, memory, prediction, criticism, replay, and controlled action.
+The goal is not to build one oversized model. The goal is to build a modular cognitive system where intelligence emerges from routing, memory compression, prediction, criticism, replay, and controlled action.
 
 ## Core thesis
 
@@ -13,6 +13,7 @@ intelligence = specialized cells
              + fast routing
              + sparse activation
              + global workspace
+             + index-first memory
              + predictive world model
              + critic / immune system
              + memory replay
@@ -24,15 +25,18 @@ intelligence = specialized cells
 2. **Small cells, strong contracts**: every cell has explicit input/output schemas.
 3. **Sparse activation**: never activate the whole cortex when a small circuit is enough.
 4. **Fast / working / deep thinking**: cognitive depth depends on uncertainty, novelty, risk, and cost.
-5. **No cognition without lineage**: every decision should be traceable to task, cells, workspace state, and confidence.
-6. **Memory is compressed experience**: raw logs are not intelligence; replayable compressed patterns are.
-7. **Criticism is native**: every high-impact answer must pass through a critic or immune gate.
+5. **Index-first memory**: never inject long context before searching a compact index.
+6. **No cognition without lineage**: every decision should be traceable to task, cells, workspace state, and confidence.
+7. **Memory is compressed experience**: raw logs are not intelligence; replayable compressed patterns are.
+8. **Criticism is native**: every high-impact answer must pass through a critic or immune gate.
 
 ## Cognitive loop
 
 ```text
 input
-→ perception
+→ local knowledge index
+→ retrieval router
+→ bounded context packet
 → thalamic routing
 → sparse cell activation
 → global workspace
@@ -42,18 +46,31 @@ input
 → memory / replay
 ```
 
+## Memory / retrieval law
+
+```text
+Index first.
+Lexical search first.
+Semantic fallback only when needed.
+Small context packet always.
+Compress after use.
+```
+
 ## Repository status
 
 This repository starts with the foundation only:
 
 - architecture notes
 - environment strategy
+- memory architecture
 - Pydantic contracts
 - minimal thalamic router
 - minimal global workspace
+- local knowledge index
+- retrieval router
 - unit tests
 
-No heavy model inference, GPU serving, or training code is included in the initial version.
+No heavy model inference, GPU serving, vector database, or training code is included in the initial version.
 
 ## Quick start
 
@@ -64,6 +81,7 @@ source .venv/bin/activate  # Linux/macOS
 
 pip install -e '.[dev]'
 pytest
+ruff check .
 ```
 
 ## Project layout
@@ -74,15 +92,21 @@ src/hex_cortex/
     schemas.py
     router.py
     workspace.py
+  memory/
+    schemas.py
+    local_index.py
+    retrieval_router.py
 
 docs/
   ARCHITECTURE.md
   ENVIRONMENT_STRATEGY.md
+  MEMORY_ARCHITECTURE.md
 
 tests/
   test_router.py
+  test_retrieval_router.py
 ```
 
 ## Current target
 
-Build **HEX-CORTEX v0.1**: a local-first cognitive kernel that can route tasks into small deterministic cells, maintain a compact workspace, score confidence, and expose its internal decisions for replay.
+Build **HEX-CORTEX v0.1**: a local-first cognitive kernel that can retrieve compact memory, route tasks into small deterministic cells, maintain a compact workspace, score confidence, and expose its internal decisions for replay.
