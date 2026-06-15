@@ -73,6 +73,19 @@ def test_cli_persists_spine_jsonl_between_runs(tmp_path, capsys) -> None:
     assert second_payload["persisted_event_count"] > first_payload["persisted_event_count"]
 
 
+def test_cli_persists_memory_jsonl_between_runs(tmp_path, capsys) -> None:
+    memory_path = tmp_path / "memory.jsonl"
+
+    main(["First memory task", "--memory-jsonl", str(memory_path)])
+    first_payload = json.loads(capsys.readouterr().out)
+    main(["Second memory task", "--memory-jsonl", str(memory_path)])
+    second_payload = json.loads(capsys.readouterr().out)
+
+    assert memory_path.exists()
+    assert first_payload["persisted_memory_count"] == 1
+    assert second_payload["persisted_memory_count"] == 2
+
+
 def test_summarize_result_matches_pipeline_output_contract() -> None:
     result = CortexPipeline().run(
         Task(
