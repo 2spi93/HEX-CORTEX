@@ -2,9 +2,9 @@
 
 **Cellular World Model Intelligence**
 
-HEX-CORTEX is an experimental AI architecture designed around small specialized cells, sparse activation, a global cognitive workspace, local-first memory retrieval, memory compression, a canonical append-only spine, controlled self-improvement, a bounded cognitive clock, a health-aware cell registry, and a JEPA-inspired world-model layer.
+HEX-CORTEX is an experimental AI architecture designed around small specialized cells, sparse activation, a global cognitive workspace, local-first memory retrieval, memory compression, procedural skill memory, a canonical append-only spine, controlled self-improvement, a bounded cognitive clock, a health-aware cell registry, and a JEPA-inspired world-model layer.
 
-The goal is not to build one oversized model. The goal is to build a modular cognitive system where intelligence emerges from health-aware routing, bounded execution, memory compression, prediction, criticism, replay, lineage, controlled self-improvement, and controlled action.
+The goal is not to build one oversized model. The goal is to build a modular cognitive system where intelligence emerges from health-aware routing, bounded execution, memory compression, skill reuse, prediction, criticism, replay, lineage, controlled self-improvement, and controlled action.
 
 ## Core thesis
 
@@ -16,6 +16,7 @@ intelligence = specialized cells
              + sparse activation
              + global workspace
              + index-first memory
+             + procedural skill memory
              + canonical lineage
              + controlled self-improvement
              + predictive world model
@@ -32,10 +33,11 @@ intelligence = specialized cells
 5. **Fast / working / deep thinking**: cognitive depth depends on uncertainty, novelty, risk, and cost.
 6. **Bounded ticks**: every reasoning loop has max ticks, max latency, and failure rules.
 7. **Index-first memory**: never inject long context before searching a compact index.
-8. **No cognition without lineage**: every decision should be traceable to task, cells, workspace state, and confidence.
-9. **Memory is compressed experience**: raw logs are not intelligence; replayable compressed patterns are.
-10. **Self-improvement is gated**: hypotheses must be evaluated, scored, and rollback-safe before promotion.
-11. **Criticism is native**: every high-impact answer must pass through a critic or immune gate.
+8. **Procedural skill memory**: validated workflows become reusable skills.
+9. **No cognition without lineage**: every decision should be traceable to task, cells, workspace state, and confidence.
+10. **Memory is compressed experience**: raw logs are not intelligence; replayable compressed patterns are.
+11. **Self-improvement is gated**: hypotheses must be evaluated, scored, and rollback-safe before promotion.
+12. **Criticism is native**: every high-impact answer must pass through a critic or immune gate.
 
 ## Cognitive loop
 
@@ -46,6 +48,7 @@ input
 → local knowledge index
 → retrieval router
 → bounded context packet
+→ skill library lookup
 → health-aware cell registry
 → thalamic routing
 → sparse cell activation
@@ -121,6 +124,17 @@ Select sparse active cells.
 Reject routing if no healthy cell exists.
 ```
 
+## Skill library law
+
+```text
+Store validated workflows as skills.
+Search skills by trigger tags.
+Activate only reusable skills.
+Degrade weak skills after failures.
+Archive skills that stop working.
+Never execute arbitrary skill code in v0.1.
+```
+
 ## Repository status
 
 This repository starts with the foundation only:
@@ -133,6 +147,7 @@ This repository starts with the foundation only:
 - health-aware thalamic router
 - bounded cognitive clock
 - health-aware cell registry
+- procedural skill library
 - minimal global workspace
 - local knowledge index
 - retrieval router
@@ -141,7 +156,7 @@ This repository starts with the foundation only:
 - deterministic evolution selector
 - unit tests
 
-No heavy model inference, GPU serving, vector database, autonomous code modification, or training code is included in the initial version.
+No heavy model inference, GPU serving, vector database, autonomous code modification, arbitrary skill execution, or training code is included in the initial version.
 
 ## Quick start
 
@@ -176,6 +191,7 @@ src/hex_cortex/
   evolver/
     schemas.py
     selector.py
+    skill_library.py
 
 docs/
   ARCHITECTURE.md
@@ -191,8 +207,9 @@ tests/
   test_evolver.py
   test_cognitive_clock.py
   test_cell_registry.py
+  test_skill_library.py
 ```
 
 ## Current target
 
-Build **HEX-CORTEX v0.1**: a local-first cognitive kernel that can retrieve compact memory, run bounded cognitive ticks, route tasks into health-aware deterministic cells, compress experience into replayable rules, maintain a compact workspace, record append-only cognitive lineage, evaluate improvement hypotheses, score confidence, and expose its internal decisions for replay.
+Build **HEX-CORTEX v0.1**: a local-first cognitive kernel that can retrieve compact memory, run bounded cognitive ticks, route tasks into health-aware deterministic cells, reuse validated procedural skills, compress experience into replayable rules, maintain a compact workspace, record append-only cognitive lineage, evaluate improvement hypotheses, score confidence, and expose its internal decisions for replay.
