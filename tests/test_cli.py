@@ -121,7 +121,15 @@ def test_cli_hydrates_active_skills_jsonl(tmp_path, capsys) -> None:
     )
     SkillJsonlStore(skills_path).save([active_skill, candidate_skill])
 
-    main(["Use memory workflow", "--domain", "memory", "--skills-jsonl", str(skills_path)])
+    main(
+        [
+            "Use memory workflow",
+            "--domain",
+            "memory",
+            "--skills-jsonl",
+            str(skills_path),
+        ]
+    )
     payload = json.loads(capsys.readouterr().out)
 
     assert payload["hydrated_skill_count"] == 1
@@ -171,7 +179,15 @@ def test_cli_bootstrapped_skill_can_be_hydrated(tmp_path, capsys) -> None:
     )
     capsys.readouterr()
 
-    main(["Use memory workflow", "--domain", "memory", "--skills-jsonl", str(skills_path)])
+    main(
+        [
+            "Use memory workflow",
+            "--domain",
+            "memory",
+            "--skills-jsonl",
+            str(skills_path),
+        ]
+    )
     payload = json.loads(capsys.readouterr().out)
 
     assert payload["hydrated_skill_count"] == 1
