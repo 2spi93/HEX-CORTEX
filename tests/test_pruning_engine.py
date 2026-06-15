@@ -94,7 +94,12 @@ def test_pruning_engine_degrades_cell_requiring_double_check() -> None:
 def test_pruning_engine_batch_counts_decisions() -> None:
     engine = PruningEngine()
     memory = MemoryRecord(title="m", body="b", confidence=0.1)
-    skill = SkillRecord(name="s", description="d", confidence=0.9, status=SkillStatus.ACTIVE)
+    skill = SkillRecord(
+        name="s",
+        description="d",
+        confidence=0.9,
+        status=SkillStatus.ACTIVE,
+    )
     cell = CellHealth(cell_id="c", trust_score=0.2, failure_count=3)
 
     report = engine.decide_batch(memories=[memory], skills=[skill], cells=[cell])
