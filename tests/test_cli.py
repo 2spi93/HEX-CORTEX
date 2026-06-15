@@ -60,6 +60,19 @@ def test_cli_can_select_working_mode(capsys) -> None:
     assert payload["mode"] == "working"
 
 
+def test_cli_persists_spine_jsonl_between_runs(tmp_path, capsys) -> None:
+    spine_path = tmp_path / "spine.jsonl"
+
+    main(["First local task", "--spine-jsonl", str(spine_path)])
+    first_payload = json.loads(capsys.readouterr().out)
+    main(["Second local task", "--spine-jsonl", str(spine_path)])
+    second_payload = json.loads(capsys.readouterr().out)
+
+    assert spine_path.exists()
+    assert first_payload["persisted_event_count"] > 0
+    assert second_payload["persisted_event_count"] > first_payload["persisted_event_count"]
+
+
 def test_summarize_result_matches_pipeline_output_contract() -> None:
     result = CortexPipeline().run(
         Task(
