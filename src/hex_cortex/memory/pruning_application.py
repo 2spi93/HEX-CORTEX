@@ -69,7 +69,9 @@ class MemoryPruningApplication:
                 replacement = next_memory.model_copy(update={"visible": after_visible})
                 next_by_id[decision.target_id] = replacement
                 index = next(
-                    idx for idx, item in enumerate(next_memories) if item.memory_id == decision.target_id
+                    idx
+                    for idx, item in enumerate(next_memories)
+                    if item.memory_id == decision.target_id
                 )
                 next_memories[index] = replacement
             changes.append(
