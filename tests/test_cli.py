@@ -86,6 +86,21 @@ def test_cli_persists_memory_jsonl_between_runs(tmp_path, capsys) -> None:
     assert second_payload["persisted_memory_count"] == 2
 
 
+def test_cli_hydrates_memory_jsonl_into_index(tmp_path, capsys) -> None:
+    memory_path = tmp_path / "memory.jsonl"
+
+    main(["Hydration target phrase", "--memory-jsonl", str(memory_path)])
+    first_payload = json.loads(capsys.readouterr().out)
+    main(["Hydration target phrase", "--memory-jsonl", str(memory_path)])
+    second_payload = json.loads(capsys.readouterr().out)
+
+    assert first_payload["hydrated_memory_count"] == 0
+    assert first_payload["retrieval_result_count"] == 0
+    assert second_payload["hydrated_memory_count"] == 1
+    assert second_payload["retrieval_result_count"] >= 1
+    assert second_payload["retrieval_method"] == "exact"
+
+
 def test_summarize_result_matches_pipeline_output_contract() -> None:
     result = CortexPipeline().run(
         Task(
