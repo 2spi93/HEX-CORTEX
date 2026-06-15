@@ -2,9 +2,9 @@
 
 **Cellular World Model Intelligence**
 
-HEX-CORTEX is an experimental AI architecture designed around small specialized cells, sparse activation, a global cognitive workspace, local-first memory retrieval, memory compression, procedural skill memory, replay consolidation, sleep replay batches, conservative pruning, a persistent canonical spine, persistent local memory, memory index hydration, controlled self-improvement, a bounded cognitive clock, a health-aware cell registry, a local cortex pipeline, and a JEPA-inspired world-model layer.
+HEX-CORTEX is an experimental AI architecture designed around small specialized cells, sparse activation, a global cognitive workspace, local-first memory retrieval, memory compression, procedural skill memory, replay consolidation, sleep replay batches, conservative pruning, a persistent canonical spine, persistent local memory, memory index hydration, skill index hydration, controlled self-improvement, a bounded cognitive clock, a health-aware cell registry, a local cortex pipeline, and a JEPA-inspired world-model layer.
 
-The goal is not to build one oversized model. The goal is to build a modular cognitive system where intelligence emerges from health-aware routing, bounded execution, memory compression, memory hydration, replay consolidation, skill reuse, conservative pruning, prediction, criticism, lineage, controlled self-improvement, and controlled action.
+The goal is not to build one oversized model. The goal is to build a modular cognitive system where intelligence emerges from health-aware routing, bounded execution, memory compression, memory hydration, skill hydration, replay consolidation, skill reuse, conservative pruning, prediction, criticism, lineage, controlled self-improvement, and controlled action.
 
 ## Core thesis
 
@@ -20,6 +20,7 @@ intelligence = specialized cells
              + persistent canonical lineage
              + persistent local memory
              + memory index hydration
+             + skill index hydration
              + replay consolidation
              + sleep replay batches
              + conservative pruning
@@ -54,6 +55,7 @@ input
 → cognitive clock start
 → canonical spine event
 → persisted memory hydration
+→ persisted skill hydration
 → local knowledge index
 → retrieval router
 → bounded context packet
@@ -144,6 +146,7 @@ Reject routing if no healthy cell exists.
 ```text
 Store validated workflows as skills.
 Search skills by trigger tags.
+Hydrate active persisted skills before matching.
 Activate only reusable skills.
 Degrade weak skills after failures.
 Archive skills that stop working.
@@ -208,6 +211,7 @@ This repository starts with the foundation only:
 - bounded cognitive clock
 - health-aware cell registry
 - procedural skill library
+- persistent skill store
 - replay engine
 - sleep replay batch engine
 - conservative pruning engine
@@ -261,13 +265,21 @@ Persist compressed memories between CLI runs:
 python -m hex_cortex.cli "Memory task" --memory-jsonl .hex-cortex/memory.jsonl
 ```
 
-Persist both lineage and compressed memories:
+Hydrate active persisted skills before matching:
 
 ```bash
-python -m hex_cortex.cli "Durable task" --spine-jsonl .hex-cortex/spine.jsonl --memory-jsonl .hex-cortex/memory.jsonl
+python -m hex_cortex.cli "Use memory workflow" --domain memory --skills-jsonl .hex-cortex/skills.jsonl
+```
+
+Persist lineage and memories while hydrating skills:
+
+```bash
+python -m hex_cortex.cli "Durable task" --spine-jsonl .hex-cortex/spine.jsonl --memory-jsonl .hex-cortex/memory.jsonl --skills-jsonl .hex-cortex/skills.jsonl
 ```
 
 When `--memory-jsonl` is provided, visible persisted memories are hydrated into the local index before retrieval. The output includes `hydrated_memory_count`.
+
+When `--skills-jsonl` is provided, active persisted skills are hydrated into the skill library before matching. The output includes `hydrated_skill_count`.
 
 The CLI does not call a remote model, start a server, or execute external actions.
 
@@ -298,6 +310,7 @@ src/hex_cortex/
   evolver/
     schemas.py
     selector.py
+    skill_jsonl_store.py
     skill_library.py
     pruning.py
   replay/
@@ -323,6 +336,7 @@ tests/
   test_evolver.py
   test_cognitive_clock.py
   test_cell_registry.py
+  test_skill_jsonl_store.py
   test_skill_library.py
   test_replay_engine.py
   test_sleep_replay.py
@@ -332,4 +346,4 @@ tests/
 
 ## Current target
 
-Build **HEX-CORTEX v0.1**: a local-first cognitive kernel that can retrieve compact memory, hydrate persisted memories into a local index, run bounded cognitive ticks, route tasks into health-aware deterministic cells, reuse validated procedural skills, replay canonical events into compressed memory, persist compressed memories, batch consolidate replay reports, emit conservative pruning decisions, maintain a compact workspace, record persistent append-only cognitive lineage, evaluate improvement hypotheses, score confidence, expose its internal decisions for replay, and run as a local CLI tool.
+Build **HEX-CORTEX v0.1**: a local-first cognitive kernel that can retrieve compact memory, hydrate persisted memories into a local index, hydrate active persisted skills into a procedural skill library, run bounded cognitive ticks, route tasks into health-aware deterministic cells, reuse validated procedural skills, replay canonical events into compressed memory, persist compressed memories, batch consolidate replay reports, emit conservative pruning decisions, maintain a compact workspace, record persistent append-only cognitive lineage, evaluate improvement hypotheses, score confidence, expose its internal decisions for replay, and run as a local CLI tool.
