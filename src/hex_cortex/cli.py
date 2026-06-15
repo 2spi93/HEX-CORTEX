@@ -9,6 +9,7 @@ from pathlib import Path
 
 from hex_cortex.core.cortex_pipeline import CortexPipeline, CortexPipelineResult
 from hex_cortex.core.schemas import Task
+from hex_cortex.evolver.schemas import SkillRecord, SkillStatus
 from hex_cortex.evolver.skill_jsonl_store import SkillJsonlStore
 from hex_cortex.evolver.skill_library import SkillLibrary
 from hex_cortex.memory.index_hydrator import MemoryIndexHydrator
@@ -26,7 +27,11 @@ def build_parser() -> argparse.ArgumentParser:
         prog="hex-cortex",
         description="Run one local HEX-CORTEX pipeline pass.",
     )
-    parser.add_argument("content", help="Task content to send into HEX-CORTEX.")
+    parser.add_argument(
+        "content",
+        nargs="?",
+        help="Task content to send into HEX-CORTEX.",
+    )
     parser.add_argument(
         "--domain",
         action="append",
@@ -55,6 +60,38 @@ def build_parser() -> argparse.ArgumentParser:
         type=Path,
         default=None,
         help="Optional JSONL path used to load active procedural skills.",
+    )
+    parser.add_argument(
+        "--bootstrap-skill",
+        type=Path,
+        default=None,
+        help="Append one validated SkillRecord to the given skills JSONL path.",
+    )
+    parser.add_argument("--skill-name", default=None, help="Skill name for bootstrap mode.")
+    parser.add_argument(
+        "--skill-description",
+        default=None,
+        help="Skill description for bootstrap mode.",
+    )
+    parser.add_argument(
+        "--skill-trigger",
+        action="append",
+        default=[],
+        dest="skill_triggers",
+        help="Skill trigger tag. Can be passed multiple times.",
+    )
+    parser.add_argument(
+        "--skill-step",
+        action="append",
+        default=[],
+        dest="skill_steps",
+        help="Skill workflow step. Can be passed multiple times.",
+    )
+    parser.add_argument("--skill-confidence", type=float, default=0.8)
+    parser.add_argument(
+        "--skill-status",
+        choices=[status.value for status in SkillStatus],
+        default=SkillStatus.ACTIVE.value,
     )
     parser.add_argument("--pretty", action="store_true", help="Pretty-print JSON output.")
     return parser
@@ -96,7 +133,16 @@ def summarize_result(
 def main(argv: list[str] | None = None) -> int:
     """Run the CLI and return a process-style exit code."""
 
-    args = build_parser().parse_args(argv)
+    parser = build_parser()
+    args = parser.parse_args(argv)
+    if args.bootstrap_skill is not None:
+        payload = _bootstrap_skill(args)
+        _write_json(payload, pretty=args.pretty)
+        return 0
+
+    if args.content is None:
+        parser.error("content is required unless --bootstrap-skill is used")
+
     task = Task(
         content=args.content,
         domain_hints=args.domains,
@@ -126,10 +172,43 @@ def main(argv: list[str] | None = None) -> int:
         hydrated_memory_count=hydrated_memory_count,
         hydrated_skill_count=hydrated_skill_count,
     )
-    indent = 2 if args.pretty else None
+    _write_json(payload, pretty=args.pretty)
+    return 0
+
+
+def _bootstrap_skill(args: argparse.Namespace) -> dict[str, object]:
+    if not args.skill_name:
+        raise ValueError("--skill-name is required with --bootstrap-skill")
+
+    description = args.skill_description or f"Reusable workflow for {args.skill_name}."
+    triggers = args.skill_triggers or [args.skill_name]
+    steps = args.skill_steps or ["inspect", "act", "verify"]
+    skill = SkillRecord(
+        name=args.skill_name,
+        description=description,
+        trigger_tags=triggers,
+        workflow_steps=steps,
+        confidence=args.skill_confidence,
+        status=SkillStatus(args.skill_status),
+    )
+    total_count = SkillJsonlStore(args.bootstrap_skill).append(skill)
+    active_count = len(SkillJsonlStore(args.bootstrap_skill).active())
+    return {
+        "bootstrapped_skill_count": total_count,
+        "active_skill_count": active_count,
+        "skill_id": skill.skill_id,
+        "skill_name": skill.name,
+        "skill_status": skill.status.value,
+        "skill_trigger_count": len(skill.trigger_tags),
+        "skill_step_count": len(skill.workflow_steps),
+        "skills_path": str(args.bootstrap_skill),
+    }
+
+
+def _write_json(payload: dict[str, object], *, pretty: bool) -> None:
+    indent = 2 if pretty else None
     json.dump(payload, sys.stdout, indent=indent, sort_keys=True)
     sys.stdout.write("\n")
-    return 0
 
 
 def _load_spine(path: Path | None) -> CanonicalSpine:
