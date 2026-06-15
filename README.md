@@ -2,15 +2,16 @@
 
 **Cellular World Model Intelligence**
 
-HEX-CORTEX is an experimental AI architecture designed around small specialized cells, sparse activation, a global cognitive workspace, local-first memory retrieval, memory compression, a canonical append-only spine, controlled self-improvement, and a JEPA-inspired world-model layer.
+HEX-CORTEX is an experimental AI architecture designed around small specialized cells, sparse activation, a global cognitive workspace, local-first memory retrieval, memory compression, a canonical append-only spine, controlled self-improvement, a bounded cognitive clock, and a JEPA-inspired world-model layer.
 
-The goal is not to build one oversized model. The goal is to build a modular cognitive system where intelligence emerges from routing, memory compression, prediction, criticism, replay, lineage, controlled self-improvement, and controlled action.
+The goal is not to build one oversized model. The goal is to build a modular cognitive system where intelligence emerges from routing, bounded execution, memory compression, prediction, criticism, replay, lineage, controlled self-improvement, and controlled action.
 
 ## Core thesis
 
 ```text
 intelligence = specialized cells
              + fast routing
+             + bounded cognitive clock
              + sparse activation
              + global workspace
              + index-first memory
@@ -27,16 +28,18 @@ intelligence = specialized cells
 2. **Small cells, strong contracts**: every cell has explicit input/output schemas.
 3. **Sparse activation**: never activate the whole cortex when a small circuit is enough.
 4. **Fast / working / deep thinking**: cognitive depth depends on uncertainty, novelty, risk, and cost.
-5. **Index-first memory**: never inject long context before searching a compact index.
-6. **No cognition without lineage**: every decision should be traceable to task, cells, workspace state, and confidence.
-7. **Memory is compressed experience**: raw logs are not intelligence; replayable compressed patterns are.
-8. **Self-improvement is gated**: hypotheses must be evaluated, scored, and rollback-safe before promotion.
-9. **Criticism is native**: every high-impact answer must pass through a critic or immune gate.
+5. **Bounded ticks**: every reasoning loop has max ticks, max latency, and failure rules.
+6. **Index-first memory**: never inject long context before searching a compact index.
+7. **No cognition without lineage**: every decision should be traceable to task, cells, workspace state, and confidence.
+8. **Memory is compressed experience**: raw logs are not intelligence; replayable compressed patterns are.
+9. **Self-improvement is gated**: hypotheses must be evaluated, scored, and rollback-safe before promotion.
+10. **Criticism is native**: every high-impact answer must pass through a critic or immune gate.
 
 ## Cognitive loop
 
 ```text
 input
+→ cognitive clock start
 → canonical spine event
 → local knowledge index
 → retrieval router
@@ -50,6 +53,7 @@ input
 → memory compression
 → self-improvement candidate
 → replay
+→ cognitive clock completion
 ```
 
 ## Memory / retrieval law
@@ -83,6 +87,17 @@ Reject or promote.
 Never self-modify without rollback.
 ```
 
+## Cognitive clock law
+
+```text
+Start tick.
+Run bounded handler.
+Capture success or failure.
+Append lifecycle events.
+Stop on required failure.
+Never loop forever.
+```
+
 ## Repository status
 
 This repository starts with the foundation only:
@@ -93,6 +108,7 @@ This repository starts with the foundation only:
 - self-improvement architecture
 - Pydantic contracts
 - minimal thalamic router
+- bounded cognitive clock
 - minimal global workspace
 - local knowledge index
 - retrieval router
@@ -123,6 +139,7 @@ src/hex_cortex/
     schemas.py
     router.py
     workspace.py
+    cognitive_clock.py
   memory/
     schemas.py
     local_index.py
@@ -147,8 +164,9 @@ tests/
   test_memory_compression.py
   test_canonical_spine.py
   test_evolver.py
+  test_cognitive_clock.py
 ```
 
 ## Current target
 
-Build **HEX-CORTEX v0.1**: a local-first cognitive kernel that can retrieve compact memory, route tasks into small deterministic cells, compress experience into replayable rules, maintain a compact workspace, record append-only cognitive lineage, evaluate improvement hypotheses, score confidence, and expose its internal decisions for replay.
+Build **HEX-CORTEX v0.1**: a local-first cognitive kernel that can retrieve compact memory, run bounded cognitive ticks, route tasks into small deterministic cells, compress experience into replayable rules, maintain a compact workspace, record append-only cognitive lineage, evaluate improvement hypotheses, score confidence, and expose its internal decisions for replay.
