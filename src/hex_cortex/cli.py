@@ -19,7 +19,10 @@ from hex_cortex.memory.index_hydrator import MemoryIndexHydrator
 from hex_cortex.memory.jsonl_store import LocalMemoryJsonlStore
 from hex_cortex.memory.local_index import LocalKnowledgeIndex
 from hex_cortex.memory.pruning_application import MemoryPruningApplication
-from hex_cortex.memory.pruning_audit import PruningAuditJsonlStore, PruningAuditRecord
+from hex_cortex.memory.pruning_audit import (
+    PruningAuditJsonlStore,
+    PruningAuditRecord,
+)
 from hex_cortex.memory.schemas import MemoryRecord
 from hex_cortex.spine.canonical_spine import CanonicalSpine
 from hex_cortex.spine.jsonl_store import CanonicalSpineJsonlStore
