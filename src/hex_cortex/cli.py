@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from collections import Counter
 from pathlib import Path
 
 from hex_cortex.core.cortex_pipeline import CortexPipeline, CortexPipelineResult
@@ -66,6 +67,24 @@ def build_parser() -> argparse.ArgumentParser:
         type=Path,
         default=None,
         help="Append one validated SkillRecord to the given skills JSONL path.",
+    )
+    parser.add_argument(
+        "--inspect-spine",
+        type=Path,
+        default=None,
+        help="Inspect a canonical spine JSONL file without running a task.",
+    )
+    parser.add_argument(
+        "--inspect-memory",
+        type=Path,
+        default=None,
+        help="Inspect a memory JSONL file without running a task.",
+    )
+    parser.add_argument(
+        "--inspect-skills",
+        type=Path,
+        default=None,
+        help="Inspect a skills JSONL file without running a task.",
     )
     parser.add_argument("--skill-name", default=None, help="Skill name for bootstrap mode.")
     parser.add_argument(
@@ -135,13 +154,18 @@ def main(argv: list[str] | None = None) -> int:
 
     parser = build_parser()
     args = parser.parse_args(argv)
+    inspect_payload = _inspect_payload(args)
+    if inspect_payload is not None:
+        _write_json(inspect_payload, pretty=args.pretty)
+        return 0
+
     if args.bootstrap_skill is not None:
         payload = _bootstrap_skill(args)
         _write_json(payload, pretty=args.pretty)
         return 0
 
     if args.content is None:
-        parser.error("content is required unless --bootstrap-skill is used")
+        parser.error("content is required unless an inspect or bootstrap mode is used")
 
     task = Task(
         content=args.content,
@@ -174,6 +198,74 @@ def main(argv: list[str] | None = None) -> int:
     )
     _write_json(payload, pretty=args.pretty)
     return 0
+
+
+def _inspect_payload(args: argparse.Namespace) -> dict[str, object] | None:
+    modes = [
+        args.inspect_spine is not None,
+        args.inspect_memory is not None,
+        args.inspect_skills is not None,
+    ]
+    if sum(modes) > 1:
+        raise ValueError("only one inspect mode can be used at a time")
+    if args.inspect_spine is not None:
+        return inspect_spine(args.inspect_spine)
+    if args.inspect_memory is not None:
+        return inspect_memory(args.inspect_memory)
+    if args.inspect_skills is not None:
+        return inspect_skills(args.inspect_skills)
+    return None
+
+
+def inspect_spine(path: Path) -> dict[str, object]:
+    spine = CanonicalSpineJsonlStore(path).load()
+    projection = spine.project()
+    integrity = spine.verify_integrity()
+    return {
+        "inspect_type": "spine",
+        "path": str(path),
+        "exists": path.exists(),
+        "integrity_ok": integrity.ok,
+        "checked_events": integrity.checked_events,
+        "integrity_reason": integrity.reason,
+        "total_events": projection.total_events,
+        "task_count": projection.task_count,
+        "event_type_counts": projection.event_type_counts,
+        "latest_sequence_number": projection.latest_sequence_number,
+        "latest_event_hash": projection.latest_event_hash,
+    }
+
+
+def inspect_memory(path: Path) -> dict[str, object]:
+    store = LocalMemoryJsonlStore(path)
+    records = store.load()
+    visible_count = sum(1 for record in records if record.visible)
+    tag_counts = Counter(tag for record in records for tag in record.tags)
+    return {
+        "inspect_type": "memory",
+        "path": str(path),
+        "exists": path.exists(),
+        "total_memory_count": len(records),
+        "visible_memory_count": visible_count,
+        "hidden_memory_count": len(records) - visible_count,
+        "tag_counts": dict(sorted(tag_counts.items())),
+    }
+
+
+def inspect_skills(path: Path) -> dict[str, object]:
+    records = SkillJsonlStore(path).load()
+    status_counts = Counter(skill.status.value for skill in records)
+    return {
+        "inspect_type": "skills",
+        "path": str(path),
+        "exists": path.exists(),
+        "total_skill_count": len(records),
+        "active_skill_count": status_counts.get(SkillStatus.ACTIVE.value, 0),
+        "candidate_skill_count": status_counts.get(SkillStatus.CANDIDATE.value, 0),
+        "degraded_skill_count": status_counts.get(SkillStatus.DEGRADED.value, 0),
+        "archived_skill_count": status_counts.get(SkillStatus.ARCHIVED.value, 0),
+        "status_counts": dict(sorted(status_counts.items())),
+    }
 
 
 def _bootstrap_skill(args: argparse.Namespace) -> dict[str, object]:
