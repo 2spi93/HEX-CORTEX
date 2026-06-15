@@ -11,12 +11,14 @@ from pathlib import Path
 
 from hex_cortex.core.cortex_pipeline import CortexPipeline, CortexPipelineResult
 from hex_cortex.core.schemas import Task
+from hex_cortex.evolver.pruning import PruningEngine
 from hex_cortex.evolver.schemas import SkillRecord, SkillStatus
 from hex_cortex.evolver.skill_jsonl_store import SkillJsonlStore
 from hex_cortex.evolver.skill_library import SkillLibrary
 from hex_cortex.memory.index_hydrator import MemoryIndexHydrator
 from hex_cortex.memory.jsonl_store import LocalMemoryJsonlStore
 from hex_cortex.memory.local_index import LocalKnowledgeIndex
+from hex_cortex.memory.pruning_application import MemoryPruningApplication
 from hex_cortex.memory.schemas import MemoryRecord
 from hex_cortex.spine.canonical_spine import CanonicalSpine
 from hex_cortex.spine.jsonl_store import CanonicalSpineJsonlStore
@@ -109,6 +111,12 @@ def build_parser() -> argparse.ArgumentParser:
         default=None,
         help="Inspect a skills JSONL file without running a task.",
     )
+    parser.add_argument(
+        "--prune-memory-profile",
+        type=Path,
+        default=None,
+        help="Dry-run memory pruning for a profile without mutating files.",
+    )
     parser.add_argument("--skill-name", default=None, help="Skill name for bootstrap mode.")
     parser.add_argument(
         "--skill-description",
@@ -185,13 +193,18 @@ def main(argv: list[str] | None = None) -> int:
         _write_json(inspect_payload, pretty=args.pretty)
         return 0
 
+    if args.prune_memory_profile is not None:
+        payload = prune_memory_profile(args.prune_memory_profile)
+        _write_json(payload, pretty=args.pretty)
+        return 0
+
     if args.bootstrap_skill is not None:
         payload = _bootstrap_skill(args)
         _write_json(payload, pretty=args.pretty)
         return 0
 
     if args.content is None:
-        parser.error("content is required unless an inspect or bootstrap mode is used")
+        parser.error("content is required unless an inspect, pruning, or bootstrap mode is used")
 
     paths = resolve_profile_paths(args)
     task = Task(
@@ -330,6 +343,30 @@ def inspect_skills(path: Path) -> dict[str, object]:
         "degraded_skill_count": status_counts.get(SkillStatus.DEGRADED.value, 0),
         "archived_skill_count": status_counts.get(SkillStatus.ARCHIVED.value, 0),
         "status_counts": dict(sorted(status_counts.items())),
+    }
+
+
+def prune_memory_profile(profile: Path) -> dict[str, object]:
+    """Dry-run memory pruning for one local profile."""
+
+    memory_path = profile / "memory.jsonl"
+    memories = LocalMemoryJsonlStore(memory_path).load()
+    decisions = PruningEngine().decide_batch(memories=memories)
+    application = MemoryPruningApplication(memories).apply(decisions, dry_run=True)
+    return {
+        "prune_type": "memory_profile",
+        "dry_run": True,
+        "profile_path": str(profile),
+        "memory_path": str(memory_path),
+        "total_memory_count": application.total_memory_count,
+        "decision_count": application.decision_count,
+        "changed_count": application.changed_count,
+        "visible_before": application.visible_before,
+        "visible_after": application.visible_after,
+        "keep_count": decisions.keep_count,
+        "degrade_count": decisions.degrade_count,
+        "archive_count": decisions.archive_count,
+        "changes": [change.model_dump(mode="json") for change in application.changes],
     }
 
 
