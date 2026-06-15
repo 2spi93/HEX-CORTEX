@@ -19,6 +19,7 @@ from hex_cortex.memory.index_hydrator import MemoryIndexHydrator
 from hex_cortex.memory.jsonl_store import LocalMemoryJsonlStore
 from hex_cortex.memory.local_index import LocalKnowledgeIndex
 from hex_cortex.memory.pruning_application import MemoryPruningApplication
+from hex_cortex.memory.pruning_audit import PruningAuditJsonlStore, PruningAuditRecord
 from hex_cortex.memory.schemas import MemoryRecord
 from hex_cortex.spine.canonical_spine import CanonicalSpine
 from hex_cortex.spine.jsonl_store import CanonicalSpineJsonlStore
@@ -314,6 +315,7 @@ def inspect_profile(profile: Path) -> dict[str, object]:
     spine_path = profile / "spine.jsonl"
     memory_path = profile / "memory.jsonl"
     skills_path = profile / "skills.jsonl"
+    audit_path = profile / "pruning-audit.jsonl"
     pruning = memory_pruning_summary(profile)
     return {
         "inspect_type": "profile",
@@ -323,6 +325,7 @@ def inspect_profile(profile: Path) -> dict[str, object]:
         "memory": inspect_memory(memory_path),
         "skills": inspect_skills(skills_path),
         "memory_pruning": pruning,
+        "pruning_audit": inspect_pruning_audit(audit_path),
     }
 
 
@@ -379,8 +382,23 @@ def inspect_skills(path: Path) -> dict[str, object]:
     }
 
 
+def inspect_pruning_audit(path: Path) -> dict[str, object]:
+    records = PruningAuditJsonlStore(path).load()
+    operation_counts = Counter(record.operation for record in records)
+    latest = records[-1] if records else None
+    return {
+        "inspect_type": "pruning_audit",
+        "path": str(path),
+        "exists": path.exists(),
+        "total_audit_count": len(records),
+        "operation_counts": dict(sorted(operation_counts.items())),
+        "latest_audit_id": latest.audit_id if latest else None,
+        "latest_operation": latest.operation if latest else None,
+    }
+
+
 def memory_pruning_summary(profile: Path) -> dict[str, object]:
-    payload = prune_memory_profile(profile)
+    payload = _memory_pruning_payload(profile, dry_run=True, audit=False)
     return {
         "dry_run": True,
         "changed_count": payload["changed_count"],
@@ -395,13 +413,13 @@ def memory_pruning_summary(profile: Path) -> dict[str, object]:
 def prune_memory_profile(profile: Path) -> dict[str, object]:
     """Dry-run memory pruning for one local profile."""
 
-    return _memory_pruning_payload(profile, dry_run=True)
+    return _memory_pruning_payload(profile, dry_run=True, audit=True)
 
 
 def apply_memory_pruning_profile(profile: Path) -> dict[str, object]:
     """Apply memory pruning for one local profile after backup."""
 
-    return _memory_pruning_payload(profile, dry_run=False)
+    return _memory_pruning_payload(profile, dry_run=False, audit=True)
 
 
 def restore_memory_pruning_profile(profile: Path) -> dict[str, object]:
@@ -409,21 +427,39 @@ def restore_memory_pruning_profile(profile: Path) -> dict[str, object]:
 
     memory_path = profile / "memory.jsonl"
     backup_path = profile / "memory.prune-backup.jsonl"
+    current_records = LocalMemoryJsonlStore(memory_path).load()
     backup_records = LocalMemoryJsonlStore(backup_path).load()
     restored_count = LocalMemoryJsonlStore(memory_path).save(backup_records)
-    visible_count = sum(1 for memory in backup_records if memory.visible)
-    return {
+    visible_before = sum(1 for memory in current_records if memory.visible)
+    visible_after = sum(1 for memory in backup_records if memory.visible)
+    payload: dict[str, object] = {
         "restore_type": "memory_pruning_profile",
         "restored": True,
+        "dry_run": False,
+        "applied": True,
         "profile_path": str(profile),
         "memory_path": str(memory_path),
         "backup_path": str(backup_path),
         "restored_memory_count": restored_count,
-        "visible_memory_count": visible_count,
+        "visible_memory_count": visible_after,
+        "total_memory_count": restored_count,
+        "changed_count": abs(visible_after - visible_before),
+        "visible_before": visible_before,
+        "visible_after": visible_after,
+        "keep_count": restored_count,
+        "degrade_count": 0,
+        "archive_count": 0,
     }
+    payload.update(_append_pruning_audit(profile, "restore", payload))
+    return payload
 
 
-def _memory_pruning_payload(profile: Path, *, dry_run: bool) -> dict[str, object]:
+def _memory_pruning_payload(
+    profile: Path,
+    *,
+    dry_run: bool,
+    audit: bool,
+) -> dict[str, object]:
     memory_path = profile / "memory.jsonl"
     backup_path = profile / "memory.prune-backup.jsonl"
     store = LocalMemoryJsonlStore(memory_path)
@@ -436,7 +472,7 @@ def _memory_pruning_payload(profile: Path, *, dry_run: bool) -> dict[str, object
         LocalMemoryJsonlStore(backup_path).save(memories)
         persisted_memory_count = store.save(application.memories)
         backup_written = True
-    return {
+    payload: dict[str, object] = {
         "prune_type": "memory_profile",
         "dry_run": dry_run,
         "applied": not dry_run,
@@ -454,6 +490,39 @@ def _memory_pruning_payload(profile: Path, *, dry_run: bool) -> dict[str, object
         "degrade_count": decisions.degrade_count,
         "archive_count": decisions.archive_count,
         "changes": [change.model_dump(mode="json") for change in application.changes],
+    }
+    if audit:
+        operation = "preview" if dry_run else "apply"
+        payload.update(_append_pruning_audit(profile, operation, payload))
+    return payload
+
+
+def _append_pruning_audit(
+    profile: Path,
+    operation: str,
+    payload: dict[str, object],
+) -> dict[str, object]:
+    audit_path = profile / "pruning-audit.jsonl"
+    record = PruningAuditRecord(
+        operation=operation,
+        profile_path=str(profile),
+        memory_path=str(payload["memory_path"]),
+        backup_path=payload.get("backup_path"),
+        dry_run=bool(payload["dry_run"]),
+        applied=bool(payload["applied"]),
+        total_memory_count=int(payload["total_memory_count"]),
+        changed_count=int(payload["changed_count"]),
+        visible_before=int(payload["visible_before"]),
+        visible_after=int(payload["visible_after"]),
+        keep_count=int(payload["keep_count"]),
+        degrade_count=int(payload["degrade_count"]),
+        archive_count=int(payload["archive_count"]),
+    )
+    audit_count = PruningAuditJsonlStore(audit_path).append(record)
+    return {
+        "audit_id": record.audit_id,
+        "audit_path": str(audit_path),
+        "audit_record_count": audit_count,
     }
 
 
