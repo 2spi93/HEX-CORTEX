@@ -123,6 +123,12 @@ def build_parser() -> argparse.ArgumentParser:
         default=None,
         help="Apply memory pruning for a profile after writing a backup.",
     )
+    parser.add_argument(
+        "--restore-memory-pruning-profile",
+        type=Path,
+        default=None,
+        help="Restore profile memory from the pruning backup file.",
+    )
     parser.add_argument("--skill-name", default=None, help="Skill name for bootstrap mode.")
     parser.add_argument(
         "--skill-description",
@@ -289,6 +295,7 @@ def _pruning_payload(args: argparse.Namespace) -> dict[str, object] | None:
     modes = [
         args.prune_memory_profile is not None,
         args.apply_memory_pruning_profile is not None,
+        args.restore_memory_pruning_profile is not None,
     ]
     if sum(modes) > 1:
         raise ValueError("only one pruning mode can be used at a time")
@@ -296,6 +303,8 @@ def _pruning_payload(args: argparse.Namespace) -> dict[str, object] | None:
         return prune_memory_profile(args.prune_memory_profile)
     if args.apply_memory_pruning_profile is not None:
         return apply_memory_pruning_profile(args.apply_memory_pruning_profile)
+    if args.restore_memory_pruning_profile is not None:
+        return restore_memory_pruning_profile(args.restore_memory_pruning_profile)
     return None
 
 
@@ -391,6 +400,25 @@ def apply_memory_pruning_profile(profile: Path) -> dict[str, object]:
     """Apply memory pruning for one local profile after backup."""
 
     return _memory_pruning_payload(profile, dry_run=False)
+
+
+def restore_memory_pruning_profile(profile: Path) -> dict[str, object]:
+    """Restore profile memory from the pruning backup file."""
+
+    memory_path = profile / "memory.jsonl"
+    backup_path = profile / "memory.prune-backup.jsonl"
+    backup_records = LocalMemoryJsonlStore(backup_path).load()
+    restored_count = LocalMemoryJsonlStore(memory_path).save(backup_records)
+    visible_count = sum(1 for memory in backup_records if memory.visible)
+    return {
+        "restore_type": "memory_pruning_profile",
+        "restored": True,
+        "profile_path": str(profile),
+        "memory_path": str(memory_path),
+        "backup_path": str(backup_path),
+        "restored_memory_count": restored_count,
+        "visible_memory_count": visible_count,
+    }
 
 
 def _memory_pruning_payload(profile: Path, *, dry_run: bool) -> dict[str, object]:
