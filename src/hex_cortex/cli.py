@@ -9,7 +9,9 @@ from pathlib import Path
 
 from hex_cortex.core.cortex_pipeline import CortexPipeline, CortexPipelineResult
 from hex_cortex.core.schemas import Task
+from hex_cortex.memory.index_hydrator import MemoryIndexHydrator
 from hex_cortex.memory.jsonl_store import LocalMemoryJsonlStore
+from hex_cortex.memory.local_index import LocalKnowledgeIndex
 from hex_cortex.memory.schemas import MemoryRecord
 from hex_cortex.spine.canonical_spine import CanonicalSpine
 from hex_cortex.spine.jsonl_store import CanonicalSpineJsonlStore
@@ -44,7 +46,7 @@ def build_parser() -> argparse.ArgumentParser:
         "--memory-jsonl",
         type=Path,
         default=None,
-        help="Optional JSONL path used to append consolidated memory records.",
+        help="Optional JSONL path used to load and append consolidated memories.",
     )
     parser.add_argument("--pretty", action="store_true", help="Pretty-print JSON output.")
     return parser
@@ -55,6 +57,7 @@ def summarize_result(
     *,
     persisted_event_count: int | None = None,
     persisted_memory_count: int | None = None,
+    hydrated_memory_count: int | None = None,
 ) -> dict[str, object]:
     """Convert a pipeline result into stable CLI JSON."""
 
@@ -74,6 +77,8 @@ def summarize_result(
         payload["persisted_event_count"] = persisted_event_count
     if persisted_memory_count is not None:
         payload["persisted_memory_count"] = persisted_memory_count
+    if hydrated_memory_count is not None:
+        payload["hydrated_memory_count"] = hydrated_memory_count
     return payload
 
 
@@ -91,7 +96,8 @@ def main(argv: list[str] | None = None) -> int:
     )
 
     spine = _load_spine(args.spine_jsonl)
-    result = CortexPipeline(spine=spine).run(task)
+    index, hydrated_memory_count = _load_memory_index(args.memory_jsonl)
+    result = CortexPipeline(spine=spine, index=index).run(task)
     persisted_event_count = _save_spine(args.spine_jsonl, spine)
     persisted_memory_count = _save_memory(
         args.memory_jsonl,
@@ -101,6 +107,7 @@ def main(argv: list[str] | None = None) -> int:
         result,
         persisted_event_count=persisted_event_count,
         persisted_memory_count=persisted_memory_count,
+        hydrated_memory_count=hydrated_memory_count,
     )
     indent = 2 if args.pretty else None
     json.dump(payload, sys.stdout, indent=indent, sort_keys=True)
@@ -112,6 +119,15 @@ def _load_spine(path: Path | None) -> CanonicalSpine:
     if path is None:
         return CanonicalSpine()
     return CanonicalSpineJsonlStore(path).load()
+
+
+def _load_memory_index(path: Path | None) -> tuple[LocalKnowledgeIndex, int | None]:
+    index = LocalKnowledgeIndex()
+    if path is None:
+        return index, None
+    memories = LocalMemoryJsonlStore(path).visible()
+    hydrated_count = MemoryIndexHydrator(index).hydrate(memories)
+    return index, hydrated_count
 
 
 def _save_spine(path: Path | None, spine: CanonicalSpine) -> int | None:
