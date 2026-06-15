@@ -62,7 +62,13 @@ class ImprovementHypothesis(BaseModel):
     source_event_ids: list[str] = Field(default_factory=list)
     source_rule_ids: list[str] = Field(default_factory=list)
 
-    @field_validator("title", "target_module", "rationale", "proposed_change", "expected_benefit")
+    @field_validator(
+        "title",
+        "target_module",
+        "rationale",
+        "proposed_change",
+        "expected_benefit",
+    )
     @classmethod
     def required_text_must_not_be_empty(cls, value: str) -> str:
         if not value.strip():
@@ -131,7 +137,9 @@ class PromotionDecision(BaseModel):
 
     @model_validator(mode="after")
     def promoted_changes_need_rollback_plan(self) -> PromotionDecision:
-        if self.decision == PromotionDecisionType.PROMOTE and not (self.rollback_plan or "").strip():
+        is_promotion = self.decision == PromotionDecisionType.PROMOTE
+        has_rollback = bool((self.rollback_plan or "").strip())
+        if is_promotion and not has_rollback:
             raise ValueError("promoted changes require a rollback plan")
         return self
 
