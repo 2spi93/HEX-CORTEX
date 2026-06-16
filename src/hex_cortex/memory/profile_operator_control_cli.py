@@ -16,6 +16,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--policy-limit", type=int, default=6)
     parser.add_argument("--policy-stability-window", type=int, default=3)
     parser.add_argument("--minimum-ready-score", type=float, default=1.0)
+    parser.add_argument("--strict-exit", action="store_true")
     parser.add_argument("--pretty", action="store_true")
     args = parser.parse_args(argv)
     payload = run_profile_operator_control(
@@ -26,7 +27,17 @@ def main(argv: list[str] | None = None) -> int:
     )
     json.dump(payload, sys.stdout, indent=2 if args.pretty else None, sort_keys=True)
     sys.stdout.write("\n")
+    if args.strict_exit:
+        return _strict_exit_code(str(payload["decision"]))
     return 0
+
+
+def _strict_exit_code(decision: str) -> int:
+    if decision == "allow":
+        return 0
+    if decision == "watch":
+        return 10
+    return 20
 
 
 if __name__ == "__main__":
