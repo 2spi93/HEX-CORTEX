@@ -30,6 +30,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--policy-max-total-positive-delta", type=float, default=0.1)
     parser.add_argument("--policy-max-total-negative-delta", type=float, default=0.05)
     parser.add_argument("--policy-max-total-operations", type=int, default=5)
+    parser.add_argument("--policy-stability-window", type=int, default=3)
     parser.add_argument("--pretty", action="store_true")
     return parser
 
@@ -43,6 +44,7 @@ def inspect_profile_plus(
     policy_max_total_positive_delta: float = 0.1,
     policy_max_total_negative_delta: float = 0.05,
     policy_max_total_operations: int = 5,
+    policy_stability_window: int = 3,
 ) -> dict[str, object]:
     """Inspect a profile and include memory confidence planning."""
 
@@ -76,6 +78,7 @@ def inspect_profile_plus(
     payload["memory_confidence_policy_telemetry"] = (
         summarize_memory_confidence_policy_telemetry(
             profile / "memory-confidence-policy-telemetry.jsonl",
+            stability_window=policy_stability_window,
         )
     )
     return payload
@@ -93,6 +96,7 @@ def main(argv: list[str] | None = None) -> int:
         policy_max_total_positive_delta=args.policy_max_total_positive_delta,
         policy_max_total_negative_delta=args.policy_max_total_negative_delta,
         policy_max_total_operations=args.policy_max_total_operations,
+        policy_stability_window=args.policy_stability_window,
     )
     indent = 2 if args.pretty else None
     json.dump(payload, sys.stdout, indent=indent, sort_keys=True)
