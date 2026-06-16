@@ -173,7 +173,7 @@ class ProfileHealthScorer:
         total = len(records)
         latest_operation = records[-1].operation if records else None
         if total == 0:
-            return _component("audit", 0.5, "pruning_audit_empty"), {
+            return _component("audit", 0.0, "pruning_audit_empty"), {
                 "total": total,
                 "latest_operation": latest_operation,
             }
