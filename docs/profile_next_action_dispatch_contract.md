@@ -17,8 +17,21 @@ hexdispatch .hex-cortex --policy-limit 6 --policy-stability-window 3 --minimum-r
 ```text
 hexctl answers: is the local profile ready?
 hexnext answers: what should the cortex do next?
-hexdispatch answers: execute the next action if it is safe and dispatchable.
+hexdispatch answers: execute the next action only if the dispatch safety gate allows it.
 ```
+
+## Dispatch safety gate
+
+Execution is allowed only when all conditions are true:
+
+```text
+status == ready
+decision == allow
+next_action == run_cortex_pipeline
+latest_snapshot_id is present
+```
+
+If one condition fails, `hexdispatch` returns `dispatch_status=skipped` and records the safety reason.
 
 ## Dispatch mapping
 
@@ -36,6 +49,8 @@ hexdispatch answers: execute the next action if it is safe and dispatchable.
   "status": "ready",
   "decision": "allow",
   "next_action": "run_cortex_pipeline",
+  "safety_status": "allow",
+  "safety_reasons": [],
   "dispatch_status": "executed",
   "dispatch_reason": "cortex_pipeline_executed",
   "pipeline_result": {}
