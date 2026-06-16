@@ -19,6 +19,10 @@ from hex_cortex.memory.index_hydrator import MemoryIndexHydrator
 from hex_cortex.memory.jsonl_store import LocalMemoryJsonlStore
 from hex_cortex.memory.local_index import LocalKnowledgeIndex
 from hex_cortex.memory.profile_health import ProfileHealthScorer
+from hex_cortex.memory.profile_health_history import (
+    ProfileHealthHistoryJsonlStore,
+    ProfileHealthHistoryRecord,
+)
 from hex_cortex.memory.pruning_application import MemoryPruningApplication
 from hex_cortex.memory.pruning_audit import (
     PruningAuditJsonlStore,
@@ -103,6 +107,12 @@ def build_parser() -> argparse.ArgumentParser:
         type=Path,
         default=None,
         help="Score local profile health without running a task.",
+    )
+    parser.add_argument(
+        "--record-profile-health",
+        type=Path,
+        default=None,
+        help="Record local profile health into profile-health JSONL.",
     )
     parser.add_argument(
         "--inspect-spine",
@@ -310,9 +320,17 @@ def _inspect_payload(args: argparse.Namespace) -> dict[str, object] | None:
 
 
 def _health_payload(args: argparse.Namespace) -> dict[str, object] | None:
-    if args.profile_health is None:
-        return None
-    return profile_health(args.profile_health)
+    modes = [
+        args.profile_health is not None,
+        args.record_profile_health is not None,
+    ]
+    if sum(modes) > 1:
+        raise ValueError("only one health mode can be used at a time")
+    if args.profile_health is not None:
+        return profile_health(args.profile_health)
+    if args.record_profile_health is not None:
+        return record_profile_health(args.record_profile_health)
+    return None
 
 
 def _pruning_payload(args: argparse.Namespace) -> dict[str, object] | None:
@@ -339,6 +357,7 @@ def inspect_profile(profile: Path) -> dict[str, object]:
     memory_path = profile / "memory.jsonl"
     skills_path = profile / "skills.jsonl"
     audit_path = profile / "pruning-audit.jsonl"
+    history_path = profile / "profile-health.jsonl"
     pruning = memory_pruning_summary(profile)
     return {
         "inspect_type": "profile",
@@ -350,6 +369,7 @@ def inspect_profile(profile: Path) -> dict[str, object]:
         "memory_pruning": pruning,
         "pruning_audit": inspect_pruning_audit(audit_path),
         "profile_health": profile_health(profile),
+        "profile_health_history": inspect_profile_health_history(history_path),
     }
 
 
@@ -357,6 +377,48 @@ def profile_health(profile: Path) -> dict[str, object]:
     """Score local profile health without mutating files."""
 
     return ProfileHealthScorer(profile).score().model_dump(mode="json")
+
+
+def record_profile_health(profile: Path) -> dict[str, object]:
+    """Record profile health into a local JSONL history."""
+
+    history_path = profile / "profile-health.jsonl"
+    report = ProfileHealthScorer(profile).score()
+    record = ProfileHealthHistoryRecord.from_report(report)
+    store = ProfileHealthHistoryJsonlStore(history_path)
+    history_count = store.append(record)
+    summary = store.summarize()
+    return {
+        "record_type": "profile_health",
+        "profile_path": str(profile),
+        "history_path": str(history_path),
+        "history_id": record.history_id,
+        "history_record_count": history_count,
+        "overall_score": record.overall_score,
+        "status": record.status,
+        "trend": summary.trend,
+        "score_delta": summary.score_delta,
+        "latest_score": summary.latest_score,
+        "previous_score": summary.previous_score,
+    }
+
+
+def inspect_profile_health_history(path: Path) -> dict[str, object]:
+    """Inspect profile health history without recording a new snapshot."""
+
+    store = ProfileHealthHistoryJsonlStore(path)
+    summary = store.summarize()
+    return {
+        "inspect_type": "profile_health_history",
+        "path": str(path),
+        "exists": path.exists(),
+        "total_history_count": summary.total_history_count,
+        "latest_score": summary.latest_score,
+        "previous_score": summary.previous_score,
+        "score_delta": summary.score_delta,
+        "trend": summary.trend,
+        "latest_status": summary.latest_status,
+    }
 
 
 def inspect_spine(path: Path) -> dict[str, object]:
