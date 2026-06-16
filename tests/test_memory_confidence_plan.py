@@ -1,6 +1,9 @@
 import pytest
 
-from hex_cortex.memory.confidence import MemoryConfidencePlanner
+from hex_cortex.memory.confidence import (
+    MemoryConfidencePlanner,
+    MemoryConfidenceSaturationState,
+)
 from hex_cortex.memory.schemas import MemoryRecord
 
 
@@ -15,11 +18,18 @@ def test_memory_confidence_plan_prioritizes_low_confidence_and_never_confirmed()
     )
 
     assert plan.total_memory_count == 3
+    assert plan.visible_memory_count == 3
+    assert plan.saturation_threshold == 0.7
+    assert plan.saturated_memory_count == 1
+    assert plan.unsaturated_memory_count == 2
     assert plan.candidate_count == 2
     assert [candidate.memory_id for candidate in plan.candidates] == [
         low.memory_id,
         medium.memory_id,
     ]
+    assert plan.candidates[0].saturation_state == (
+        MemoryConfidenceSaturationState.NEEDS_CONFIRMATION
+    )
     assert plan.candidates[0].reasons == [
         "confidence_below_floor",
         "never_confirmed",
@@ -34,9 +44,43 @@ def test_memory_confidence_plan_respects_limit_and_ignores_hidden_memory() -> No
     plan = MemoryConfidencePlanner().plan([hidden, first, second], limit=1)
 
     assert plan.total_memory_count == 3
+    assert plan.visible_memory_count == 2
     assert plan.candidate_count == 1
     assert plan.candidates[0].memory_id in {first.memory_id, second.memory_id}
     assert plan.candidates[0].memory_id != hidden.memory_id
+    assert MemoryConfidencePlanner().saturation_state(hidden) == (
+        MemoryConfidenceSaturationState.HIDDEN
+    )
+
+
+def test_memory_confidence_plan_excludes_saturated_memory() -> None:
+    saturated = MemoryRecord(
+        title="saturated",
+        body="body",
+        confidence=0.7,
+        access_count=1,
+    )
+    never_confirmed = MemoryRecord(
+        title="never",
+        body="body",
+        confidence=0.9,
+        access_count=0,
+    )
+
+    planner = MemoryConfidencePlanner(confidence_floor=0.7)
+    plan = planner.plan([saturated, never_confirmed], limit=5)
+
+    assert planner.saturation_state(saturated) == (
+        MemoryConfidenceSaturationState.CONFIDENCE_SATURATED
+    )
+    assert planner.saturation_state(never_confirmed) == (
+        MemoryConfidenceSaturationState.NEEDS_CONFIRMATION
+    )
+    assert plan.saturated_memory_count == 1
+    assert plan.unsaturated_memory_count == 1
+    assert plan.candidate_count == 1
+    assert plan.candidates[0].memory_id == never_confirmed.memory_id
+    assert plan.candidates[0].reasons == ["never_confirmed"]
 
 
 def test_memory_confidence_plan_rejects_non_positive_limit() -> None:
