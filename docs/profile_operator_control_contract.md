@@ -3,13 +3,19 @@
 ## Canonical command
 
 ```powershell
-python -m hex_cortex.memory.profile_control_cli .hex-cortex --policy-limit 6 --policy-stability-window 3 --minimum-ready-score 1.0 --pretty
+hexctl .hex-cortex --policy-limit 6 --policy-stability-window 3 --minimum-ready-score 1.0 --pretty
 ```
 
 ## Shell / CI command
 
 ```powershell
-python -m hex_cortex.memory.profile_control_cli .hex-cortex --policy-limit 6 --policy-stability-window 3 --minimum-ready-score 1.0 --strict-exit
+hexctl .hex-cortex --policy-limit 6 --policy-stability-window 3 --minimum-ready-score 1.0 --strict-exit
+```
+
+## Development fallback
+
+```powershell
+python -m hex_cortex.memory.profile_control_cli .hex-cortex --policy-limit 6 --policy-stability-window 3 --minimum-ready-score 1.0 --pretty
 ```
 
 ## Pipeline
@@ -54,4 +60,4 @@ readiness snapshot refresh
 
 ## Rule
 
-`profile_control_cli` is the short canonical operator entrypoint. Longer module names remain available for diagnostics, but human operation should use the alias.
+`hexctl` is the canonical operator entrypoint. Longer module names remain available for diagnostics, but human operation should use `hexctl`.
