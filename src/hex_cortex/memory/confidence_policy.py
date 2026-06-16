@@ -14,10 +14,7 @@ from hex_cortex.memory.confidence import (
     MemoryConfidencePlanner,
 )
 from hex_cortex.memory.confidence_decay import MemoryConfidenceDecayPlanner
-from hex_cortex.memory.confidence_recovery import (
-    RECOVERY_REASON,
-    MemoryConfidenceRecoveryPlanner,
-)
+from hex_cortex.memory.confidence_recovery import MemoryConfidenceRecoveryPlanner
 from hex_cortex.memory.jsonl_store import LocalMemoryJsonlStore
 from hex_cortex.memory.schemas import MemoryRecord
 
