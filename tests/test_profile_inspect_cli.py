@@ -143,3 +143,19 @@ def test_profile_inspect_plus_includes_policy_telemetry_summary(tmp_path) -> Non
     assert telemetry["total_record_count"] == 1
     assert telemetry["latest_selected_action_count"] == 0
     assert telemetry["stable_zero_action_count"] == 1
+    assert telemetry["stability_state"] == "confidence_policy_insufficient_history"
+
+
+def test_profile_inspect_plus_uses_policy_stability_window(tmp_path) -> None:
+    profile = tmp_path / "profile"
+    memory_path = profile / "memory.jsonl"
+    memory = MemoryRecord(title="memory", body="body", confidence=0.8, access_count=1)
+    LocalMemoryJsonlStore(memory_path).save([memory])
+    record_memory_confidence_policy_telemetry_profile(profile)
+
+    payload = inspect_profile_plus(profile, policy_stability_window=1)
+    telemetry = payload["memory_confidence_policy_telemetry"]
+
+    assert telemetry["stability_window"] == 1
+    assert telemetry["consecutive_zero_action_count"] == 1
+    assert telemetry["stability_state"] == "confidence_policy_stable"
