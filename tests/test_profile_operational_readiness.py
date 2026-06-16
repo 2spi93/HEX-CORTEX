@@ -1,10 +1,19 @@
 from hex_cortex.evolver.schemas import SkillRecord, SkillStatus
 from hex_cortex.evolver.skill_jsonl_store import SkillJsonlStore
-from hex_cortex.memory.confidence import MemoryConfidenceAuditJsonlStore, MemoryConfidenceAuditRecord
-from hex_cortex.memory.confidence_policy_autosaturation import run_memory_confidence_policy_autosaturation_profile
-from hex_cortex.memory.confidence_policy_telemetry import record_memory_confidence_policy_telemetry_profile
+from hex_cortex.memory.confidence import (
+    MemoryConfidenceAuditJsonlStore,
+    MemoryConfidenceAuditRecord,
+)
+from hex_cortex.memory.confidence_policy_autosaturation import (
+    run_memory_confidence_policy_autosaturation_profile,
+)
+from hex_cortex.memory.confidence_policy_telemetry import (
+    record_memory_confidence_policy_telemetry_profile,
+)
 from hex_cortex.memory.jsonl_store import LocalMemoryJsonlStore
-from hex_cortex.memory.profile_operational_readiness import inspect_profile_operational_readiness
+from hex_cortex.memory.profile_operational_readiness import (
+    inspect_profile_operational_readiness,
+)
 from hex_cortex.memory.pruning_audit import PruningAuditJsonlStore, PruningAuditRecord
 from hex_cortex.memory.schemas import MemoryRecord
 from hex_cortex.spine.canonical_spine import CanonicalSpine
@@ -13,7 +22,12 @@ from hex_cortex.spine.jsonl_store import CanonicalSpineJsonlStore
 
 def populate_profile(profile) -> None:
     spine = CanonicalSpine()
-    spine.append(event_type="task.received", task_id="task_1", source="test", payload={})
+    spine.append(
+        event_type="task.received",
+        task_id="task_1",
+        source="test",
+        payload={},
+    )
     CanonicalSpineJsonlStore(profile / "spine.jsonl").save(spine)
     LocalMemoryJsonlStore(profile / "memory.jsonl").save(
         [MemoryRecord(title="memory", body="body", confidence=0.9, access_count=1)]
@@ -56,7 +70,11 @@ def test_profile_readiness_ready_when_policy_marker_is_stable(tmp_path) -> None:
     profile = tmp_path / "profile"
     populate_profile(profile)
     record_memory_confidence_policy_telemetry_profile(profile)
-    run_memory_confidence_policy_autosaturation_profile(profile, stability_window=1, dry_run=False)
+    run_memory_confidence_policy_autosaturation_profile(
+        profile,
+        stability_window=1,
+        dry_run=False,
+    )
 
     payload = inspect_profile_operational_readiness(profile, policy_stability_window=1)
 
