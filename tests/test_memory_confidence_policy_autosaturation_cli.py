@@ -1,7 +1,9 @@
 import json
 
 from hex_cortex.memory.confidence_policy_autosaturation_cli import main
-from hex_cortex.memory.confidence_policy_telemetry import record_memory_confidence_policy_telemetry_profile
+from hex_cortex.memory.confidence_policy_telemetry import (
+    record_memory_confidence_policy_telemetry_profile,
+)
 from hex_cortex.memory.jsonl_store import LocalMemoryJsonlStore
 from hex_cortex.memory.schemas import MemoryRecord
 
