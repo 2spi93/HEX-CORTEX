@@ -18,6 +18,7 @@ from hex_cortex.cli import (
 from hex_cortex.core.cortex_pipeline import CortexPipeline
 from hex_cortex.core.schemas import Task
 from hex_cortex.memory.profile_dispatch_history import record_profile_dispatch_history
+from hex_cortex.memory.profile_dispatch_safety import inspect_profile_dispatch_safety
 from hex_cortex.memory.profile_next_action import inspect_profile_next_action
 
 
@@ -31,6 +32,8 @@ class ProfileNextActionDispatchReport(BaseModel):
     reason: str
     next_action: str
     next_reason: str
+    safety_status: str
+    safety_reasons: list[str]
     dispatch_status: str
     dispatch_reason: str
     dispatch_id: str
@@ -48,7 +51,7 @@ def dispatch_profile_next_action(
     policy_stability_window: int = 3,
     minimum_ready_score: float = 1.0,
 ) -> dict[str, object]:
-    """Inspect the next action and execute it when it is dispatchable."""
+    """Inspect the next action and execute it when it is safe and dispatchable."""
 
     next_payload = inspect_profile_next_action(
         profile,
@@ -56,10 +59,11 @@ def dispatch_profile_next_action(
         policy_stability_window=policy_stability_window,
         minimum_ready_score=minimum_ready_score,
     )
+    safety_payload = inspect_profile_dispatch_safety(profile, next_payload)
     pipeline_result = None
     dispatch_status = "skipped"
     dispatch_reason = str(next_payload["next_reason"])
-    if next_payload["next_action"] == "run_cortex_pipeline":
+    if safety_payload["allowed"] is True:
         pipeline_result = _run_cortex_pipeline(
             profile,
             task_content=task_content,
@@ -67,6 +71,8 @@ def dispatch_profile_next_action(
         )
         dispatch_status = "executed"
         dispatch_reason = "cortex_pipeline_executed"
+    elif safety_payload["safety_reasons"]:
+        dispatch_reason = str(safety_payload["safety_reasons"][0])
     base_report = {
         "profile_path": str(profile),
         "status": str(next_payload["status"]),
@@ -74,6 +80,8 @@ def dispatch_profile_next_action(
         "reason": str(next_payload["reason"]),
         "next_action": str(next_payload["next_action"]),
         "next_reason": str(next_payload["next_reason"]),
+        "safety_status": str(safety_payload["safety_status"]),
+        "safety_reasons": list(safety_payload["safety_reasons"]),
         "dispatch_status": dispatch_status,
         "dispatch_reason": dispatch_reason,
         "pipeline_result": pipeline_result,
