@@ -82,7 +82,9 @@ class ProfileHealthHistoryJsonlStore:
                     payload = json.loads(line)
                     records.append(ProfileHealthHistoryRecord.model_validate(payload))
                 except Exception as exc:  # noqa: BLE001
-                    raise ValueError(f"invalid profile health record at line {line_number}") from exc
+                    raise ValueError(
+                        f"invalid profile health record at line {line_number}"
+                    ) from exc
         return records
 
     def save(self, records: list[ProfileHealthHistoryRecord]) -> int:
