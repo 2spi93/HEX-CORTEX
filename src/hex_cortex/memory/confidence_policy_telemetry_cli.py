@@ -19,6 +19,7 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="memory-confidence-policy-telemetry")
     parser.add_argument("profile", type=Path)
     parser.add_argument("--summary", action="store_true")
+    parser.add_argument("--stability-window", type=int, default=3)
     parser.add_argument("--limit", type=int, default=5)
     parser.add_argument("--max-total-positive-delta", type=float, default=0.1)
     parser.add_argument("--max-total-negative-delta", type=float, default=0.05)
@@ -36,6 +37,7 @@ def main(argv: list[str] | None = None) -> int:
     if args.summary:
         payload = summarize_memory_confidence_policy_telemetry(
             args.profile / "memory-confidence-policy-telemetry.jsonl",
+            stability_window=args.stability_window,
         )
     else:
         payload = record_memory_confidence_policy_telemetry_profile(
