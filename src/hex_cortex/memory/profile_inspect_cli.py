@@ -10,6 +10,9 @@ from pathlib import Path
 from hex_cortex.cli import inspect_profile
 from hex_cortex.memory.confidence_audit_summary import summarize_memory_confidence_audit
 from hex_cortex.memory.confidence_policy import run_memory_confidence_policy_profile
+from hex_cortex.memory.confidence_policy_telemetry import (
+    summarize_memory_confidence_policy_telemetry,
+)
 from hex_cortex.memory.profile_confidence_plan import profile_memory_confidence_plan
 
 
@@ -70,6 +73,11 @@ def inspect_profile_plus(
         "selected_action_count": policy_report["selected_action_count"],
         "skipped_action_count": policy_report["skipped_action_count"],
     }
+    payload["memory_confidence_policy_telemetry"] = (
+        summarize_memory_confidence_policy_telemetry(
+            profile / "memory-confidence-policy-telemetry.jsonl",
+        )
+    )
     return payload
 
 
