@@ -70,7 +70,9 @@ class MemoryConfidenceUpdater:
             before_access_count = memory.access_count
             after_confidence = min(1.0, round(before_confidence + self.delta, 4))
             after_access_count = before_access_count + 1
-            changed = after_confidence != before_confidence or after_access_count != before_access_count
+            confidence_changed = after_confidence != before_confidence
+            access_count_changed = after_access_count != before_access_count
+            changed = confidence_changed or access_count_changed
             updated_memory = memory.model_copy(
                 update={
                     "confidence": after_confidence,
