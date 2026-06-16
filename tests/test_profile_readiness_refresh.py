@@ -11,7 +11,9 @@ def test_profile_readiness_refresh_records_snapshot_and_gate(tmp_path) -> None:
     )
 
     payload = refresh_profile_readiness_gate(profile)
-    records = ProfileReadinessSnapshotJsonlStore(profile / "profile-readiness.jsonl").load()
+    records = ProfileReadinessSnapshotJsonlStore(
+        profile / "profile-readiness.jsonl"
+    ).load()
 
     assert payload["refresh_type"] == "profile_readiness_gate_snapshot_refresh"
     assert payload["snapshot_count"] == 1
