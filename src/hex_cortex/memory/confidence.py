@@ -4,12 +4,21 @@ from __future__ import annotations
 
 import json
 from datetime import UTC, datetime
+from enum import StrEnum
 from pathlib import Path
 from uuid import uuid4
 
 from pydantic import BaseModel, Field
 
 from hex_cortex.memory.schemas import MemoryRecord
+
+
+class MemoryConfidenceSaturationState(StrEnum):
+    """Saturation state for memory confidence planning."""
+
+    NEEDS_CONFIRMATION = "needs_confirmation"
+    CONFIDENCE_SATURATED = "confidence_saturated"
+    HIDDEN = "hidden"
 
 
 class MemoryConfidenceAuditRecord(BaseModel):
@@ -50,6 +59,7 @@ class MemoryConfidencePlanCandidate(BaseModel):
     confidence: float = Field(ge=0.0, le=1.0)
     access_count: int = Field(ge=0)
     visible: bool
+    saturation_state: MemoryConfidenceSaturationState
     priority_score: float = Field(ge=0.0, le=1.0)
     reasons: list[str]
 
@@ -58,6 +68,10 @@ class MemoryConfidencePlan(BaseModel):
     """Non-mutating plan for memory confidence confirmations."""
 
     total_memory_count: int = Field(ge=0)
+    visible_memory_count: int = Field(ge=0)
+    saturation_threshold: float = Field(ge=0.0, le=1.0)
+    saturated_memory_count: int = Field(ge=0)
+    unsaturated_memory_count: int = Field(ge=0)
     candidate_count: int = Field(ge=0)
     candidates: list[MemoryConfidencePlanCandidate]
 
@@ -79,11 +93,14 @@ class MemoryConfidencePlanner:
         if limit <= 0:
             raise ValueError("memory confidence plan limit must be positive")
 
-        candidates = [
-            self._candidate(memory)
-            for memory in memories
-            if memory.visible and self._needs_confirmation(memory)
+        visible_memories = [memory for memory in memories if memory.visible]
+        unsaturated_memories = [
+            memory
+            for memory in visible_memories
+            if self.saturation_state(memory)
+            == MemoryConfidenceSaturationState.NEEDS_CONFIRMATION
         ]
+        candidates = [self._candidate(memory) for memory in unsaturated_memories]
         candidates.sort(
             key=lambda candidate: (
                 -candidate.priority_score,
@@ -95,12 +112,22 @@ class MemoryConfidencePlanner:
         selected = candidates[:limit]
         return MemoryConfidencePlan(
             total_memory_count=len(memories),
+            visible_memory_count=len(visible_memories),
+            saturation_threshold=self.confidence_floor,
+            saturated_memory_count=len(visible_memories) - len(unsaturated_memories),
+            unsaturated_memory_count=len(unsaturated_memories),
             candidate_count=len(selected),
             candidates=selected,
         )
 
-    def _needs_confirmation(self, memory: MemoryRecord) -> bool:
-        return memory.confidence < self.confidence_floor or memory.access_count == 0
+    def saturation_state(self, memory: MemoryRecord) -> MemoryConfidenceSaturationState:
+        """Return the current confidence saturation state for one memory."""
+
+        if not memory.visible:
+            return MemoryConfidenceSaturationState.HIDDEN
+        if memory.confidence >= self.confidence_floor and memory.access_count > 0:
+            return MemoryConfidenceSaturationState.CONFIDENCE_SATURATED
+        return MemoryConfidenceSaturationState.NEEDS_CONFIRMATION
 
     def _candidate(self, memory: MemoryRecord) -> MemoryConfidencePlanCandidate:
         reasons = []
@@ -118,6 +145,7 @@ class MemoryConfidencePlanner:
             confidence=memory.confidence,
             access_count=memory.access_count,
             visible=memory.visible,
+            saturation_state=self.saturation_state(memory),
             priority_score=priority_score,
             reasons=reasons,
         )
