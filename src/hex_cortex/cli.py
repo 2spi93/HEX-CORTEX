@@ -154,6 +154,12 @@ def build_parser() -> argparse.ArgumentParser:
         help="Inspect a memory JSONL file without running a task.",
     )
     parser.add_argument(
+        "--inspect-memory-records",
+        type=Path,
+        default=None,
+        help="Inspect memory records with ids and confidence metadata.",
+    )
+    parser.add_argument(
         "--inspect-skills",
         type=Path,
         default=None,
@@ -275,7 +281,8 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.content is None:
         parser.error(
-            "content is required unless an inspect, health, confidence, pruning, or bootstrap mode is used"
+            "content is required unless an inspect, health, confidence, "
+            "pruning, or bootstrap mode is used"
         )
 
     paths = resolve_profile_paths(args)
@@ -336,6 +343,7 @@ def _inspect_payload(args: argparse.Namespace) -> dict[str, object] | None:
         args.inspect_profile is not None,
         args.inspect_spine is not None,
         args.inspect_memory is not None,
+        args.inspect_memory_records is not None,
         args.inspect_skills is not None,
     ]
     if sum(modes) > 1:
@@ -346,6 +354,8 @@ def _inspect_payload(args: argparse.Namespace) -> dict[str, object] | None:
         return inspect_spine(args.inspect_spine)
     if args.inspect_memory is not None:
         return inspect_memory(args.inspect_memory)
+    if args.inspect_memory_records is not None:
+        return inspect_memory_records(args.inspect_memory_records)
     if args.inspect_skills is not None:
         return inspect_skills(args.inspect_skills)
     return None
@@ -591,6 +601,31 @@ def inspect_memory(path: Path) -> dict[str, object]:
         "access_count_total": sum(record.access_count for record in records),
         "tag_counts": dict(sorted(tag_counts.items())),
         "memory_type_counts": dict(sorted(type_counts.items())),
+    }
+
+
+def inspect_memory_records(path: Path) -> dict[str, object]:
+    """Inspect memory records with stable identifiers."""
+
+    records = LocalMemoryJsonlStore(path).load()
+    return {
+        "inspect_type": "memory_records",
+        "path": str(path),
+        "exists": path.exists(),
+        "total_memory_count": len(records),
+        "records": [
+            {
+                "memory_id": record.memory_id,
+                "title": record.title,
+                "memory_type": record.memory_type.value,
+                "confidence": record.confidence,
+                "visible": record.visible,
+                "access_count": record.access_count,
+                "last_accessed_at": record.last_accessed_at,
+                "tags": record.tags,
+            }
+            for record in records
+        ],
     }
 
 
