@@ -14,6 +14,7 @@ dependencies = [
 
 [project.scripts]
 hexctl = "hex_cortex.memory.profile_control_cli:main"
+hexnext = "hex_cortex.memory.profile_next_action_cli:main"
 
 [project.optional-dependencies]
 dev = [
