@@ -10,7 +10,12 @@ from hex_cortex.spine.jsonl_store import CanonicalSpineJsonlStore
 
 def populate_healthy_profile(profile) -> None:
     spine = CanonicalSpine()
-    spine.append("task.received", {"task_id": "task_1"})
+    spine.append(
+        event_type="task.received",
+        task_id="task_1",
+        source="test",
+        payload={"task_id": "task_1"},
+    )
     CanonicalSpineJsonlStore(profile / "spine.jsonl").save(spine)
     LocalMemoryJsonlStore(profile / "memory.jsonl").save(
         [MemoryRecord(title="memory", body="body", confidence=0.9)]
