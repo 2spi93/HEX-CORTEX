@@ -22,6 +22,7 @@ def run_memory_confidence_batch_profile(
     dry_run: bool = True,
     max_total_delta: float = 0.15,
     min_priority_score: float = 0.0,
+    saturation_threshold: float = 0.7,
 ) -> dict[str, object]:
     """Run or preview a batch of memory confidence confirmations."""
 
@@ -29,7 +30,9 @@ def run_memory_confidence_batch_profile(
     audit_path = profile / "memory-confidence-audit.jsonl"
     memory_store = LocalMemoryJsonlStore(memory_path)
     memories = memory_store.load()
-    plan = MemoryConfidencePlanner().plan(memories, limit=limit)
+    plan = MemoryConfidencePlanner(
+        confidence_floor=saturation_threshold,
+    ).plan(memories, limit=limit)
     candidates = [
         candidate
         for candidate in plan.candidates
@@ -89,6 +92,9 @@ def run_memory_confidence_batch_profile(
         "delta": delta,
         "max_total_delta": max_total_delta,
         "min_priority_score": min_priority_score,
+        "saturation_threshold": plan.saturation_threshold,
+        "saturated_memory_count": plan.saturated_memory_count,
+        "unsaturated_memory_count": plan.unsaturated_memory_count,
         "total_delta": total_delta,
         "candidate_count": plan.candidate_count,
         "eligible_candidate_count": len(candidates),
