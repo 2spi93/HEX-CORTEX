@@ -17,6 +17,7 @@ from hex_cortex.cli import (
 )
 from hex_cortex.core.cortex_pipeline import CortexPipeline
 from hex_cortex.core.schemas import Task
+from hex_cortex.memory.profile_dispatch_history import record_profile_dispatch_history
 from hex_cortex.memory.profile_next_action import inspect_profile_next_action
 
 
@@ -32,6 +33,9 @@ class ProfileNextActionDispatchReport(BaseModel):
     next_reason: str
     dispatch_status: str
     dispatch_reason: str
+    dispatch_id: str
+    dispatch_history_count: int
+    dispatch_history_path: str
     pipeline_result: dict[str, object] | None
 
 
@@ -63,16 +67,24 @@ def dispatch_profile_next_action(
         )
         dispatch_status = "executed"
         dispatch_reason = "cortex_pipeline_executed"
+    base_report = {
+        "profile_path": str(profile),
+        "status": str(next_payload["status"]),
+        "decision": str(next_payload["decision"]),
+        "reason": str(next_payload["reason"]),
+        "next_action": str(next_payload["next_action"]),
+        "next_reason": str(next_payload["next_reason"]),
+        "dispatch_status": dispatch_status,
+        "dispatch_reason": dispatch_reason,
+        "pipeline_result": pipeline_result,
+    }
+    history_payload = record_profile_dispatch_history(profile, base_report)
+    dispatch_record = history_payload["dispatch_record"]
     report = ProfileNextActionDispatchReport(
-        profile_path=str(profile),
-        status=str(next_payload["status"]),
-        decision=str(next_payload["decision"]),
-        reason=str(next_payload["reason"]),
-        next_action=str(next_payload["next_action"]),
-        next_reason=str(next_payload["next_reason"]),
-        dispatch_status=dispatch_status,
-        dispatch_reason=dispatch_reason,
-        pipeline_result=pipeline_result,
+        **base_report,
+        dispatch_id=str(dispatch_record["dispatch_id"]),
+        dispatch_history_count=int(history_payload["history_count"]),
+        dispatch_history_path=str(history_payload["history_path"]),
     )
     return report.model_dump(mode="json")
 
