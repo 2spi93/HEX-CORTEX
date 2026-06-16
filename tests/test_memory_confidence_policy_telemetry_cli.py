@@ -43,3 +43,27 @@ def test_policy_telemetry_cli_outputs_summary(tmp_path, capsys) -> None:
     assert payload["inspect_type"] == "memory_confidence_policy_telemetry"
     assert payload["total_record_count"] == 1
     assert payload["stable_zero_action_count"] == 1
+    assert payload["stability_state"] == "confidence_policy_insufficient_history"
+
+
+def test_policy_telemetry_cli_uses_stability_window(tmp_path, capsys) -> None:
+    profile = tmp_path / "profile"
+    memory_path = profile / "memory.jsonl"
+    memory = MemoryRecord(title="memory", body="body", confidence=0.8, access_count=1)
+    LocalMemoryJsonlStore(memory_path).save([memory])
+    main([str(profile)])
+    capsys.readouterr()
+
+    exit_code = main([
+        str(profile),
+        "--summary",
+        "--stability-window",
+        "1",
+        "--pretty",
+    ])
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    assert payload["stability_window"] == 1
+    assert payload["consecutive_zero_action_count"] == 1
+    assert payload["stability_state"] == "confidence_policy_stable"
