@@ -23,6 +23,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--delta", type=float, default=0.05)
     parser.add_argument("--max-total-delta", type=float, default=0.15)
     parser.add_argument("--min-priority-score", type=float, default=0.0)
+    parser.add_argument("--saturation-threshold", type=float, default=0.7)
     parser.add_argument("--apply", action="store_true")
     parser.add_argument("--pretty", action="store_true")
     return parser
@@ -40,6 +41,7 @@ def main(argv: list[str] | None = None) -> int:
         dry_run=not args.apply,
         max_total_delta=args.max_total_delta,
         min_priority_score=args.min_priority_score,
+        saturation_threshold=args.saturation_threshold,
     )
     indent = 2 if args.pretty else None
     json.dump(payload, sys.stdout, indent=indent, sort_keys=True)
