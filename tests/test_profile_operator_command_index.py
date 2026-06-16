@@ -7,5 +7,5 @@ def test_profile_operator_command_index_keeps_single_canonical_alias() -> None:
     )
 
     assert "Canonical human command" in content
-    assert "profile_control_cli" in content
+    assert "hexctl" in content
     assert "Diagnostic-only modules" in content
