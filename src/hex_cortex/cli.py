@@ -15,6 +15,11 @@ from hex_cortex.evolver.pruning import PruningEngine
 from hex_cortex.evolver.schemas import SkillRecord, SkillStatus
 from hex_cortex.evolver.skill_jsonl_store import SkillJsonlStore
 from hex_cortex.evolver.skill_library import SkillLibrary
+from hex_cortex.memory.confidence import (
+    MemoryConfidenceAuditJsonlStore,
+    MemoryConfidenceAuditRecord,
+    MemoryConfidenceUpdater,
+)
 from hex_cortex.memory.index_hydrator import MemoryIndexHydrator
 from hex_cortex.memory.jsonl_store import LocalMemoryJsonlStore
 from hex_cortex.memory.local_index import LocalKnowledgeIndex
@@ -113,6 +118,28 @@ def build_parser() -> argparse.ArgumentParser:
         type=Path,
         default=None,
         help="Record local profile health into profile-health JSONL.",
+    )
+    parser.add_argument(
+        "--confirm-memory-profile",
+        type=Path,
+        default=None,
+        help="Confirm one profile memory and increase its confidence.",
+    )
+    parser.add_argument(
+        "--confirm-memory-id",
+        default=None,
+        help="Memory id to confirm with --confirm-memory-profile.",
+    )
+    parser.add_argument(
+        "--confirm-memory-reason",
+        default="operator_confirmed",
+        help="Reason recorded for explicit memory confirmation.",
+    )
+    parser.add_argument(
+        "--confirm-memory-delta",
+        type=float,
+        default=0.05,
+        help="Confidence increase used by --confirm-memory-profile.",
     )
     parser.add_argument(
         "--inspect-spine",
@@ -231,6 +258,11 @@ def main(argv: list[str] | None = None) -> int:
         _write_json(health_payload, pretty=args.pretty)
         return 0
 
+    memory_confidence_payload = _memory_confidence_payload(args)
+    if memory_confidence_payload is not None:
+        _write_json(memory_confidence_payload, pretty=args.pretty)
+        return 0
+
     pruning_payload = _pruning_payload(args)
     if pruning_payload is not None:
         _write_json(pruning_payload, pretty=args.pretty)
@@ -243,7 +275,7 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.content is None:
         parser.error(
-            "content is required unless an inspect, health, pruning, or bootstrap mode is used"
+            "content is required unless an inspect, health, confidence, pruning, or bootstrap mode is used"
         )
 
     paths = resolve_profile_paths(args)
@@ -333,6 +365,19 @@ def _health_payload(args: argparse.Namespace) -> dict[str, object] | None:
     return None
 
 
+def _memory_confidence_payload(args: argparse.Namespace) -> dict[str, object] | None:
+    if args.confirm_memory_profile is None:
+        return None
+    if not args.confirm_memory_id:
+        raise ValueError("--confirm-memory-id is required with --confirm-memory-profile")
+    return confirm_memory_profile(
+        args.confirm_memory_profile,
+        memory_id=args.confirm_memory_id,
+        reason=args.confirm_memory_reason,
+        delta=args.confirm_memory_delta,
+    )
+
+
 def _pruning_payload(args: argparse.Namespace) -> dict[str, object] | None:
     modes = [
         args.prune_memory_profile is not None,
@@ -356,8 +401,9 @@ def inspect_profile(profile: Path) -> dict[str, object]:
     spine_path = profile / "spine.jsonl"
     memory_path = profile / "memory.jsonl"
     skills_path = profile / "skills.jsonl"
-    audit_path = profile / "pruning-audit.jsonl"
-    history_path = profile / "profile-health.jsonl"
+    pruning_audit_path = profile / "pruning-audit.jsonl"
+    health_history_path = profile / "profile-health.jsonl"
+    confidence_audit_path = profile / "memory-confidence-audit.jsonl"
     pruning = memory_pruning_summary(profile)
     return {
         "inspect_type": "profile",
@@ -367,9 +413,12 @@ def inspect_profile(profile: Path) -> dict[str, object]:
         "memory": inspect_memory(memory_path),
         "skills": inspect_skills(skills_path),
         "memory_pruning": pruning,
-        "pruning_audit": inspect_pruning_audit(audit_path),
+        "pruning_audit": inspect_pruning_audit(pruning_audit_path),
+        "memory_confidence_audit": inspect_memory_confidence_audit(
+            confidence_audit_path
+        ),
         "profile_health": profile_health(profile),
-        "profile_health_history": inspect_profile_health_history(history_path),
+        "profile_health_history": inspect_profile_health_history(health_history_path),
     }
 
 
@@ -403,6 +452,68 @@ def record_profile_health(profile: Path) -> dict[str, object]:
     }
 
 
+def confirm_memory_profile(
+    profile: Path,
+    *,
+    memory_id: str,
+    reason: str,
+    delta: float,
+) -> dict[str, object]:
+    """Confirm one memory in a profile and audit the confidence update."""
+
+    memory_path = profile / "memory.jsonl"
+    audit_path = profile / "memory-confidence-audit.jsonl"
+    memory_store = LocalMemoryJsonlStore(memory_path)
+    memories = memory_store.load()
+    updated_memories, report = MemoryConfidenceUpdater(delta=delta).confirm(
+        memories,
+        memory_id=memory_id,
+        reason=reason,
+    )
+    if not report.found:
+        return {
+            "confirm_type": "memory_profile",
+            "confirmed": False,
+            "profile_path": str(profile),
+            "memory_path": str(memory_path),
+            "memory_id": memory_id,
+            "reason": reason,
+            "changed": False,
+            "audit_written": False,
+        }
+
+    memory_store.save(updated_memories)
+    audit_record = MemoryConfidenceAuditRecord(
+        memory_id=memory_id,
+        reason=reason,
+        before_confidence=report.before_confidence or 0.0,
+        after_confidence=report.after_confidence or 0.0,
+        delta=report.delta,
+        changed=report.changed,
+        before_access_count=report.before_access_count or 0,
+        after_access_count=report.after_access_count or 0,
+    )
+    audit_count = MemoryConfidenceAuditJsonlStore(audit_path).append(audit_record)
+    return {
+        "confirm_type": "memory_profile",
+        "confirmed": True,
+        "profile_path": str(profile),
+        "memory_path": str(memory_path),
+        "audit_path": str(audit_path),
+        "audit_id": audit_record.audit_id,
+        "audit_record_count": audit_count,
+        "memory_id": memory_id,
+        "reason": reason,
+        "changed": report.changed,
+        "before_confidence": report.before_confidence,
+        "after_confidence": report.after_confidence,
+        "delta": report.delta,
+        "before_access_count": report.before_access_count,
+        "after_access_count": report.after_access_count,
+        "audit_written": True,
+    }
+
+
 def inspect_profile_health_history(path: Path) -> dict[str, object]:
     """Inspect profile health history without recording a new snapshot."""
 
@@ -418,6 +529,23 @@ def inspect_profile_health_history(path: Path) -> dict[str, object]:
         "score_delta": summary.score_delta,
         "trend": summary.trend,
         "latest_status": summary.latest_status,
+    }
+
+
+def inspect_memory_confidence_audit(path: Path) -> dict[str, object]:
+    """Inspect memory confidence audit records."""
+
+    records = MemoryConfidenceAuditJsonlStore(path).load()
+    latest = records[-1] if records else None
+    return {
+        "inspect_type": "memory_confidence_audit",
+        "path": str(path),
+        "exists": path.exists(),
+        "total_audit_count": len(records),
+        "latest_audit_id": latest.audit_id if latest else None,
+        "latest_memory_id": latest.memory_id if latest else None,
+        "latest_reason": latest.reason if latest else None,
+        "latest_delta": latest.delta if latest else None,
     }
 
 
@@ -443,16 +571,24 @@ def inspect_spine(path: Path) -> dict[str, object]:
 def inspect_memory(path: Path) -> dict[str, object]:
     store = LocalMemoryJsonlStore(path)
     records = store.load()
+    total_count = len(records)
     visible_count = sum(1 for record in records if record.visible)
     tag_counts = Counter(tag for record in records for tag in record.tags)
     type_counts = Counter(record.memory_type.value for record in records)
+    average_confidence = (
+        round(sum(record.confidence for record in records) / total_count, 4)
+        if total_count
+        else 0.0
+    )
     return {
         "inspect_type": "memory",
         "path": str(path),
         "exists": path.exists(),
-        "total_memory_count": len(records),
+        "total_memory_count": total_count,
         "visible_memory_count": visible_count,
-        "hidden_memory_count": len(records) - visible_count,
+        "hidden_memory_count": total_count - visible_count,
+        "average_confidence": average_confidence,
+        "access_count_total": sum(record.access_count for record in records),
         "tag_counts": dict(sorted(tag_counts.items())),
         "memory_type_counts": dict(sorted(type_counts.items())),
     }
