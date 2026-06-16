@@ -41,6 +41,88 @@ class MemoryConfidenceReport(BaseModel):
     after_access_count: int | None = None
 
 
+class MemoryConfidencePlanCandidate(BaseModel):
+    """One memory candidate recommended for confidence confirmation."""
+
+    memory_id: str
+    title: str
+    memory_type: str
+    confidence: float = Field(ge=0.0, le=1.0)
+    access_count: int = Field(ge=0)
+    visible: bool
+    priority_score: float = Field(ge=0.0, le=1.0)
+    reasons: list[str]
+
+
+class MemoryConfidencePlan(BaseModel):
+    """Non-mutating plan for memory confidence confirmations."""
+
+    total_memory_count: int = Field(ge=0)
+    candidate_count: int = Field(ge=0)
+    candidates: list[MemoryConfidencePlanCandidate]
+
+
+class MemoryConfidencePlanner:
+    """Rank memories that should be confirmed next."""
+
+    def __init__(self, confidence_floor: float = 0.7) -> None:
+        self.confidence_floor = confidence_floor
+
+    def plan(
+        self,
+        memories: list[MemoryRecord],
+        *,
+        limit: int = 5,
+    ) -> MemoryConfidencePlan:
+        """Return a non-mutating confidence confirmation plan."""
+
+        if limit <= 0:
+            raise ValueError("memory confidence plan limit must be positive")
+
+        candidates = [
+            self._candidate(memory)
+            for memory in memories
+            if memory.visible and self._needs_confirmation(memory)
+        ]
+        candidates.sort(
+            key=lambda candidate: (
+                -candidate.priority_score,
+                candidate.confidence,
+                candidate.access_count,
+                candidate.memory_id,
+            )
+        )
+        selected = candidates[:limit]
+        return MemoryConfidencePlan(
+            total_memory_count=len(memories),
+            candidate_count=len(selected),
+            candidates=selected,
+        )
+
+    def _needs_confirmation(self, memory: MemoryRecord) -> bool:
+        return memory.confidence < self.confidence_floor or memory.access_count == 0
+
+    def _candidate(self, memory: MemoryRecord) -> MemoryConfidencePlanCandidate:
+        reasons = []
+        if memory.confidence < self.confidence_floor:
+            reasons.append("confidence_below_floor")
+        if memory.access_count == 0:
+            reasons.append("never_confirmed")
+        confidence_gap = max(0.0, self.confidence_floor - memory.confidence)
+        access_bonus = 0.2 if memory.access_count == 0 else 0.0
+        priority_score = min(1.0, round(confidence_gap + access_bonus, 4))
+        return MemoryConfidencePlanCandidate(
+            memory_id=memory.memory_id,
+            title=memory.title,
+            memory_type=memory.memory_type.value,
+            confidence=memory.confidence,
+            access_count=memory.access_count,
+            visible=memory.visible,
+            priority_score=priority_score,
+            reasons=reasons,
+        )
+
+
 class MemoryConfidenceUpdater:
     """Apply explicit confidence confirmations to memory records."""
 
