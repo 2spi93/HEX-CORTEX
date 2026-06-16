@@ -17,6 +17,7 @@ from hex_cortex.memory.confidence_policy_telemetry import (
     summarize_memory_confidence_policy_telemetry,
 )
 from hex_cortex.memory.profile_confidence_plan import profile_memory_confidence_plan
+from hex_cortex.memory.profile_readiness_gate import inspect_profile_readiness_gate
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -34,6 +35,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--policy-max-total-negative-delta", type=float, default=0.05)
     parser.add_argument("--policy-max-total-operations", type=int, default=5)
     parser.add_argument("--policy-stability-window", type=int, default=3)
+    parser.add_argument("--gate-minimum-ready-score", type=float, default=1.0)
     parser.add_argument("--pretty", action="store_true")
     return parser
 
@@ -48,6 +50,7 @@ def inspect_profile_plus(
     policy_max_total_negative_delta: float = 0.05,
     policy_max_total_operations: int = 5,
     policy_stability_window: int = 3,
+    gate_minimum_ready_score: float = 1.0,
 ) -> dict[str, object]:
     """Inspect a profile and include memory confidence planning."""
 
@@ -87,6 +90,10 @@ def inspect_profile_plus(
     payload["memory_confidence_policy_stability_marker"] = (
         load_memory_confidence_policy_stability_marker(profile)
     )
+    payload["profile_readiness_gate"] = inspect_profile_readiness_gate(
+        profile,
+        minimum_ready_score=gate_minimum_ready_score,
+    )
     return payload
 
 
@@ -103,6 +110,7 @@ def main(argv: list[str] | None = None) -> int:
         policy_max_total_negative_delta=args.policy_max_total_negative_delta,
         policy_max_total_operations=args.policy_max_total_operations,
         policy_stability_window=args.policy_stability_window,
+        gate_minimum_ready_score=args.gate_minimum_ready_score,
     )
     indent = 2 if args.pretty else None
     json.dump(payload, sys.stdout, indent=indent, sort_keys=True)
