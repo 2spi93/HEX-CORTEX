@@ -4,6 +4,9 @@ from hex_cortex.memory.confidence import (
     MemoryConfidenceAuditJsonlStore,
     MemoryConfidenceAuditRecord,
 )
+from hex_cortex.memory.confidence_policy_autosaturation import (
+    run_memory_confidence_policy_autosaturation_profile,
+)
 from hex_cortex.memory.confidence_policy_telemetry import (
     record_memory_confidence_policy_telemetry_profile,
 )
@@ -159,3 +162,23 @@ def test_profile_inspect_plus_uses_policy_stability_window(tmp_path) -> None:
     assert telemetry["stability_window"] == 1
     assert telemetry["consecutive_zero_action_count"] == 1
     assert telemetry["stability_state"] == "confidence_policy_stable"
+
+
+def test_profile_inspect_plus_includes_stability_marker(tmp_path) -> None:
+    profile = tmp_path / "profile"
+    memory_path = profile / "memory.jsonl"
+    memory = MemoryRecord(title="memory", body="body", confidence=0.8, access_count=1)
+    LocalMemoryJsonlStore(memory_path).save([memory])
+    record_memory_confidence_policy_telemetry_profile(profile)
+    run_memory_confidence_policy_autosaturation_profile(
+        profile,
+        stability_window=1,
+        dry_run=False,
+    )
+
+    payload = inspect_profile_plus(profile)
+    marker = payload["memory_confidence_policy_stability_marker"]
+
+    assert marker["inspect_type"] == "memory_confidence_policy_stability_marker"
+    assert marker["exists"] is True
+    assert marker["marker"]["stability_state"] == "confidence_policy_stable"
