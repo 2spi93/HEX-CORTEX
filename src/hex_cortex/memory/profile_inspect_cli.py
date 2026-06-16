@@ -10,6 +10,9 @@ from pathlib import Path
 from hex_cortex.cli import inspect_profile
 from hex_cortex.memory.confidence_audit_summary import summarize_memory_confidence_audit
 from hex_cortex.memory.confidence_policy import run_memory_confidence_policy_profile
+from hex_cortex.memory.confidence_policy_autosaturation import (
+    load_memory_confidence_policy_stability_marker,
+)
 from hex_cortex.memory.confidence_policy_telemetry import (
     summarize_memory_confidence_policy_telemetry,
 )
@@ -80,6 +83,9 @@ def inspect_profile_plus(
             profile / "memory-confidence-policy-telemetry.jsonl",
             stability_window=policy_stability_window,
         )
+    )
+    payload["memory_confidence_policy_stability_marker"] = (
+        load_memory_confidence_policy_stability_marker(profile)
     )
     return payload
 
