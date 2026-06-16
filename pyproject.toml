@@ -16,6 +16,7 @@ dependencies = [
 hexctl = "hex_cortex.memory.profile_control_cli:main"
 hexnext = "hex_cortex.memory.profile_next_action_cli:main"
 hexdispatch = "hex_cortex.memory.profile_next_action_dispatch_cli:main"
+hexdispatch-history = "hex_cortex.memory.profile_dispatch_history_cli:main"
 
 [project.optional-dependencies]
 dev = [
