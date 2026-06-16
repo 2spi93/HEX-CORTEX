@@ -19,6 +19,7 @@ def test_memory_confidence_batch_cli_defaults_to_dry_run(tmp_path, capsys) -> No
     assert exit_code == 0
     assert payload["dry_run"] is True
     assert payload["candidate_count"] == 1
+    assert payload["saturation_threshold"] == 0.7
     assert payload["apply_blocked_reason"] is None
     assert persisted.confidence == 0.5
 
@@ -72,3 +73,31 @@ def test_memory_confidence_batch_cli_blocks_apply_with_safety_limit(tmp_path, ca
     assert payload["applied"] is False
     assert payload["apply_blocked_reason"] == "max_total_delta_exceeded"
     assert [memory.confidence for memory in persisted] == [0.5, 0.5]
+
+
+def test_memory_confidence_batch_cli_uses_saturation_threshold(tmp_path, capsys) -> None:
+    profile = tmp_path / "profile"
+    memory_path = profile / "memory.jsonl"
+    memory = MemoryRecord(
+        title="memory",
+        body="body",
+        confidence=0.65,
+        access_count=1,
+    )
+    LocalMemoryJsonlStore(memory_path).save([memory])
+
+    exit_code = main([
+        str(profile),
+        "--saturation-threshold",
+        "0.6",
+        "--apply",
+    ])
+    payload = json.loads(capsys.readouterr().out)
+    persisted = LocalMemoryJsonlStore(memory_path).load()[0]
+
+    assert exit_code == 0
+    assert payload["applied"] is False
+    assert payload["apply_blocked_reason"] == "no_eligible_candidates"
+    assert payload["saturation_threshold"] == 0.6
+    assert payload["saturated_memory_count"] == 1
+    assert persisted.confidence == 0.65
