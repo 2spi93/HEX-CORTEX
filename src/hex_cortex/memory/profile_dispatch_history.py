@@ -66,7 +66,9 @@ class ProfileDispatchHistoryJsonlStore:
                 if not line.strip():
                     continue
                 try:
-                    records.append(ProfileDispatchHistoryRecord.model_validate_json(line))
+                    records.append(
+                        ProfileDispatchHistoryRecord.model_validate_json(line)
+                    )
                 except Exception as exc:  # noqa: BLE001
                     raise ValueError(
                         f"invalid profile dispatch history at line {line_number}"
@@ -90,7 +92,10 @@ class ProfileDispatchHistoryJsonlStore:
         return self.save(records)
 
 
-def record_profile_dispatch_history(profile: Path, dispatch_report: dict[str, object]) -> dict[str, object]:
+def record_profile_dispatch_history(
+    profile: Path,
+    dispatch_report: dict[str, object],
+) -> dict[str, object]:
     """Persist a compact dispatch history record from a dispatch report."""
 
     pipeline_result = dispatch_report.get("pipeline_result")
@@ -108,8 +113,12 @@ def record_profile_dispatch_history(profile: Path, dispatch_report: dict[str, ob
         task_id=_optional_str(pipeline_result.get("task_id")),
         pipeline_mode=_optional_str(pipeline_result.get("mode")),
         clock_completed=_optional_bool(pipeline_result.get("clock_completed")),
-        persisted_event_count=_optional_int(pipeline_result.get("persisted_event_count")),
-        persisted_memory_count=_optional_int(pipeline_result.get("persisted_memory_count")),
+        persisted_event_count=_optional_int(
+            pipeline_result.get("persisted_event_count")
+        ),
+        persisted_memory_count=_optional_int(
+            pipeline_result.get("persisted_memory_count")
+        ),
     )
     history_path = profile / DISPATCH_HISTORY_FILENAME
     history_count = ProfileDispatchHistoryJsonlStore(history_path).append(record)
@@ -131,8 +140,12 @@ def summarize_profile_dispatch_history(path: Path) -> dict[str, object]:
         path=str(path),
         exists=path.exists(),
         total_dispatch_count=len(records),
-        executed_count=sum(1 for record in records if record.dispatch_status == "executed"),
-        skipped_count=sum(1 for record in records if record.dispatch_status == "skipped"),
+        executed_count=sum(
+            1 for record in records if record.dispatch_status == "executed"
+        ),
+        skipped_count=sum(
+            1 for record in records if record.dispatch_status == "skipped"
+        ),
         latest_dispatch_id=latest.dispatch_id if latest else None,
         latest_dispatch_status=latest.dispatch_status if latest else None,
         latest_dispatch_reason=latest.dispatch_reason if latest else None,
