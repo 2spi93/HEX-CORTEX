@@ -9,7 +9,9 @@ from uuid import uuid4
 from pydantic import BaseModel, Field
 
 from hex_cortex.memory.profile_operator_status import inspect_profile_operator_status
-from hex_cortex.memory.profile_operator_status_refresh import refresh_profile_operator_status
+from hex_cortex.memory.profile_operator_status_refresh import (
+    refresh_profile_operator_status,
+)
 
 STATUS_HISTORY_FILENAME = "profile-operator-status.jsonl"
 
