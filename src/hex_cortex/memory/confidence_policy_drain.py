@@ -194,7 +194,8 @@ def run_memory_confidence_policy_drain_profile(
         final_telemetry_summary = _telemetry_summary(profile, stability_window)
 
     autosaturation_report = None
-    if write_stability_marker and final_telemetry_summary["stability_state"] == "confidence_policy_stable":
+    stable = final_telemetry_summary["stability_state"] == "confidence_policy_stable"
+    if write_stability_marker and stable:
         autosaturation_report = run_memory_confidence_policy_autosaturation_profile(
             profile,
             stability_window=stability_window,
