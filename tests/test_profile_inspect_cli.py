@@ -100,3 +100,26 @@ def test_profile_inspect_plus_includes_memory_confidence_audit_summary(tmp_path)
     assert summary["positive_delta_count"] == 1
     assert summary["negative_delta_count"] == 1
     assert summary["net_delta"] == 0.04
+
+
+def test_profile_inspect_plus_includes_policy_report_without_mutation(tmp_path) -> None:
+    profile = tmp_path / "profile"
+    memory_path = profile / "memory.jsonl"
+    memory = MemoryRecord(title="memory", body="body", confidence=0.5)
+    LocalMemoryJsonlStore(memory_path).save([memory])
+
+    payload = inspect_profile_plus(
+        profile,
+        policy_limit=1,
+        policy_max_total_positive_delta=0.05,
+    )
+    report = payload["memory_confidence_policy_report"]
+    persisted = LocalMemoryJsonlStore(memory_path).load()[0]
+
+    assert report["dry_run"] is True
+    assert report["applied"] is False
+    assert report["selected_action_count"] == 1
+    assert report["skipped_action_count"] == 0
+    assert report["policy_net_delta"] == 0.05
+    assert report["policy_recommended_actions"][0]["action_type"] == "confirmation"
+    assert persisted.confidence == 0.5
