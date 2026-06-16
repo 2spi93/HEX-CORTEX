@@ -18,6 +18,7 @@ from hex_cortex.evolver.skill_library import SkillLibrary
 from hex_cortex.memory.index_hydrator import MemoryIndexHydrator
 from hex_cortex.memory.jsonl_store import LocalMemoryJsonlStore
 from hex_cortex.memory.local_index import LocalKnowledgeIndex
+from hex_cortex.memory.profile_health import ProfileHealthScorer
 from hex_cortex.memory.pruning_application import MemoryPruningApplication
 from hex_cortex.memory.pruning_audit import (
     PruningAuditJsonlStore,
@@ -96,6 +97,12 @@ def build_parser() -> argparse.ArgumentParser:
         type=Path,
         default=None,
         help="Inspect a profile directory without running a task.",
+    )
+    parser.add_argument(
+        "--profile-health",
+        type=Path,
+        default=None,
+        help="Score local profile health without running a task.",
     )
     parser.add_argument(
         "--inspect-spine",
@@ -209,6 +216,11 @@ def main(argv: list[str] | None = None) -> int:
         _write_json(inspect_payload, pretty=args.pretty)
         return 0
 
+    health_payload = _health_payload(args)
+    if health_payload is not None:
+        _write_json(health_payload, pretty=args.pretty)
+        return 0
+
     pruning_payload = _pruning_payload(args)
     if pruning_payload is not None:
         _write_json(pruning_payload, pretty=args.pretty)
@@ -220,7 +232,9 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     if args.content is None:
-        parser.error("content is required unless an inspect, pruning, or bootstrap mode is used")
+        parser.error(
+            "content is required unless an inspect, health, pruning, or bootstrap mode is used"
+        )
 
     paths = resolve_profile_paths(args)
     task = Task(
@@ -295,6 +309,12 @@ def _inspect_payload(args: argparse.Namespace) -> dict[str, object] | None:
     return None
 
 
+def _health_payload(args: argparse.Namespace) -> dict[str, object] | None:
+    if args.profile_health is None:
+        return None
+    return profile_health(args.profile_health)
+
+
 def _pruning_payload(args: argparse.Namespace) -> dict[str, object] | None:
     modes = [
         args.prune_memory_profile is not None,
@@ -329,7 +349,14 @@ def inspect_profile(profile: Path) -> dict[str, object]:
         "skills": inspect_skills(skills_path),
         "memory_pruning": pruning,
         "pruning_audit": inspect_pruning_audit(audit_path),
+        "profile_health": profile_health(profile),
     }
+
+
+def profile_health(profile: Path) -> dict[str, object]:
+    """Score local profile health without mutating files."""
+
+    return ProfileHealthScorer(profile).score().model_dump(mode="json")
 
 
 def inspect_spine(path: Path) -> dict[str, object]:
