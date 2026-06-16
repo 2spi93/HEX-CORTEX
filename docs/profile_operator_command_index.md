@@ -3,18 +3,24 @@
 ## Canonical human command
 
 ```powershell
-python -m hex_cortex.memory.profile_control_cli .hex-cortex --policy-limit 6 --policy-stability-window 3 --minimum-ready-score 1.0 --pretty
+hexctl .hex-cortex --policy-limit 6 --policy-stability-window 3 --minimum-ready-score 1.0 --pretty
 ```
 
 ## Canonical shell / CI command
 
 ```powershell
-python -m hex_cortex.memory.profile_control_cli .hex-cortex --policy-limit 6 --policy-stability-window 3 --minimum-ready-score 1.0 --strict-exit
+hexctl .hex-cortex --policy-limit 6 --policy-stability-window 3 --minimum-ready-score 1.0 --strict-exit
+```
+
+## Development fallback
+
+```powershell
+python -m hex_cortex.memory.profile_control_cli .hex-cortex --policy-limit 6 --policy-stability-window 3 --minimum-ready-score 1.0 --pretty
 ```
 
 ## Operator rule
 
-Use `profile_control_cli` for human operation.
+Use `hexctl` for human operation.
 
 Long diagnostic CLIs are implementation details. Do not expose them as primary operator commands in docs.
 
@@ -30,4 +36,4 @@ profile_readiness_gate_cli
 profile_readiness_snapshot_cli
 ```
 
-These remain valid for debugging and tests, but the operator rail is frozen on `profile_control_cli`.
+These remain valid for debugging and tests, but the operator rail is frozen on `hexctl`.
