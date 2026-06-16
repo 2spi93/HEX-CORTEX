@@ -4,6 +4,9 @@ from hex_cortex.memory.confidence import (
     MemoryConfidenceAuditJsonlStore,
     MemoryConfidenceAuditRecord,
 )
+from hex_cortex.memory.confidence_policy_telemetry import (
+    record_memory_confidence_policy_telemetry_profile,
+)
 from hex_cortex.memory.jsonl_store import LocalMemoryJsonlStore
 from hex_cortex.memory.profile_inspect_cli import inspect_profile_plus, main
 from hex_cortex.memory.schemas import MemoryRecord
@@ -123,3 +126,20 @@ def test_profile_inspect_plus_includes_policy_report_without_mutation(tmp_path) 
     assert report["policy_net_delta"] == 0.05
     assert report["policy_recommended_actions"][0]["action_type"] == "confirmation"
     assert persisted.confidence == 0.5
+
+
+def test_profile_inspect_plus_includes_policy_telemetry_summary(tmp_path) -> None:
+    profile = tmp_path / "profile"
+    memory_path = profile / "memory.jsonl"
+    memory = MemoryRecord(title="memory", body="body", confidence=0.8, access_count=1)
+    LocalMemoryJsonlStore(memory_path).save([memory])
+    record_memory_confidence_policy_telemetry_profile(profile)
+
+    payload = inspect_profile_plus(profile)
+    telemetry = payload["memory_confidence_policy_telemetry"]
+
+    assert telemetry["inspect_type"] == "memory_confidence_policy_telemetry"
+    assert telemetry["exists"] is True
+    assert telemetry["total_record_count"] == 1
+    assert telemetry["latest_selected_action_count"] == 0
+    assert telemetry["stable_zero_action_count"] == 1
