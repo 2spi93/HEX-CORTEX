@@ -115,10 +115,25 @@ def _spine_component(
 ) -> ProfileOperationalReadinessComponent:
     spine = profile_payload["spine"]
     if not spine["exists"]:
-        return _component("spine", ProfileOperationalReadinessVerdict.BLOCKED, "spine_missing", 0.0)
+        return _component(
+            "spine",
+            ProfileOperationalReadinessVerdict.BLOCKED,
+            "spine_missing",
+            0.0,
+        )
     if not spine["integrity_ok"]:
-        return _component("spine", ProfileOperationalReadinessVerdict.BLOCKED, "spine_integrity_failed", 0.0)
-    return _component("spine", ProfileOperationalReadinessVerdict.READY, "spine_integrity_ok", 1.0)
+        return _component(
+            "spine",
+            ProfileOperationalReadinessVerdict.BLOCKED,
+            "spine_integrity_failed",
+            0.0,
+        )
+    return _component(
+        "spine",
+        ProfileOperationalReadinessVerdict.READY,
+        "spine_integrity_ok",
+        1.0,
+    )
 
 
 def _health_component(
@@ -126,10 +141,25 @@ def _health_component(
 ) -> ProfileOperationalReadinessComponent:
     health = profile_payload["profile_health"]
     if health["status"] == "blocked":
-        return _component("profile_health", ProfileOperationalReadinessVerdict.BLOCKED, "profile_health_blocked", 0.0)
+        return _component(
+            "profile_health",
+            ProfileOperationalReadinessVerdict.BLOCKED,
+            "profile_health_blocked",
+            0.0,
+        )
     if health["status"] == "watch":
-        return _component("profile_health", ProfileOperationalReadinessVerdict.WATCH, "profile_health_watch", 0.7)
-    return _component("profile_health", ProfileOperationalReadinessVerdict.READY, "profile_health_healthy", 1.0)
+        return _component(
+            "profile_health",
+            ProfileOperationalReadinessVerdict.WATCH,
+            "profile_health_watch",
+            0.7,
+        )
+    return _component(
+        "profile_health",
+        ProfileOperationalReadinessVerdict.READY,
+        "profile_health_healthy",
+        1.0,
+    )
 
 
 def _policy_report_component(
@@ -183,10 +213,25 @@ def _audit_component(
     audit_summary: dict[str, object],
 ) -> ProfileOperationalReadinessComponent:
     if int(audit_summary["total_audit_count"]) == 0:
-        return _component("memory_confidence_audit", ProfileOperationalReadinessVerdict.WATCH, "confidence_audit_missing", 0.5)
+        return _component(
+            "memory_confidence_audit",
+            ProfileOperationalReadinessVerdict.WATCH,
+            "confidence_audit_missing",
+            0.5,
+        )
     if float(audit_summary["net_delta"]) < 0:
-        return _component("memory_confidence_audit", ProfileOperationalReadinessVerdict.WATCH, "confidence_audit_net_negative", 0.6)
-    return _component("memory_confidence_audit", ProfileOperationalReadinessVerdict.READY, "confidence_audit_net_non_negative", 1.0)
+        return _component(
+            "memory_confidence_audit",
+            ProfileOperationalReadinessVerdict.WATCH,
+            "confidence_audit_net_negative",
+            0.6,
+        )
+    return _component(
+        "memory_confidence_audit",
+        ProfileOperationalReadinessVerdict.READY,
+        "confidence_audit_net_non_negative",
+        1.0,
+    )
 
 
 def _pruning_component(
@@ -195,18 +240,39 @@ def _pruning_component(
     pruning_audit = profile_payload["pruning_audit"]
     memory = profile_payload["memory"]
     if int(memory["hidden_memory_count"]) > 0:
-        return _component("pruning", ProfileOperationalReadinessVerdict.WATCH, "hidden_memory_present", 0.7)
+        return _component(
+            "pruning",
+            ProfileOperationalReadinessVerdict.WATCH,
+            "hidden_memory_present",
+            0.7,
+        )
     if not pruning_audit["exists"]:
-        return _component("pruning", ProfileOperationalReadinessVerdict.WATCH, "pruning_audit_missing", 0.7)
-    return _component("pruning", ProfileOperationalReadinessVerdict.READY, "pruning_clean", 1.0)
+        return _component(
+            "pruning",
+            ProfileOperationalReadinessVerdict.WATCH,
+            "pruning_audit_missing",
+            0.7,
+        )
+    return _component(
+        "pruning",
+        ProfileOperationalReadinessVerdict.READY,
+        "pruning_clean",
+        1.0,
+    )
 
 
 def _overall_verdict(
     components: list[ProfileOperationalReadinessComponent],
 ) -> ProfileOperationalReadinessVerdict:
-    if any(component.status == ProfileOperationalReadinessVerdict.BLOCKED for component in components):
+    if any(
+        component.status == ProfileOperationalReadinessVerdict.BLOCKED
+        for component in components
+    ):
         return ProfileOperationalReadinessVerdict.BLOCKED
-    if any(component.status == ProfileOperationalReadinessVerdict.WATCH for component in components):
+    if any(
+        component.status == ProfileOperationalReadinessVerdict.WATCH
+        for component in components
+    ):
         return ProfileOperationalReadinessVerdict.WATCH
     return ProfileOperationalReadinessVerdict.READY
 
