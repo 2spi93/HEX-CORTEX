@@ -9,3 +9,4 @@ def test_hex_operator_console_entrypoints_are_declared() -> None:
     assert scripts["hexctl"] == "hex_cortex.memory.profile_control_cli:main"
     assert scripts["hexnext"] == "hex_cortex.memory.profile_next_action_cli:main"
     assert scripts["hexdispatch"] == "hex_cortex.memory.profile_next_action_dispatch_cli:main"
+    assert scripts["hexdispatch-history"] == "hex_cortex.memory.profile_dispatch_history_cli:main"
