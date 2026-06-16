@@ -4,12 +4,21 @@ from __future__ import annotations
 
 import json
 from datetime import UTC, datetime
+from enum import StrEnum
 from pathlib import Path
 from uuid import uuid4
 
 from pydantic import BaseModel, Field
 
 from hex_cortex.memory.confidence_policy import run_memory_confidence_policy_profile
+
+
+class MemoryConfidencePolicyStabilityState(StrEnum):
+    """Stability state inferred from policy telemetry."""
+
+    STABLE = "confidence_policy_stable"
+    ACTIVE = "confidence_policy_active"
+    INSUFFICIENT_HISTORY = "confidence_policy_insufficient_history"
 
 
 class MemoryConfidencePolicyTelemetryRecord(BaseModel):
@@ -40,6 +49,10 @@ class MemoryConfidencePolicyTelemetrySummary(BaseModel):
     latest_skipped_action_count: int | None
     latest_candidate_count: int | None
     stable_zero_action_count: int = Field(ge=0)
+    consecutive_zero_action_count: int = Field(ge=0)
+    stability_window: int = Field(ge=1)
+    stability_state: MemoryConfidencePolicyStabilityState
+    stability_reason: str
 
 
 class MemoryConfidencePolicyTelemetryJsonlStore:
@@ -142,11 +155,24 @@ def record_memory_confidence_policy_telemetry_profile(
     }
 
 
-def summarize_memory_confidence_policy_telemetry(path: Path) -> dict[str, object]:
-    """Summarize policy telemetry records."""
+def summarize_memory_confidence_policy_telemetry(
+    path: Path,
+    *,
+    stability_window: int = 3,
+) -> dict[str, object]:
+    """Summarize policy telemetry records and infer stability."""
+
+    if stability_window <= 0:
+        raise ValueError("stability_window must be positive")
 
     records = MemoryConfidencePolicyTelemetryJsonlStore(path).load()
     latest = records[-1] if records else None
+    consecutive_zero_action_count = _consecutive_zero_action_count(records)
+    stability_state, stability_reason = _stability_state(
+        records,
+        consecutive_zero_action_count=consecutive_zero_action_count,
+        stability_window=stability_window,
+    )
     summary = MemoryConfidencePolicyTelemetrySummary(
         path=str(path),
         exists=path.exists(),
@@ -159,5 +185,42 @@ def summarize_memory_confidence_policy_telemetry(path: Path) -> dict[str, object
         stable_zero_action_count=sum(
             1 for record in records if record.selected_action_count == 0
         ),
+        consecutive_zero_action_count=consecutive_zero_action_count,
+        stability_window=stability_window,
+        stability_state=stability_state,
+        stability_reason=stability_reason,
     )
     return summary.model_dump(mode="json")
+
+
+def _consecutive_zero_action_count(
+    records: list[MemoryConfidencePolicyTelemetryRecord],
+) -> int:
+    count = 0
+    for record in reversed(records):
+        if record.selected_action_count != 0:
+            break
+        count += 1
+    return count
+
+
+def _stability_state(
+    records: list[MemoryConfidencePolicyTelemetryRecord],
+    *,
+    consecutive_zero_action_count: int,
+    stability_window: int,
+) -> tuple[MemoryConfidencePolicyStabilityState, str]:
+    if len(records) < stability_window:
+        return (
+            MemoryConfidencePolicyStabilityState.INSUFFICIENT_HISTORY,
+            "not_enough_policy_telemetry_records",
+        )
+    if consecutive_zero_action_count >= stability_window:
+        return (
+            MemoryConfidencePolicyStabilityState.STABLE,
+            "consecutive_zero_action_window_reached",
+        )
+    return (
+        MemoryConfidencePolicyStabilityState.ACTIVE,
+        "policy_still_recommends_actions",
+    )
