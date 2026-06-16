@@ -84,7 +84,9 @@ def test_policy_telemetry_summary_marks_stable_after_consecutive_zero_window(tmp
     assert summary["stability_reason"] == "consecutive_zero_action_window_reached"
 
 
-def test_policy_telemetry_summary_marks_active_when_latest_records_recommend_actions(tmp_path) -> None:
+def test_policy_telemetry_summary_marks_active_when_latest_records_recommend_actions(
+    tmp_path,
+) -> None:
     profile = tmp_path / "profile"
     memory_path = profile / "memory.jsonl"
     active_memory = MemoryRecord(title="active", body="body", confidence=0.5)
@@ -106,4 +108,7 @@ def test_policy_telemetry_summary_marks_active_when_latest_records_recommend_act
 
 def test_policy_telemetry_summary_rejects_invalid_stability_window(tmp_path) -> None:
     with pytest.raises(ValueError, match="stability_window must be positive"):
-        summarize_memory_confidence_policy_telemetry(tmp_path / "telemetry.jsonl", stability_window=0)
+        summarize_memory_confidence_policy_telemetry(
+            tmp_path / "telemetry.jsonl",
+            stability_window=0,
+        )
