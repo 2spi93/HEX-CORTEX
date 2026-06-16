@@ -8,6 +8,7 @@ import sys
 from pathlib import Path
 
 from hex_cortex.cli import inspect_profile
+from hex_cortex.memory.confidence_audit_summary import summarize_memory_confidence_audit
 from hex_cortex.memory.profile_confidence_plan import profile_memory_confidence_plan
 
 
@@ -38,6 +39,9 @@ def inspect_profile_plus(
         profile,
         limit=limit,
         saturation_threshold=saturation_threshold,
+    )
+    payload["memory_confidence_audit_summary"] = summarize_memory_confidence_audit(
+        profile / "memory-confidence-audit.jsonl",
     )
     return payload
 
