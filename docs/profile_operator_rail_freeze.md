@@ -7,13 +7,19 @@ Frozen as `PROFILE_OPERATOR_RAIL_V2`.
 ## Canonical human entrypoint
 
 ```powershell
-python -m hex_cortex.memory.profile_control_cli .hex-cortex --policy-limit 6 --policy-stability-window 3 --minimum-ready-score 1.0 --pretty
+hexctl .hex-cortex --policy-limit 6 --policy-stability-window 3 --minimum-ready-score 1.0 --pretty
 ```
 
 ## Canonical shell / CI entrypoint
 
 ```powershell
-python -m hex_cortex.memory.profile_control_cli .hex-cortex --policy-limit 6 --policy-stability-window 3 --minimum-ready-score 1.0 --strict-exit
+hexctl .hex-cortex --policy-limit 6 --policy-stability-window 3 --minimum-ready-score 1.0 --strict-exit
+```
+
+## Development fallback
+
+```powershell
+python -m hex_cortex.memory.profile_control_cli .hex-cortex --policy-limit 6 --policy-stability-window 3 --minimum-ready-score 1.0 --pretty
 ```
 
 ## Contract
@@ -57,4 +63,4 @@ block -> 20
 
 ## Frozen rule
 
-Long diagnostic CLIs remain available, but operator execution should use `profile_control_cli`.
+Long diagnostic CLIs remain available, but operator execution should use `hexctl`.
