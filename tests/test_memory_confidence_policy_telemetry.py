@@ -1,3 +1,5 @@
+import pytest
+
 from hex_cortex.memory.confidence import MemoryConfidenceAuditJsonlStore
 from hex_cortex.memory.confidence_policy_telemetry import (
     MemoryConfidencePolicyTelemetryJsonlStore,
@@ -42,6 +44,7 @@ def test_policy_telemetry_summary_handles_missing_and_existing_records(tmp_path)
     missing = summarize_memory_confidence_policy_telemetry(telemetry_path)
     assert missing["exists"] is False
     assert missing["total_record_count"] == 0
+    assert missing["stability_state"] == "confidence_policy_insufficient_history"
 
     profile = tmp_path / "profile"
     memory_path = profile / "memory.jsonl"
@@ -56,3 +59,51 @@ def test_policy_telemetry_summary_handles_missing_and_existing_records(tmp_path)
     assert summary["total_record_count"] == 1
     assert summary["latest_selected_action_count"] == 0
     assert summary["stable_zero_action_count"] == 1
+    assert summary["consecutive_zero_action_count"] == 1
+    assert summary["stability_window"] == 3
+    assert summary["stability_state"] == "confidence_policy_insufficient_history"
+
+
+def test_policy_telemetry_summary_marks_stable_after_consecutive_zero_window(tmp_path) -> None:
+    profile = tmp_path / "profile"
+    memory_path = profile / "memory.jsonl"
+    memory = MemoryRecord(title="memory", body="body", confidence=0.8, access_count=1)
+    LocalMemoryJsonlStore(memory_path).save([memory])
+
+    for _ in range(3):
+        record_memory_confidence_policy_telemetry_profile(profile)
+
+    summary = summarize_memory_confidence_policy_telemetry(
+        profile / "memory-confidence-policy-telemetry.jsonl",
+        stability_window=3,
+    )
+
+    assert summary["total_record_count"] == 3
+    assert summary["consecutive_zero_action_count"] == 3
+    assert summary["stability_state"] == "confidence_policy_stable"
+    assert summary["stability_reason"] == "consecutive_zero_action_window_reached"
+
+
+def test_policy_telemetry_summary_marks_active_when_latest_records_recommend_actions(tmp_path) -> None:
+    profile = tmp_path / "profile"
+    memory_path = profile / "memory.jsonl"
+    active_memory = MemoryRecord(title="active", body="body", confidence=0.5)
+    LocalMemoryJsonlStore(memory_path).save([active_memory])
+
+    for _ in range(3):
+        record_memory_confidence_policy_telemetry_profile(profile)
+
+    summary = summarize_memory_confidence_policy_telemetry(
+        profile / "memory-confidence-policy-telemetry.jsonl",
+        stability_window=3,
+    )
+
+    assert summary["total_record_count"] == 3
+    assert summary["consecutive_zero_action_count"] == 0
+    assert summary["stability_state"] == "confidence_policy_active"
+    assert summary["stability_reason"] == "policy_still_recommends_actions"
+
+
+def test_policy_telemetry_summary_rejects_invalid_stability_window(tmp_path) -> None:
+    with pytest.raises(ValueError, match="stability_window must be positive"):
+        summarize_memory_confidence_policy_telemetry(tmp_path / "telemetry.jsonl", stability_window=0)
