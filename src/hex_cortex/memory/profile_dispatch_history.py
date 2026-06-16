@@ -22,6 +22,8 @@ class ProfileDispatchHistoryRecord(BaseModel):
     reason: str
     next_action: str
     next_reason: str
+    safety_status: str | None = None
+    safety_reasons: list[str] = Field(default_factory=list)
     dispatch_status: str
     dispatch_reason: str
     task_id: str | None
@@ -43,6 +45,8 @@ class ProfileDispatchHistorySummary(BaseModel):
     latest_dispatch_id: str | None
     latest_dispatch_status: str | None
     latest_dispatch_reason: str | None
+    latest_safety_status: str | None
+    latest_safety_reasons: list[str]
     latest_next_action: str | None
     latest_task_id: str | None
     latest_pipeline_mode: str | None
@@ -108,6 +112,8 @@ def record_profile_dispatch_history(
         reason=str(dispatch_report["reason"]),
         next_action=str(dispatch_report["next_action"]),
         next_reason=str(dispatch_report["next_reason"]),
+        safety_status=_optional_str(dispatch_report.get("safety_status")),
+        safety_reasons=_optional_str_list(dispatch_report.get("safety_reasons")),
         dispatch_status=str(dispatch_report["dispatch_status"]),
         dispatch_reason=str(dispatch_report["dispatch_reason"]),
         task_id=_optional_str(pipeline_result.get("task_id")),
@@ -149,6 +155,8 @@ def summarize_profile_dispatch_history(path: Path) -> dict[str, object]:
         latest_dispatch_id=latest.dispatch_id if latest else None,
         latest_dispatch_status=latest.dispatch_status if latest else None,
         latest_dispatch_reason=latest.dispatch_reason if latest else None,
+        latest_safety_status=latest.safety_status if latest else None,
+        latest_safety_reasons=latest.safety_reasons if latest else [],
         latest_next_action=latest.next_action if latest else None,
         latest_task_id=latest.task_id if latest else None,
         latest_pipeline_mode=latest.pipeline_mode if latest else None,
@@ -167,3 +175,9 @@ def _optional_bool(value: object) -> bool | None:
 
 def _optional_int(value: object) -> int | None:
     return value if isinstance(value, int) else None
+
+
+def _optional_str_list(value: object) -> list[str]:
+    if not isinstance(value, list):
+        return []
+    return [str(item) for item in value]
