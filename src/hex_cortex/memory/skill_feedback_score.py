@@ -105,7 +105,11 @@ def build_skill_feedback_score(profile: Path) -> dict[str, object]:
     if not feedback:
         record = _missing_feedback_score(profile, learning[-1] if learning else None)
     else:
-        record = _score_from_sources(profile, feedback, learning[-1] if learning else None)
+        record = _score_from_sources(
+            profile,
+            feedback,
+            learning[-1] if learning else None,
+        )
     path = profile / SKILL_FEEDBACK_SCORE_FILENAME
     count = SkillFeedbackScoreJsonlStore(path).append(record)
     return {
@@ -158,7 +162,9 @@ def _missing_feedback_score(profile: Path, learning) -> SkillFeedbackScoreRecord
 def _score_from_sources(profile: Path, feedback, learning) -> SkillFeedbackScoreRecord:
     latest = feedback[-1]
     selected_skill = latest.selected_skill
-    relevant = [record for record in feedback if record.selected_skill == selected_skill]
+    relevant = [
+        record for record in feedback if record.selected_skill == selected_skill
+    ]
     counts = Counter(record.observed_outcome for record in relevant)
     success_count = counts.get("success", 0)
     failure_count = counts.get("failure", 0) + counts.get("regression", 0)
