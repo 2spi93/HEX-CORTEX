@@ -65,7 +65,9 @@ class ProfileResyncGateJsonlStore:
                 if not line.strip():
                     continue
                 try:
-                    records.append(ProfileResyncGateRecord.model_validate_json(line))
+                    records.append(
+                        ProfileResyncGateRecord.model_validate_json(line)
+                    )
                 except Exception as exc:  # noqa: BLE001
                     raise ValueError(
                         f"invalid profile resync gate at line {line_number}"
@@ -135,7 +137,7 @@ def _missing_resync_gate(profile: Path) -> ProfileResyncGateRecord:
         gate_allowed=False,
         next_action="build_profile_resync_report",
         gate_hash=_gate_hash("resync_missing", "gate_blocked"),
-        reasons=["profile_resync_report_missing"],
+        reasons=["resync_missing"],
     )
 
 
@@ -152,7 +154,7 @@ def _gate_from_resync(profile: Path, resync) -> ProfileResyncGateRecord:
         gate_allowed=allowed,
         next_action="prepare_freeze_stamp" if allowed else resync.next_action,
         gate_hash=_gate_hash(resync.resync_hash, decision, resync.next_action),
-        reasons=["profile_gate_ready" if allowed else "profile_gate_watch"],
+        reasons=["ready" if allowed else "watch"],
     )
 
 
