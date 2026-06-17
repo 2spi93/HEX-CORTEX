@@ -1,0 +1,35 @@
+"""CLI for planner decision packets."""
+
+from __future__ import annotations
+
+import argparse
+import json
+import sys
+from pathlib import Path
+
+from hex_cortex.memory.planner_decision_packet import (
+    PLANNER_PACKET_FILENAME,
+    build_latest_planner_decision_packet,
+    summarize_planner_decision_packets,
+)
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(prog="profile-planner")
+    parser.add_argument("profile", type=Path)
+    parser.add_argument("--summary", action="store_true")
+    parser.add_argument("--pretty", action="store_true")
+    args = parser.parse_args(argv)
+    if args.summary:
+        payload = summarize_planner_decision_packets(
+            args.profile / PLANNER_PACKET_FILENAME
+        )
+    else:
+        payload = build_latest_planner_decision_packet(args.profile)
+    json.dump(payload, sys.stdout, indent=2 if args.pretty else None, sort_keys=True)
+    sys.stdout.write("\n")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
