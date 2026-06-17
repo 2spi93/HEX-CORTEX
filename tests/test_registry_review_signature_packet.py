@@ -60,7 +60,11 @@ def _write_document(profile, *, decision: str) -> None:
             source_score_id="score_a",
             registry_status="matched" if is_ready else "fallback",
             requested_outcome="approved" if is_ready else "needs_registry_activation",
-            outcome_decision="outcome_approved" if is_ready else "outcome_needs_registry_activation",
+            outcome_decision=(
+                "outcome_approved"
+                if is_ready
+                else "outcome_needs_registry_activation"
+            ),
             review_decision="review_ready" if is_ready else "review_watch",
             score_decision="score_ready" if is_ready else "score_hold",
             document_status="ready" if is_ready else "watch",
