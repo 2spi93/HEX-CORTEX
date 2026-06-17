@@ -81,7 +81,8 @@ class RegistryReviewSignaturePacketJsonlStore:
                     )
                 except Exception as exc:  # noqa: BLE001
                     raise ValueError(
-                        f"invalid registry review signature packet at line {line_number}"
+                        "invalid registry review signature packet "
+                        f"at line {line_number}"
                     ) from exc
         return records
 
@@ -107,7 +108,9 @@ def build_registry_review_signature_packet(
     """Build a signature packet from the latest registry review document."""
 
     if requested_signature not in ALLOWED_SIGNATURE_DECISIONS:
-        raise ValueError(f"unsupported review signature decision: {requested_signature}")
+        raise ValueError(
+            f"unsupported review signature decision: {requested_signature}"
+        )
     documents = SkillRegistryReviewDocumentJsonlStore(
         profile / SKILL_REGISTRY_REVIEW_DOCUMENT_FILENAME
     ).load()
