@@ -19,7 +19,9 @@ REVIEW_PROPAGATION_FILENAME = "review-propagation.jsonl"
 class ReviewPropagationRecord(BaseModel):
     """One persisted review propagation record."""
 
-    propagation_id: str = Field(default_factory=lambda: f"review_propagation_{uuid4().hex}")
+    propagation_id: str = Field(
+        default_factory=lambda: f"review_propagation_{uuid4().hex}"
+    )
     created_at: str = Field(default_factory=lambda: datetime.now(UTC).isoformat())
     profile_path: str
     selected_skill: str
