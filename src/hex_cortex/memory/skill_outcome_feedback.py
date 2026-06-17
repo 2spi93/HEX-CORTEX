@@ -132,7 +132,10 @@ def summarize_skill_outcome_feedback(path: Path) -> dict[str, object]:
     return summary.model_dump(mode="json")
 
 
-def _missing_audit_feedback(profile: Path, observed_outcome: str) -> SkillOutcomeFeedbackRecord:
+def _missing_audit_feedback(
+    profile: Path,
+    observed_outcome: str,
+) -> SkillOutcomeFeedbackRecord:
     return SkillOutcomeFeedbackRecord(
         profile_path=str(profile),
         source_audit_id=None,
@@ -149,7 +152,11 @@ def _missing_audit_feedback(profile: Path, observed_outcome: str) -> SkillOutcom
     )
 
 
-def _feedback_from_audit(profile: Path, audit, observed_outcome: str) -> SkillOutcomeFeedbackRecord:
+def _feedback_from_audit(
+    profile: Path,
+    audit,
+    observed_outcome: str,
+) -> SkillOutcomeFeedbackRecord:
     outcome_score = _outcome_score(audit, observed_outcome)
     status, decision, next_action, reasons = _outcome_decision(audit, observed_outcome)
     return SkillOutcomeFeedbackRecord(
