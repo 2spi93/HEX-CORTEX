@@ -8,8 +8,14 @@ from uuid import uuid4
 
 from pydantic import BaseModel, Field
 
-from hex_cortex.memory.action_cost_model import ACTION_COST_FILENAME, ActionCostJsonlStore
-from hex_cortex.memory.latent_state_compression import LATENT_STATE_FILENAME, LatentStateJsonlStore
+from hex_cortex.memory.action_cost_model import (
+    ACTION_COST_FILENAME,
+    ActionCostJsonlStore,
+)
+from hex_cortex.memory.latent_state_compression import (
+    LATENT_STATE_FILENAME,
+    LatentStateJsonlStore,
+)
 from hex_cortex.memory.skill_registry_integration import (
     SKILL_REGISTRY_MATCH_FILENAME,
     SkillRegistryMatchJsonlStore,
@@ -99,7 +105,11 @@ def build_latest_planner_decision_packet(profile: Path) -> dict[str, object]:
     matches = SkillRegistryMatchJsonlStore(profile / SKILL_REGISTRY_MATCH_FILENAME).load()
     costs = ActionCostJsonlStore(profile / ACTION_COST_FILENAME).load()
     if not matches:
-        record = _missing_match_packet(profile, latents[-1] if latents else None, costs[-1] if costs else None)
+        record = _missing_match_packet(
+            profile,
+            latents[-1] if latents else None,
+            costs[-1] if costs else None,
+        )
     else:
         record = _packet_from_sources(
             profile,
@@ -167,7 +177,11 @@ def _packet_from_sources(profile: Path, latent, match, cost) -> PlannerDecisionP
     action_score = cost.action_score if cost else match.action_score
     compression_score = latent.compression_score if latent else match.compression_score
     confidence = _overall_confidence(match.match_score, action_score, compression_score)
-    status, decision, next_action, allowed, reasons = _planner_outcome(match, action_score, confidence)
+    status, decision, next_action, allowed, reasons = _planner_outcome(
+        match,
+        action_score,
+        confidence,
+    )
     return PlannerDecisionPacketRecord(
         profile_path=str(profile),
         source_latent_id=latent.latent_id if latent else match.latent_id,
@@ -193,7 +207,11 @@ def _overall_confidence(match_score: float, action_score: float, compression_sco
 
 
 def _planner_outcome(match, action_score: float, confidence: float):
-    if match.registry_status == "matched" and confidence >= 0.75 and action_score >= 0.75:
+    if (
+        match.registry_status == "matched"
+        and confidence >= 0.75
+        and action_score >= 0.75
+    ):
         return (
             "ready",
             "planner_ready",
