@@ -95,7 +95,9 @@ class OperatorSignatureLedgerJsonlStore:
 def build_operator_signature_ledger(profile: Path) -> dict[str, object]:
     """Build and append one operator signature ledger record."""
 
-    bundles = ReviewAuditBundleJsonlStore(profile / REVIEW_AUDIT_BUNDLE_FILENAME).load()
+    bundles = ReviewAuditBundleJsonlStore(
+        profile / REVIEW_AUDIT_BUNDLE_FILENAME
+    ).load()
     ledger_path = profile / OPERATOR_SIGNATURE_LEDGER_FILENAME
     previous = OperatorSignatureLedgerJsonlStore(ledger_path).load()
     previous_hash = previous[-1].ledger_hash if previous else None
