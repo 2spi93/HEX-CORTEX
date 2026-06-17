@@ -8,7 +8,10 @@ from uuid import uuid4
 
 from pydantic import BaseModel, Field
 
-from hex_cortex.memory.cognitive_trace import CognitiveTraceJsonlStore, TRACE_FILENAME
+from hex_cortex.memory.cognitive_trace import (
+    TRACE_FILENAME,
+    CognitiveTraceJsonlStore,
+)
 from hex_cortex.memory.cognitive_trace_evaluation import (
     EVALUATION_FILENAME,
     CognitiveTraceEvaluationJsonlStore,
