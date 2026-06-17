@@ -56,7 +56,9 @@ class InvariantScanJsonlStore:
                 try:
                     records.append(InvariantScanRecord.model_validate_json(line))
                 except Exception as exc:  # noqa: BLE001
-                    raise ValueError(f"invalid invariant scan at line {line_number}") from exc
+                    raise ValueError(
+                        f"invalid invariant scan at line {line_number}"
+                    ) from exc
         return records
 
     def save(self, records: list[InvariantScanRecord]) -> int:
@@ -127,6 +129,9 @@ def _violations(status, freeze, pack, proof) -> list[str]:
         if pack.pack_decision == "pack_ready" and proof.proof_decision != "proof_ready":
             violations.append("pack_ready_without_proof_ready")
     if freeze and status:
-        if freeze.freeze_decision == "freeze_ready" and status.construction_decision != "construction_ready":
+        if (
+            freeze.freeze_decision == "freeze_ready"
+            and status.construction_decision != "construction_ready"
+        ):
             violations.append("freeze_ready_without_construction_ready")
     return violations
