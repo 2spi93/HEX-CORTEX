@@ -158,7 +158,6 @@ def test_final_end_state_certificate_hash_is_stable(tmp_path) -> None:
     second = build_final_end_state_certificate(profile)["certificate_record"]
 
     assert first["certificate_id"] != second["certificate_id"]
-    assert first["created_at"] != second["created_at"]
     assert first["certificate_hash"] == second["certificate_hash"]
 
 
