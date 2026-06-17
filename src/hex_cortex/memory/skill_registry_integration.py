@@ -143,7 +143,12 @@ def _missing_latent_match(profile: Path, registry_path: Path) -> SkillRegistryMa
     )
 
 
-def _match_latent(profile: Path, registry_path: Path, latent, active_skills) -> SkillRegistryMatchRecord:
+def _match_latent(
+    profile: Path,
+    registry_path: Path,
+    latent,
+    active_skills,
+) -> SkillRegistryMatchRecord:
     trigger_tags = _trigger_tags(latent)
     if not active_skills:
         return _fallback_match(profile, registry_path, latent, trigger_tags)
@@ -169,7 +174,12 @@ def _match_latent(profile: Path, registry_path: Path, latent, active_skills) -> 
     )
 
 
-def _fallback_match(profile: Path, registry_path: Path, latent, trigger_tags: list[str]) -> SkillRegistryMatchRecord:
+def _fallback_match(
+    profile: Path,
+    registry_path: Path,
+    latent,
+    trigger_tags: list[str],
+) -> SkillRegistryMatchRecord:
     return SkillRegistryMatchRecord(
         profile_path=str(profile),
         latent_id=latent.latent_id,
