@@ -79,7 +79,9 @@ class ReviewProofJsonlStore:
                 try:
                     records.append(ReviewProofRecord.model_validate_json(line))
                 except Exception as exc:  # noqa: BLE001
-                    raise ValueError(f"invalid review proof at line {line_number}") from exc
+                    raise ValueError(
+                        f"invalid review proof at line {line_number}"
+                    ) from exc
         return records
 
     def save(self, records: list[ReviewProofRecord]) -> int:
