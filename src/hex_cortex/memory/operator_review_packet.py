@@ -104,7 +104,9 @@ def build_operator_review_packet(profile: Path) -> dict[str, object]:
     proposals = RegistryUpdateProposalGateJsonlStore(
         profile / REGISTRY_UPDATE_PROPOSAL_GATE_FILENAME
     ).load()
-    scores = SkillFeedbackScoreJsonlStore(profile / SKILL_FEEDBACK_SCORE_FILENAME).load()
+    scores = SkillFeedbackScoreJsonlStore(
+        profile / SKILL_FEEDBACK_SCORE_FILENAME
+    ).load()
     summaries = ReceiptSummaryJsonlStore(profile / RECEIPT_SUMMARY_FILENAME).load()
     if not proposals:
         record = _missing_proposal_packet(
@@ -170,7 +172,12 @@ def _missing_proposal_packet(profile: Path, score, summary) -> OperatorReviewPac
     )
 
 
-def _packet_from_sources(profile: Path, proposal, score, summary) -> OperatorReviewPacketRecord:
+def _packet_from_sources(
+    profile: Path,
+    proposal,
+    score,
+    summary,
+) -> OperatorReviewPacketRecord:
     confidence = _review_confidence(proposal, score, summary)
     status, decision, required, allowed, action, reasons = _review_outcome(
         proposal,
@@ -200,12 +207,16 @@ def _packet_from_sources(profile: Path, proposal, score, summary) -> OperatorRev
 def _review_confidence(proposal, score, summary) -> float:
     score_value = score.final_score if score else 0.0
     summary_value = summary.summary_score if summary else 0.0
-    return round((proposal.proposal_confidence + score_value + summary_value) / 3, 4)
+    return round(
+        (proposal.proposal_confidence + score_value + summary_value) / 3,
+        4,
+    )
 
 
 def _review_outcome(proposal, score, summary, confidence: float):
     if proposal.proposal_allowed and score and score.score_decision == "score_ready":
-        if summary and summary.summary_decision == "summary_ready" and confidence >= 0.8:
+        summary_ready = summary and summary.summary_decision == "summary_ready"
+        if summary_ready and confidence >= 0.8:
             return (
                 "ready",
                 "review_ready",
