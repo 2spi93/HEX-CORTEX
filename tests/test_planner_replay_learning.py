@@ -21,7 +21,9 @@ def test_planner_replay_learning_detects_fallback_skill(tmp_path) -> None:
     _write_packet(profile, status="watch", registry_status="fallback")
 
     payload = learn_from_planner_packets(profile)
-    summary = summarize_planner_replay_learning(profile / "planner-replay-learning.jsonl")
+    summary = summarize_planner_replay_learning(
+        profile / "planner-replay-learning.jsonl"
+    )
     record = payload["replay_record"]
 
     assert record["fallback_count"] == 1
@@ -43,7 +45,9 @@ def test_planner_replay_learning_detects_ready_packet(tmp_path) -> None:
 
 
 def _write_packet(profile, *, status: str, registry_status: str) -> None:
-    PlannerDecisionPacketJsonlStore(profile / "planner-decision-packet.jsonl").append(
+    PlannerDecisionPacketJsonlStore(
+        profile / "planner-decision-packet.jsonl"
+    ).append(
         PlannerDecisionPacketRecord(
             profile_path=str(profile),
             source_latent_id="latent_a",
