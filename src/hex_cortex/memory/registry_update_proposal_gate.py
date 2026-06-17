@@ -72,7 +72,9 @@ class RegistryUpdateProposalGateJsonlStore:
                 if not line.strip():
                     continue
                 try:
-                    records.append(RegistryUpdateProposalGateRecord.model_validate_json(line))
+                    records.append(
+                        RegistryUpdateProposalGateRecord.model_validate_json(line)
+                    )
                 except Exception as exc:  # noqa: BLE001
                     raise ValueError(
                         f"invalid registry update proposal gate at line {line_number}"
