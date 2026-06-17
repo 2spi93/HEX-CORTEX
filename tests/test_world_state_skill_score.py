@@ -38,7 +38,9 @@ def test_world_state_skill_score_uses_valid_candidate(tmp_path) -> None:
     evaluate_latest_world_state_candidate(profile)
 
     payload = score_latest_world_state_skill(profile)
-    summary = summarize_world_state_skill_scores(profile / "world-state-skill-score.jsonl")
+    summary = summarize_world_state_skill_scores(
+        profile / "world-state-skill-score.jsonl"
+    )
     record = payload["score_record"]
 
     assert record["suggested_skill"] == "operator_watch_review"
