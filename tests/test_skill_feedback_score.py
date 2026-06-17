@@ -74,7 +74,9 @@ def _write_learning(profile, *, score: float) -> None:
 
 
 def _write_feedback(profile, *, outcome: str) -> None:
-    SkillOutcomeFeedbackJsonlStore(profile / "skill-outcome-feedback.jsonl").append(
+    SkillOutcomeFeedbackJsonlStore(
+        profile / "skill-outcome-feedback.jsonl"
+    ).append(
         SkillOutcomeFeedbackRecord(
             profile_path=str(profile),
             source_audit_id="audit_a",
