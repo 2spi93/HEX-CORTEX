@@ -69,7 +69,9 @@ class ReviewActivationArtifactJsonlStore:
                 if not line.strip():
                     continue
                 try:
-                    records.append(ReviewActivationArtifactRecord.model_validate_json(line))
+                    records.append(
+                        ReviewActivationArtifactRecord.model_validate_json(line)
+                    )
                 except Exception as exc:  # noqa: BLE001
                     raise ValueError(
                         f"invalid review activation artifact at line {line_number}"
