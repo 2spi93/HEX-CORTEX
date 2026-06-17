@@ -8,10 +8,18 @@ from uuid import uuid4
 
 from pydantic import BaseModel, Field
 
-from hex_cortex.memory.cognitive_trace import CognitiveTraceJsonlStore, TRACE_FILENAME
+from hex_cortex.memory.cognitive_trace import (
+    TRACE_FILENAME,
+    CognitiveTraceJsonlStore,
+)
 
 EVALUATION_FILENAME = "cognitive-trace-evaluation.jsonl"
 EXPECTED_STEP_LABELS = ["readiness", "next_action", "safety", "dispatch", "cycle"]
+ACTIONABLE_FINAL_ACTIONS = {
+    "observe_pipeline_result",
+    "review_watch_reasons",
+    "repair_profile_readiness",
+}
 
 
 class CognitiveTraceEvaluationRecord(BaseModel):
@@ -181,7 +189,7 @@ def _completeness_score(labels: list[str], reasons: list[str]) -> float:
 
 
 def _actionability_score(trace, reasons: list[str]) -> float:
-    if trace.final_action in {"observe_pipeline_result", "review_watch_reasons", "repair_profile_readiness"}:
+    if trace.final_action in ACTIONABLE_FINAL_ACTIONS:
         return 1.0
     reasons.append("final_action_not_actionable")
     return 0.4
