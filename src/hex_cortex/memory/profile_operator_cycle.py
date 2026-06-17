@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from datetime import UTC, datetime
 from pathlib import Path
 from uuid import uuid4
@@ -117,7 +118,7 @@ def _append_cycle_trace(profile: Path, payload: dict[str, object]) -> dict[str, 
     }
     existing = path.read_text(encoding="utf-8").splitlines() if path.exists() else []
     with path.open("a", encoding="utf-8") as handle:
-        handle.write(f"{record}\n")
+        handle.write(f"{json.dumps(record, sort_keys=True)}\n")
     return {
         "cycle_id": cycle_id,
         "cycle_trace_count": len(existing) + 1,
