@@ -72,7 +72,9 @@ class RegistryLearningCandidateJsonlStore:
                 if not line.strip():
                     continue
                 try:
-                    records.append(RegistryLearningCandidateRecord.model_validate_json(line))
+                    records.append(
+                        RegistryLearningCandidateRecord.model_validate_json(line)
+                    )
                 except Exception as exc:  # noqa: BLE001
                     raise ValueError(
                         f"invalid registry learning candidate at line {line_number}"
@@ -98,7 +100,9 @@ def build_registry_learning_candidate(profile: Path) -> dict[str, object]:
     feedback_records = SkillOutcomeFeedbackJsonlStore(
         profile / SKILL_OUTCOME_FEEDBACK_FILENAME
     ).load()
-    matches = SkillRegistryMatchJsonlStore(profile / SKILL_REGISTRY_MATCH_FILENAME).load()
+    matches = SkillRegistryMatchJsonlStore(
+        profile / SKILL_REGISTRY_MATCH_FILENAME
+    ).load()
     if not feedback_records:
         record = _missing_feedback_candidate(profile, matches[-1] if matches else None)
     else:
@@ -156,10 +160,16 @@ def _missing_feedback_candidate(profile: Path, match) -> RegistryLearningCandida
     )
 
 
-def _candidate_from_feedback(profile: Path, feedback_records, match) -> RegistryLearningCandidateRecord:
+def _candidate_from_feedback(
+    profile: Path,
+    feedback_records,
+    match,
+) -> RegistryLearningCandidateRecord:
     latest = feedback_records[-1]
     selected_skill = latest.selected_skill
-    relevant = [record for record in feedback_records if record.selected_skill == selected_skill]
+    relevant = [
+        record for record in feedback_records if record.selected_skill == selected_skill
+    ]
     success_count = _count(relevant, "success")
     failure_count = _count(relevant, "failure") + _count(relevant, "regression")
     blocked_count = _count(relevant, "blocked")
@@ -193,7 +203,11 @@ def _count(records, outcome: str) -> int:
     return sum(1 for record in records if record.observed_outcome == outcome)
 
 
-def _learning_score(success_count: int, failure_count: int, not_observed_count: int) -> float:
+def _learning_score(
+    success_count: int,
+    failure_count: int,
+    not_observed_count: int,
+) -> float:
     denominator = max(success_count + failure_count + not_observed_count, 1)
     raw = (success_count - failure_count) / denominator
     return round(max(raw, 0.0), 4)
