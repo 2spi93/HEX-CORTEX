@@ -73,7 +73,9 @@ class ReviewCloseoutReportJsonlStore:
                 if not line.strip():
                     continue
                 try:
-                    records.append(ReviewCloseoutReportRecord.model_validate_json(line))
+                    records.append(
+                        ReviewCloseoutReportRecord.model_validate_json(line)
+                    )
                 except Exception as exc:  # noqa: BLE001
                     raise ValueError(
                         f"invalid review closeout report at line {line_number}"
@@ -99,7 +101,9 @@ def build_review_closeout_report(profile: Path) -> dict[str, object]:
     ledgers = OperatorSignatureLedgerJsonlStore(
         profile / OPERATOR_SIGNATURE_LEDGER_FILENAME
     ).load()
-    bundles = ReviewAuditBundleJsonlStore(profile / REVIEW_AUDIT_BUNDLE_FILENAME).load()
+    bundles = ReviewAuditBundleJsonlStore(
+        profile / REVIEW_AUDIT_BUNDLE_FILENAME
+    ).load()
     record = _closeout_from_sources(
         profile,
         ledgers[-1] if ledgers else None,
