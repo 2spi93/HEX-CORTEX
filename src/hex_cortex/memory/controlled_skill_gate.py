@@ -100,7 +100,11 @@ def evaluate_controlled_skill_gate(profile: Path) -> dict[str, object]:
     if not packets:
         record = _missing_packet_gate(profile, replays[-1] if replays else None)
     else:
-        record = _gate_from_sources(profile, packets[-1], replays[-1] if replays else None)
+        record = _gate_from_sources(
+            profile,
+            packets[-1],
+            replays[-1] if replays else None,
+        )
     path = profile / CONTROLLED_SKILL_GATE_FILENAME
     count = ControlledSkillGateJsonlStore(path).append(record)
     return {
