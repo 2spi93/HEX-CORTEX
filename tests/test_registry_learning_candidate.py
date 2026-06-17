@@ -81,7 +81,9 @@ def _write_feedback(profile, *, outcome: str) -> None:
             observed_outcome=outcome,
             outcome_score=1.0 if outcome == "success" else 0.7,
             feedback_status="ready" if outcome == "success" else "watch",
-            feedback_decision="feedback_success" if outcome == "success" else "feedback_watch",
+            feedback_decision=(
+                "feedback_success" if outcome == "success" else "feedback_watch"
+            ),
             next_action=(
                 "promote_skill_confidence_candidate"
                 if outcome == "success"
