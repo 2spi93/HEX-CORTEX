@@ -72,7 +72,9 @@ class ProfilePanelSnapshotJsonlStore:
                 if not line.strip():
                     continue
                 try:
-                    records.append(ProfilePanelSnapshotRecord.model_validate_json(line))
+                    records.append(
+                        ProfilePanelSnapshotRecord.model_validate_json(line)
+                    )
                 except Exception as exc:  # noqa: BLE001
                     raise ValueError(
                         f"invalid profile panel snapshot at line {line_number}"
@@ -103,7 +105,9 @@ def build_profile_panel_snapshot(profile: Path) -> dict[str, object]:
         profile / CONSTRUCTION_FREEZE_STAMP_FILENAME
     )
     manual = summarize_manual_review_notes(profile / MANUAL_REVIEW_NOTE_FILENAME)
-    resync = summarize_profile_resync_reports(profile / PROFILE_RESYNC_REPORT_FILENAME)
+    resync = summarize_profile_resync_reports(
+        profile / PROFILE_RESYNC_REPORT_FILENAME
+    )
     gate = summarize_profile_resync_gates(profile / PROFILE_RESYNC_GATE_FILENAME)
     invariants = scan_profile_invariants(profile)["scan_record"]
     record = _snapshot_from_summaries(
