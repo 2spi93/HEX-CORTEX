@@ -34,7 +34,9 @@ def test_skill_execution_audit_allows_ready_audit(tmp_path) -> None:
     _write_gate(profile, status="ready", decision="gate_ready", allowed=True)
 
     payload = build_skill_execution_audit(profile)
-    summary = summarize_skill_execution_audits(profile / "skill-execution-audit.jsonl")
+    summary = summarize_skill_execution_audits(
+        profile / "skill-execution-audit.jsonl"
+    )
     record = payload["audit_record"]
 
     assert record["audit_decision"] == "audit_ready"
