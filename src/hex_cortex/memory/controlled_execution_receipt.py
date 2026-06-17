@@ -73,7 +73,9 @@ class ControlledExecutionReceiptJsonlStore:
                 if not line.strip():
                     continue
                 try:
-                    records.append(ControlledExecutionReceiptRecord.model_validate_json(line))
+                    records.append(
+                        ControlledExecutionReceiptRecord.model_validate_json(line)
+                    )
                 except Exception as exc:  # noqa: BLE001
                     raise ValueError(
                         f"invalid controlled execution receipt at line {line_number}"
@@ -96,7 +98,9 @@ class ControlledExecutionReceiptJsonlStore:
 def build_controlled_execution_receipt(profile: Path) -> dict[str, object]:
     """Build a receipt certifying the latest controlled execution state."""
 
-    audits = SkillExecutionAuditJsonlStore(profile / SKILL_EXECUTION_AUDIT_FILENAME).load()
+    audits = SkillExecutionAuditJsonlStore(
+        profile / SKILL_EXECUTION_AUDIT_FILENAME
+    ).load()
     feedback = SkillOutcomeFeedbackJsonlStore(
         profile / SKILL_OUTCOME_FEEDBACK_FILENAME
     ).load()
@@ -157,7 +161,11 @@ def _missing_audit_receipt(profile: Path, feedback) -> ControlledExecutionReceip
     )
 
 
-def _receipt_from_sources(profile: Path, audit, feedback) -> ControlledExecutionReceiptRecord:
+def _receipt_from_sources(
+    profile: Path,
+    audit,
+    feedback,
+) -> ControlledExecutionReceiptRecord:
     if not audit.execution_allowed:
         return _not_executed_receipt(profile, audit, feedback)
     if feedback and feedback.observed_outcome == "success":
@@ -167,7 +175,11 @@ def _receipt_from_sources(profile: Path, audit, feedback) -> ControlledExecution
     return _staged_unobserved_receipt(profile, audit, feedback)
 
 
-def _not_executed_receipt(profile: Path, audit, feedback) -> ControlledExecutionReceiptRecord:
+def _not_executed_receipt(
+    profile: Path,
+    audit,
+    feedback,
+) -> ControlledExecutionReceiptRecord:
     return ControlledExecutionReceiptRecord(
         profile_path=str(profile),
         source_audit_id=audit.audit_id,
@@ -186,7 +198,11 @@ def _not_executed_receipt(profile: Path, audit, feedback) -> ControlledExecution
     )
 
 
-def _success_receipt(profile: Path, audit, feedback) -> ControlledExecutionReceiptRecord:
+def _success_receipt(
+    profile: Path,
+    audit,
+    feedback,
+) -> ControlledExecutionReceiptRecord:
     return ControlledExecutionReceiptRecord(
         profile_path=str(profile),
         source_audit_id=audit.audit_id,
@@ -205,7 +221,11 @@ def _success_receipt(profile: Path, audit, feedback) -> ControlledExecutionRecei
     )
 
 
-def _failed_receipt(profile: Path, audit, feedback) -> ControlledExecutionReceiptRecord:
+def _failed_receipt(
+    profile: Path,
+    audit,
+    feedback,
+) -> ControlledExecutionReceiptRecord:
     return ControlledExecutionReceiptRecord(
         profile_path=str(profile),
         source_audit_id=audit.audit_id,
@@ -224,7 +244,11 @@ def _failed_receipt(profile: Path, audit, feedback) -> ControlledExecutionReceip
     )
 
 
-def _staged_unobserved_receipt(profile: Path, audit, feedback) -> ControlledExecutionReceiptRecord:
+def _staged_unobserved_receipt(
+    profile: Path,
+    audit,
+    feedback,
+) -> ControlledExecutionReceiptRecord:
     return ControlledExecutionReceiptRecord(
         profile_path=str(profile),
         source_audit_id=audit.audit_id,
