@@ -65,7 +65,9 @@ def _write_bundle(profile, *, decision: str) -> None:
             source_signature_id="signature_a",
             source_dry_run_id="dry_run_a",
             source_artifact_id="artifact_a",
-            signature_decision="signature_signed" if ready else "signature_needs_more_evidence",
+            signature_decision=(
+                "signature_signed" if ready else "signature_needs_more_evidence"
+            ),
             dry_run_decision="dry_run_ready" if ready else "dry_run_watch",
             artifact_decision="artifact_ready" if ready else "artifact_watch",
             document_hash="a" * 64,
