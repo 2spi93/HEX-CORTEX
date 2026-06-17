@@ -68,21 +68,22 @@ def _write_packet(profile, *, decision: str, status: str, allowed: bool) -> None
 
 
 def _write_replay(profile, *, recommendation: str) -> None:
+    is_stage = recommendation.startswith("stage_")
     PlannerReplayLearningJsonlStore(profile / "planner-replay-learning.jsonl").append(
         PlannerReplayLearningRecord(
             profile_path=str(profile),
             packet_count=1,
-            ready_count=1 if recommendation.startswith("stage_") else 0,
-            watch_count=0 if recommendation.startswith("stage_") else 1,
+            ready_count=1 if is_stage else 0,
+            watch_count=0 if is_stage else 1,
             blocked_count=0,
-            fallback_count=0 if recommendation.startswith("stage_") else 1,
-            dominant_status="ready" if recommendation.startswith("stage_") else "watch",
-            missing_skills=[] if recommendation.startswith("stage_") else ["operator_watch_review"],
+            fallback_count=0 if is_stage else 1,
+            dominant_status="ready" if is_stage else "watch",
+            missing_skills=[] if is_stage else ["operator_watch_review"],
             repeated_next_actions=[],
-            latest_planner_decision="planner_ready" if recommendation.startswith("stage_") else "planner_watch",
+            latest_planner_decision="planner_ready" if is_stage else "planner_watch",
             latest_next_action="stage_controlled_skill_execution_gate",
             replay_recommendation=recommendation,
-            replay_score=1.0 if recommendation.startswith("stage_") else 0.8,
+            replay_score=1.0 if is_stage else 0.8,
             reasons=["test_replay"],
         )
     )
