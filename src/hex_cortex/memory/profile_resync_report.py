@@ -74,7 +74,9 @@ class ProfileResyncReportJsonlStore:
                 if not line.strip():
                     continue
                 try:
-                    records.append(ProfileResyncReportRecord.model_validate_json(line))
+                    records.append(
+                        ProfileResyncReportRecord.model_validate_json(line)
+                    )
                 except Exception as exc:  # noqa: BLE001
                     raise ValueError(
                         f"invalid profile resync report at line {line_number}"
@@ -135,8 +137,15 @@ def summarize_profile_resync_reports(path: Path) -> dict[str, object]:
 
 
 def _resync_from_sources(profile: Path, pack, flow) -> ProfileResyncReportRecord:
-    selected_skill = flow.selected_skill if flow else (pack.selected_skill if pack else "profile_resync_sources_missing")
-    status, decision, allowed, blockers, next_action, reasons = _resync_decision(pack, flow)
+    selected_skill = (
+        flow.selected_skill
+        if flow
+        else (pack.selected_skill if pack else "profile_resync_sources_missing")
+    )
+    status, decision, allowed, blockers, next_action, reasons = _resync_decision(
+        pack,
+        flow,
+    )
     return ProfileResyncReportRecord(
         profile_path=str(profile),
         selected_skill=selected_skill,
@@ -157,12 +166,33 @@ def _resync_from_sources(profile: Path, pack, flow) -> ProfileResyncReportRecord
 
 def _resync_decision(pack, flow):
     if not pack:
-        return "blocked", "resync_blocked", False, ["pack_missing"], "build_pack", ["pack_missing"]
+        return (
+            "blocked",
+            "resync_blocked",
+            False,
+            ["pack_missing"],
+            "build_pack",
+            ["pack_missing"],
+        )
     if not flow:
-        return "watch", "resync_watch", False, [pack.next_action], "build_flow", ["flow_missing"]
+        return (
+            "watch",
+            "resync_watch",
+            False,
+            [pack.next_action],
+            "build_flow",
+            ["flow_missing"],
+        )
     if flow.propagation_allowed and flow.selected_skill == pack.selected_skill:
         return "ready", "resync_ready", True, [], "prepare_freeze_stamp", ["flow_ready"]
-    return "watch", "resync_watch", False, [pack.next_action], pack.next_action, ["flow_watch"]
+    return (
+        "watch",
+        "resync_watch",
+        False,
+        [pack.next_action],
+        pack.next_action,
+        ["flow_watch"],
+    )
 
 
 def _resync_hash(*parts: str) -> str:
