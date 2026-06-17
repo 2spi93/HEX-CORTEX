@@ -73,7 +73,9 @@ class OperatorReviewOutcomeJsonlStore:
                 if not line.strip():
                     continue
                 try:
-                    records.append(OperatorReviewOutcomeRecord.model_validate_json(line))
+                    records.append(
+                        OperatorReviewOutcomeRecord.model_validate_json(line)
+                    )
                 except Exception as exc:  # noqa: BLE001
                     raise ValueError(
                         f"invalid operator review outcome at line {line_number}"
