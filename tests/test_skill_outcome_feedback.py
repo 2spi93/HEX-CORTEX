@@ -33,7 +33,9 @@ def test_skill_outcome_feedback_scores_success(tmp_path) -> None:
     _write_audit(profile, allowed=True)
 
     payload = record_skill_outcome_feedback(profile, observed_outcome="success")
-    summary = summarize_skill_outcome_feedback(profile / "skill-outcome-feedback.jsonl")
+    summary = summarize_skill_outcome_feedback(
+        profile / "skill-outcome-feedback.jsonl"
+    )
     record = payload["feedback_record"]
 
     assert record["feedback_decision"] == "feedback_success"
@@ -64,7 +66,11 @@ def _write_audit(profile, *, allowed: bool) -> None:
             execution_allowed=allowed,
             execution_mode="controlled_staging_only" if allowed else "none",
             audit_stage="controlled_staging_audit" if allowed else "pre_execution",
-            next_action="create_skill_execution_receipt" if allowed else "register_or_activate_skill",
+            next_action=(
+                "create_skill_execution_receipt"
+                if allowed
+                else "register_or_activate_skill"
+            ),
             gate_decision="gate_ready" if allowed else "gate_watch",
             gate_confidence=0.8421 if allowed else 0.7062,
             reasons=["test_audit"],
