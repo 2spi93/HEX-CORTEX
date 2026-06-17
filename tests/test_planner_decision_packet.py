@@ -1,4 +1,7 @@
-from hex_cortex.memory.action_cost_model import ActionCostJsonlStore, ActionCostRecord
+from hex_cortex.memory.action_cost_model import (
+    ActionCostJsonlStore,
+    ActionCostRecord,
+)
 from hex_cortex.memory.latent_state_compression import (
     LatentStateJsonlStore,
     LatentStateRecord,
@@ -39,7 +42,9 @@ def test_planner_decision_packet_allows_matched_skill(tmp_path) -> None:
     _write_sources(profile, registry_status="matched", match_score=0.82)
 
     payload = build_latest_planner_decision_packet(profile)
-    summary = summarize_planner_decision_packets(profile / "planner-decision-packet.jsonl")
+    summary = summarize_planner_decision_packets(
+        profile / "planner-decision-packet.jsonl"
+    )
     record = payload["packet_record"]
 
     assert record["planner_decision"] == "planner_ready"
