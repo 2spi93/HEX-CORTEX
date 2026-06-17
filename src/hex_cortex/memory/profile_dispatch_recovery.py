@@ -78,24 +78,48 @@ def _recovery_for_state(
         return (
             "dispatch_now",
             "dispatch_safety_allows_execution",
-            _command("hexdispatch", profile, policy_limit, policy_stability_window, minimum_ready_score),
+            _command(
+                "hexdispatch",
+                profile,
+                policy_limit,
+                policy_stability_window,
+                minimum_ready_score,
+            ),
         )
     if next_payload["decision"] == "watch":
         return (
             "review_watch_reasons",
             str(next_payload["reason"]),
-            _command("hexctl", profile, policy_limit, policy_stability_window, minimum_ready_score),
+            _command(
+                "hexctl",
+                profile,
+                policy_limit,
+                policy_stability_window,
+                minimum_ready_score,
+            ),
         )
     if next_payload["decision"] == "block":
         return (
             "repair_profile_readiness",
             str(next_payload["reason"]),
-            _command("hexctl", profile, policy_limit, policy_stability_window, minimum_ready_score),
+            _command(
+                "hexctl",
+                profile,
+                policy_limit,
+                policy_stability_window,
+                minimum_ready_score,
+            ),
         )
     return (
         "refresh_dispatch_preflight",
         "dispatch_state_not_allowed",
-        _command("hexpreflight", profile, policy_limit, policy_stability_window, minimum_ready_score),
+        _command(
+            "hexpreflight",
+            profile,
+            policy_limit,
+            policy_stability_window,
+            minimum_ready_score,
+        ),
     )
 
 
