@@ -114,8 +114,12 @@ def build_skill_registry_review_document(profile: Path) -> dict[str, object]:
     reviews = OperatorReviewPacketJsonlStore(
         profile / OPERATOR_REVIEW_PACKET_FILENAME
     ).load()
-    matches = SkillRegistryMatchJsonlStore(profile / SKILL_REGISTRY_MATCH_FILENAME).load()
-    scores = SkillFeedbackScoreJsonlStore(profile / SKILL_FEEDBACK_SCORE_FILENAME).load()
+    matches = SkillRegistryMatchJsonlStore(
+        profile / SKILL_REGISTRY_MATCH_FILENAME
+    ).load()
+    scores = SkillFeedbackScoreJsonlStore(
+        profile / SKILL_FEEDBACK_SCORE_FILENAME
+    ).load()
     if not outcomes:
         record = _missing_outcome_document(
             profile,
