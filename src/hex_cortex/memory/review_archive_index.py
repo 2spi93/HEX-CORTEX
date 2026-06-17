@@ -84,7 +84,9 @@ class ReviewArchiveIndexJsonlStore:
                 if not line.strip():
                     continue
                 try:
-                    records.append(ReviewArchiveIndexRecord.model_validate_json(line))
+                    records.append(
+                        ReviewArchiveIndexRecord.model_validate_json(line)
+                    )
                 except Exception as exc:  # noqa: BLE001
                     raise ValueError(
                         f"invalid review archive index at line {line_number}"
@@ -110,7 +112,9 @@ def build_review_archive_index(profile: Path) -> dict[str, object]:
     documents = SkillRegistryReviewDocumentJsonlStore(
         profile / SKILL_REGISTRY_REVIEW_DOCUMENT_FILENAME
     ).load()
-    bundles = ReviewAuditBundleJsonlStore(profile / REVIEW_AUDIT_BUNDLE_FILENAME).load()
+    bundles = ReviewAuditBundleJsonlStore(
+        profile / REVIEW_AUDIT_BUNDLE_FILENAME
+    ).load()
     ledgers = OperatorSignatureLedgerJsonlStore(
         profile / OPERATOR_SIGNATURE_LEDGER_FILENAME
     ).load()
@@ -153,7 +157,13 @@ def summarize_review_archive_indexes(path: Path) -> dict[str, object]:
     return summary.model_dump(mode="json")
 
 
-def _index_from_sources(profile: Path, document, bundle, ledger, closeout) -> ReviewArchiveIndexRecord:
+def _index_from_sources(
+    profile: Path,
+    document,
+    bundle,
+    ledger,
+    closeout,
+) -> ReviewArchiveIndexRecord:
     selected_skill = _selected_skill(document, bundle, ledger, closeout)
     indexed_records = {
         "document_id": document.document_id if document else None,
@@ -221,6 +231,9 @@ def _index_decision(complete: bool, closeout):
 
 def _index_hash(indexed_records: dict[str, str | None]) -> str:
     digest = hashlib.sha256()
-    parts = [f"{key}={value or 'none'}" for key, value in sorted(indexed_records.items())]
+    parts = [
+        f"{key}={value or 'none'}"
+        for key, value in sorted(indexed_records.items())
+    ]
     digest.update("|".join(parts).encode("utf-8"))
     return digest.hexdigest()
