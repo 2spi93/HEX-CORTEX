@@ -67,7 +67,9 @@ class ConstructionFreezeStampJsonlStore:
                 if not line.strip():
                     continue
                 try:
-                    records.append(ConstructionFreezeStampRecord.model_validate_json(line))
+                    records.append(
+                        ConstructionFreezeStampRecord.model_validate_json(line)
+                    )
                 except Exception as exc:  # noqa: BLE001
                     raise ValueError(
                         f"invalid construction freeze stamp at line {line_number}"
