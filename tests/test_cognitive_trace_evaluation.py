@@ -29,17 +29,49 @@ def test_cognitive_trace_evaluation_scores_valid_trace(tmp_path) -> None:
             final_action="review_watch_reasons",
             final_reason="latest_snapshot_watch",
             steps=[
-                CognitiveTraceStep(index=0, label="readiness", observation="o", decision="watch", confidence=0.6),
-                CognitiveTraceStep(index=1, label="next_action", observation="o", decision="review", confidence=0.8),
-                CognitiveTraceStep(index=2, label="safety", observation="o", decision="block", confidence=0.9),
-                CognitiveTraceStep(index=3, label="dispatch", observation="o", decision="skipped", confidence=0.9),
-                CognitiveTraceStep(index=4, label="cycle", observation="o", decision="review", confidence=0.85),
+                CognitiveTraceStep(
+                    index=0,
+                    label="readiness",
+                    observation="o",
+                    decision="watch",
+                    confidence=0.6,
+                ),
+                CognitiveTraceStep(
+                    index=1,
+                    label="next_action",
+                    observation="o",
+                    decision="review",
+                    confidence=0.8,
+                ),
+                CognitiveTraceStep(
+                    index=2,
+                    label="safety",
+                    observation="o",
+                    decision="block",
+                    confidence=0.9,
+                ),
+                CognitiveTraceStep(
+                    index=3,
+                    label="dispatch",
+                    observation="o",
+                    decision="skipped",
+                    confidence=0.9,
+                ),
+                CognitiveTraceStep(
+                    index=4,
+                    label="cycle",
+                    observation="o",
+                    decision="review",
+                    confidence=0.85,
+                ),
             ],
         )
     )
 
     payload = evaluate_latest_cognitive_trace(profile)
-    summary = summarize_cognitive_trace_evaluations(profile / "cognitive-trace-evaluation.jsonl")
+    summary = summarize_cognitive_trace_evaluations(
+        profile / "cognitive-trace-evaluation.jsonl"
+    )
 
     assert payload["evaluation_record"]["verdict"] == "trace_valid"
     assert payload["evaluation_record"]["overall_score"] == 1.0
