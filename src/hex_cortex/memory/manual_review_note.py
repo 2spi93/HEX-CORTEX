@@ -99,7 +99,11 @@ def record_manual_review_note(
         note_allowed=note_allowed,
         reviewer=reviewer,
         note=note,
-        next_action="rerun_construction_status" if note_allowed else "prepare_skill_activation_review",
+        next_action=(
+            "rerun_construction_status"
+            if note_allowed
+            else "prepare_skill_activation_review"
+        ),
         reasons=[f"manual_review_{choice}"],
     )
     path = profile / MANUAL_REVIEW_NOTE_FILENAME
