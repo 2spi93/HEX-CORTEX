@@ -69,9 +69,8 @@ class PlannerReplayLearningJsonlStore:
                 try:
                     records.append(PlannerReplayLearningRecord.model_validate_json(line))
                 except Exception as exc:  # noqa: BLE001
-                    raise ValueError(
-                        f"invalid planner replay learning record at line {line_number}"
-                    ) from exc
+                    message = f"invalid planner learning record at line {line_number}"
+                    raise ValueError(message) from exc
         return records
 
     def save(self, records: list[PlannerReplayLearningRecord]) -> int:
@@ -88,7 +87,7 @@ class PlannerReplayLearningJsonlStore:
 
 
 def learn_from_planner_packets(profile: Path) -> dict[str, object]:
-    """Learn replay signals from planner packets."""
+    """Learn signals from planner packets."""
 
     packets = PlannerDecisionPacketJsonlStore(profile / PLANNER_PACKET_FILENAME).load()
     record = _learn(profile, packets)
@@ -124,17 +123,15 @@ def _learn(profile: Path, packets) -> PlannerReplayLearningRecord:
         return _missing_packets(profile)
     status_counts = Counter(packet.planner_status for packet in packets)
     registry_counts = Counter(packet.registry_status for packet in packets)
-    next_action_counts = Counter(packet.next_action for packet in packets)
-    missing_skills = sorted(
-        {
-            packet.selected_skill
-            for packet in packets
-            if packet.registry_status == "fallback"
-        }
-    )
+    action_counts = Counter(packet.next_action for packet in packets)
+    missing_skills = _missing_skills(packets)
     latest = packets[-1]
     fallback_count = registry_counts.get("fallback", 0)
-    recommendation, score, reasons = _recommendation(packets, fallback_count, missing_skills)
+    recommendation, score, reasons = _recommendation(
+        packets,
+        fallback_count,
+        missing_skills,
+    )
     return PlannerReplayLearningRecord(
         profile_path=str(profile),
         packet_count=len(packets),
@@ -144,7 +141,7 @@ def _learn(profile: Path, packets) -> PlannerReplayLearningRecord:
         fallback_count=fallback_count,
         dominant_status=status_counts.most_common(1)[0][0],
         missing_skills=missing_skills,
-        repeated_next_actions=_repeated_actions(next_action_counts),
+        repeated_next_actions=_repeated_actions(action_counts),
         latest_planner_decision=latest.planner_decision,
         latest_next_action=latest.next_action,
         replay_recommendation=recommendation,
@@ -172,24 +169,26 @@ def _missing_packets(profile: Path) -> PlannerReplayLearningRecord:
     )
 
 
+def _missing_skills(packets) -> list[str]:
+    return sorted(
+        {
+            packet.selected_skill
+            for packet in packets
+            if packet.registry_status == "fallback"
+        }
+    )
+
+
 def _recommendation(packets, fallback_count: int, missing_skills: list[str]):
     if fallback_count:
-        return (
-            "register_or_activate_missing_skills",
-            0.8,
-            ["planner_fallback_repeated", "missing_skills:" + ",".join(missing_skills)],
-        )
-    ready_count = sum(1 for packet in packets if packet.planner_status == "ready")
-    if ready_count:
-        return (
-            "stage_controlled_skill_execution_gate",
-            1.0,
-            ["planner_ready_seen"],
-        )
-    blocked_count = sum(1 for packet in packets if packet.planner_status == "blocked")
-    if blocked_count:
-        return ("repair_blocking_planner_inputs", 0.4, ["planner_blocked_seen"])
-    return ("continue_planner_observation", 0.6, ["planner_watch_only"])
+        reasons = ["planner_fallback_repeated"]
+        reasons.append("missing_skills:" + ",".join(missing_skills))
+        return "register_or_activate_missing_skills", 0.8, reasons
+    if any(packet.planner_status == "ready" for packet in packets):
+        return "stage_controlled_skill_execution_gate", 1.0, ["planner_ready_seen"]
+    if any(packet.planner_status == "blocked" for packet in packets):
+        return "repair_blocking_planner_inputs", 0.4, ["planner_blocked_seen"]
+    return "continue_planner_observation", 0.6, ["planner_watch_only"]
 
 
 def _repeated_actions(counter: Counter) -> list[str]:
