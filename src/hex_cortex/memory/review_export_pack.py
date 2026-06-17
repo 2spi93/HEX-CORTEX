@@ -101,7 +101,9 @@ def build_review_export_pack(profile: Path) -> dict[str, object]:
     closeouts = ReviewCloseoutReportJsonlStore(
         profile / REVIEW_CLOSEOUT_REPORT_FILENAME
     ).load()
-    indexes = ReviewArchiveIndexJsonlStore(profile / REVIEW_ARCHIVE_INDEX_FILENAME).load()
+    indexes = ReviewArchiveIndexJsonlStore(
+        profile / REVIEW_ARCHIVE_INDEX_FILENAME
+    ).load()
     proofs = ReviewProofJsonlStore(profile / REVIEW_PROOF_FILENAME).load()
     record = _pack_from_sources(
         profile,
@@ -138,7 +140,12 @@ def summarize_review_export_packs(path: Path) -> dict[str, object]:
     return summary.model_dump(mode="json")
 
 
-def _pack_from_sources(profile: Path, closeout, index, proof) -> ReviewExportPackRecord:
+def _pack_from_sources(
+    profile: Path,
+    closeout,
+    index,
+    proof,
+) -> ReviewExportPackRecord:
     selected_skill = _selected_skill(closeout, index, proof)
     complete = bool(closeout and index and proof)
     status, decision, next_action, reasons = _pack_decision(closeout, index, proof)
@@ -202,7 +209,12 @@ def _pack_decision(closeout, index, proof):
     )
 
 
-def _operator_summary(selected_skill: str, closeout, index, proof) -> dict[str, object]:
+def _operator_summary(
+    selected_skill: str,
+    closeout,
+    index,
+    proof,
+) -> dict[str, object]:
     return {
         "selected_skill": selected_skill,
         "closeout_decision": closeout.closeout_decision if closeout else None,
