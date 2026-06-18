@@ -39,9 +39,13 @@ target-version = "py311"
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B"]
 ignore = [
-  # The cortex rails intentionally contain generated JSON/HTML/string receipts
-  # and one-import-per-symbol smoke tests. Keep semantic gates active while
-  # excluding formatting-only noise from the default repository gate.
+  # The cortex rails intentionally contain generated JSON/HTML/string receipts,
+  # one-import-per-symbol smoke tests, and compact declarative artifact emitters.
+  # Keep semantic gates active while excluding formatting-only noise from the
+  # default repository gate.
+  "E401",
   "E501",
+  "E701",
+  "E702",
   "I001",
 ]
