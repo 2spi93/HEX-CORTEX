@@ -1,0 +1,29 @@
+from __future__ import annotations
+
+import argparse
+import json
+import sys
+from pathlib import Path
+
+from hex_cortex.memory.cortex_experience_audit_seal import CORTEX_EXPERIENCE_AUDIT_SEAL_FILENAME
+from hex_cortex.memory.cortex_experience_audit_seal import build_cortex_experience_audit_seal
+from hex_cortex.memory.cortex_experience_audit_seal import summarize_cortex_experience_audit_seals
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(prog="cortex-experience-audit-seal")
+    parser.add_argument("profile", type=Path)
+    parser.add_argument("--summary", action="store_true")
+    parser.add_argument("--pretty", action="store_true")
+    args = parser.parse_args(argv)
+    if args.summary:
+        payload = summarize_cortex_experience_audit_seals(args.profile / CORTEX_EXPERIENCE_AUDIT_SEAL_FILENAME)
+    else:
+        payload = build_cortex_experience_audit_seal(args.profile)
+    json.dump(payload, sys.stdout, indent=2 if args.pretty else None, sort_keys=True)
+    sys.stdout.write("\n")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
