@@ -9,8 +9,13 @@ from uuid import uuid4
 CORTEX_FIRST_LOCAL_MODEL_DRY_RUN_FILENAME = "cortex-first-local-model-dry-run.jsonl"
 LOCAL_MODEL_CONTRACT_FILENAME = "cortex-local-model-backend-adapter-contract.jsonl"
 
-_DEFAULT_TASK_TEXT = "Use the local compact expert contract to produce advisory planning output only."
-_DEFAULT_SYSTEM_CONTRACT = "HEX-CORTEX local model dry run: advisory only, no repo mutation, no shell, no network."
+_DEFAULT_TASK_TEXT = (
+    "Use the local compact expert contract to produce advisory planning output only."
+)
+_DEFAULT_SYSTEM_CONTRACT = (
+    "HEX-CORTEX local model dry run: advisory only, no repo mutation, no shell, "
+    "no network."
+)
 
 
 def build_cortex_first_local_model_dry_run(
@@ -24,15 +29,44 @@ def build_cortex_first_local_model_dry_run(
     blockers = _blockers(contract, backend_kind)
     allowed = not blockers
     status = "ready" if allowed else "blocked"
-    decision = "first_local_model_dry_run_ready" if allowed else "first_local_model_dry_run_blocked"
-    next_action = "prepare_local_model_advice_cli" if allowed else "repair_first_local_model_dry_run"
-    reasons = ["local_model_contract_ready", "mock_backend_selected", "dry_run_completed_without_model_call"] if allowed else blockers
+    decision = (
+        "first_local_model_dry_run_ready"
+        if allowed
+        else "first_local_model_dry_run_blocked"
+    )
+    next_action = (
+        "prepare_local_model_advice_cli"
+        if allowed
+        else "repair_first_local_model_dry_run"
+    )
+    reasons = (
+        [
+            "local_model_contract_ready",
+            "mock_backend_selected",
+            "dry_run_completed_without_model_call",
+        ]
+        if allowed
+        else blockers
+    )
 
-    request = _request_payload(profile, task_text=task_text, selected_skill_key=selected_skill_key, backend_kind=backend_kind)
+    request = _request_payload(
+        profile,
+        task_text=task_text,
+        selected_skill_key=selected_skill_key,
+        backend_kind=backend_kind,
+    )
     response = _mock_response(request) if allowed else {}
     request_hash = _stable_hash(request)
     response_hash = _stable_hash(response) if response else None
-    run_hash = _hash(str(profile), str(contract.get("contract_hash") if contract else "missing_contract"), request_hash, str(response_hash), decision, next_action, *reasons)
+    run_hash = _hash(
+        str(profile),
+        str(contract.get("contract_hash") if contract else "missing_contract"),
+        request_hash,
+        str(response_hash),
+        decision,
+        next_action,
+        *reasons,
+    )
 
     record = {
         "dry_run_id": f"cortex_first_local_model_dry_run_{uuid4().hex}",
@@ -80,20 +114,32 @@ def summarize_cortex_first_local_model_dry_runs(path: Path) -> dict[str, object]
         "path": str(path),
         "exists": path.exists(),
         "total_dry_run_count": len(records),
-        "allowed_dry_run_count": sum(1 for item in records if item.get("dry_run_allowed") is True),
+        "allowed_dry_run_count": sum(
+            1 for item in records if item.get("dry_run_allowed") is True
+        ),
         "latest_dry_run_status": latest.get("dry_run_status") if latest else None,
         "latest_dry_run_decision": latest.get("dry_run_decision") if latest else None,
         "latest_dry_run_allowed": latest.get("dry_run_allowed") if latest else None,
         "latest_backend_kind": latest.get("backend_kind") if latest else None,
         "latest_backend_status": latest.get("backend_status") if latest else None,
-        "latest_model_call_performed": latest.get("model_call_performed") if latest else None,
-        "latest_repo_mutation_performed": latest.get("repo_mutation_performed") if latest else None,
+        "latest_model_call_performed": latest.get("model_call_performed")
+        if latest
+        else None,
+        "latest_repo_mutation_performed": latest.get("repo_mutation_performed")
+        if latest
+        else None,
         "latest_next_action": latest.get("next_action") if latest else None,
         "latest_dry_run_hash": latest.get("dry_run_hash") if latest else None,
     }
 
 
-def _request_payload(profile: Path, *, task_text: str, selected_skill_key: str | None, backend_kind: str) -> dict[str, object]:
+def _request_payload(
+    profile: Path,
+    *,
+    task_text: str,
+    selected_skill_key: str | None,
+    backend_kind: str,
+) -> dict[str, object]:
     return {
         "request_id": f"cortex_local_model_request_{uuid4().hex}",
         "profile_path": str(profile),
@@ -107,13 +153,23 @@ def _request_payload(profile: Path, *, task_text: str, selected_skill_key: str |
 
 
 def _mock_response(request: dict[str, object]) -> dict[str, object]:
+    answer = (
+        "Mock local compact expert dry run completed. Produce advisory guidance only; "
+        "require receipts before any future mutation."
+    )
+    raw_response_hash = _stable_hash(
+        {
+            "mock_answer": request.get("task_text"),
+            "backend_kind": request.get("backend_kind"),
+        }
+    )
     return {
         "response_id": f"cortex_local_model_response_{uuid4().hex}",
         "backend_status": "ready",
-        "answer": "Mock local compact expert dry run completed. Produce advisory guidance only; require receipts before any future mutation.",
+        "answer": answer,
         "confidence": 0.74,
         "risk_flags": [],
-        "raw_response_hash": _stable_hash({"mock_answer": request.get("task_text"), "backend_kind": request.get("backend_kind")}),
+        "raw_response_hash": raw_response_hash,
         "next_action": "prepare_local_model_advice_cli",
     }
 
@@ -144,12 +200,17 @@ def _latest_jsonl(path: Path) -> dict[str, object] | None:
 def _load_jsonl(path: Path) -> list[dict[str, object]]:
     if not path.exists():
         return []
-    return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
+    return [
+        json.loads(line)
+        for line in path.read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
 
 
 def _write_jsonl(path: Path, records: list[dict[str, object]]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text("".join(json.dumps(record, sort_keys=True) + "\n" for record in records), encoding="utf-8")
+    content = "".join(json.dumps(record, sort_keys=True) + "\n" for record in records)
+    path.write_text(content, encoding="utf-8")
 
 
 def _stable_hash(payload: dict[str, object]) -> str:
