@@ -1,0 +1,52 @@
+name: HEX-CORTEX CI Evidence
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  test-and-export-evidence:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install package
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e .
+
+      - name: Run tests
+        run: |
+          mkdir -p artifacts/hex-cortex-ci
+          python -m pytest | tee artifacts/hex-cortex-ci/pytest-output.txt
+
+      - name: Write evidence manifest
+        if: always()
+        run: |
+          mkdir -p artifacts/hex-cortex-ci
+          echo "HEX-CORTEX CI evidence" > artifacts/hex-cortex-ci/manifest.txt
+          echo "commit=${GITHUB_SHA}" >> artifacts/hex-cortex-ci/manifest.txt
+          echo "workflow=${GITHUB_WORKFLOW}" >> artifacts/hex-cortex-ci/manifest.txt
+          echo "run_id=${GITHUB_RUN_ID}" >> artifacts/hex-cortex-ci/manifest.txt
+
+      - name: Export HEX-CORTEX evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hex-cortex-v1-3-evidence
+          path: |
+            RELEASE_HEX_CORTEX_V1_3_INTERACTIVE_COCKPIT.md
+            artifacts/hex-cortex-ci/**
+            artifacts/hex-cortex-ui-cockpit/**
+            artifacts/hex-cortex-interactive-cockpit/**
+          if-no-files-found: warn
+          retention-days: 14
