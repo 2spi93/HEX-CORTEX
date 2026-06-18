@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import hashlib
-import html
 import json
 from datetime import UTC, datetime
 from pathlib import Path
@@ -209,7 +208,6 @@ def _summary_payload(record: CortexInteractiveCockpitShellRecord, api_record, da
 
 def _render_html(summary: dict[str, object]) -> str:
     encoded = json.dumps(summary, sort_keys=True).replace("</", "<\\/")
-    shell = summary["shell_record"]
     return "\n".join(
         [
             "<!doctype html>",
