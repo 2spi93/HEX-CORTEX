@@ -1,24 +1,24 @@
 import json
 
-from hex_cortex.memory.cortex_local_model_backend_probe_contract import (
+from hex_cortex.memory.cortex_local_runtime_contract import (
     CORTEX_LOCAL_MODEL_BACKEND_PROBE_CONTRACT_FILENAME,
 )
-from hex_cortex.memory.cortex_local_model_backend_probe_contract import (
+from hex_cortex.memory.cortex_local_runtime_contract import (
     build_cortex_local_model_backend_probe_contract,
 )
-from hex_cortex.memory.cortex_local_model_backend_probe_contract import (
+from hex_cortex.memory.cortex_local_runtime_contract import (
     summarize_cortex_local_model_backend_probe_contracts,
 )
 
 
-def test_local_model_backend_probe_contract_imports() -> None:
+def test_local_runtime_contract_imports() -> None:
     assert (
         CORTEX_LOCAL_MODEL_BACKEND_PROBE_CONTRACT_FILENAME
         == "cortex-local-model-backend-probe-contract.jsonl"
     )
 
 
-def test_local_model_backend_probe_contract_ready(tmp_path) -> None:
+def test_local_runtime_contract_ready(tmp_path) -> None:
     profile = tmp_path / ".hex-cortex"
     profile.mkdir()
     _write_jsonl(profile / "cortex-local-model-backend-config-dry-run.jsonl", _dry_run_row())
@@ -50,7 +50,7 @@ def test_local_model_backend_probe_contract_ready(tmp_path) -> None:
     assert summary["latest_selected_backend"] == "ollama"
 
 
-def test_local_model_backend_probe_contract_blocks_non_local_base_url(tmp_path) -> None:
+def test_local_runtime_contract_blocks_non_local_base_url(tmp_path) -> None:
     profile = tmp_path / ".hex-cortex"
     profile.mkdir()
     row = _dry_run_row()
