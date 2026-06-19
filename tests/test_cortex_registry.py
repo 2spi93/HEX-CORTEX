@@ -9,10 +9,26 @@ from hex_cortex.memory.cortex_registry import describe_cortex_r
 def test_cortex_registry_lists_expected_units() -> None:
     registry = build_cortex_registry()
 
-    assert sorted(registry) == ["a.build", "b.build", "c.build", "lc.build", "r.describe"]
+    assert sorted(registry) == [
+        "a.build",
+        "b.build",
+        "c.build",
+        "lc.build",
+        "r.describe",
+        "stability.compute",
+        "web.describe",
+    ]
     rows = list_cortex_units(registry)
     names = [row["name"] for row in rows]
-    assert names == ["a.build", "b.build", "c.build", "lc.build", "r.describe"]
+    assert names == [
+        "a.build",
+        "b.build",
+        "c.build",
+        "lc.build",
+        "r.describe",
+        "stability.compute",
+        "web.describe",
+    ]
     assert any(row["requires_operator"] is True for row in rows)
 
 
@@ -39,11 +55,13 @@ def test_cortex_registry_plan_runs_safe_units(tmp_path) -> None:
     payload = run_cortex_units(registry, plan)
 
     assert payload["bus_allowed"] is True
-    assert payload["step_count"] == 3
-    assert payload["result_count"] == 3
+    assert payload["step_count"] == 5
+    assert payload["result_count"] == 5
     assert payload["results"][0]["name"] == "lc.build"
     assert payload["results"][1]["name"] == "a.build"
     assert payload["results"][2]["name"] == "r.describe"
+    assert payload["results"][3]["name"] == "web.describe"
+    assert payload["results"][4]["name"] == "stability.compute"
 
 
 def test_cortex_registry_combines_without_duplicate() -> None:
