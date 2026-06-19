@@ -1,0 +1,43 @@
+{
+  "registry_status": "ready",
+  "registry_decision": "expert_domain_registry_ready",
+  "autonomy_level": "L1_receipts_and_static_analysis",
+  "next_action": "prepare_skill_candidate_intake",
+  "domains": [
+    {
+      "domain_key": "coding",
+      "title": "Coding Expert",
+      "scope": ["implementation", "debugging", "tests", "refactoring", "architecture"],
+      "required_evidence": ["pytest", "ruff", "diff", "receipt"],
+      "forbidden_actions": ["hidden_mutation", "secret_access", "destructive_shell"]
+    },
+    {
+      "domain_key": "research",
+      "title": "Research Expert",
+      "scope": ["web_research", "source_synthesis", "citation_review"],
+      "required_evidence": ["sources", "citations", "uncertainty_notes"],
+      "forbidden_actions": ["uncited_factual_claims", "fabricated_quotes"]
+    },
+    {
+      "domain_key": "geometry_universe",
+      "title": "Geometry And Universe Expert",
+      "scope": ["geometry", "topology", "cosmology", "physics_reasoning"],
+      "required_evidence": ["definitions", "assumptions", "derivation_notes"],
+      "forbidden_actions": ["presenting_speculation_as_fact", "missing_units"]
+    },
+    {
+      "domain_key": "skill_curator",
+      "title": "Skill Curator",
+      "scope": ["skill_candidates", "preset_candidates", "reuse_patterns"],
+      "required_evidence": ["success_pattern", "failure_pattern", "candidate_receipt"],
+      "forbidden_actions": ["auto_install_external_code", "silent_skill_mutation"]
+    },
+    {
+      "domain_key": "defensive_audit",
+      "title": "Defensive Audit Expert",
+      "scope": ["local_audit", "authorized_testing", "hardening", "secret_scan"],
+      "required_evidence": ["scope_statement", "authorization", "local_target"],
+      "forbidden_actions": ["intrusion", "credential_theft", "malware", "persistence"]
+    }
+  ]
+}
