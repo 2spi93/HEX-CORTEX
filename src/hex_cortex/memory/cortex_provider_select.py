@@ -23,7 +23,10 @@ def select_cortex_provider(
     ranked = sorted(
         candidates,
         key=lambda item: (
-            0 if prefer_local and str(item.get("provider_id", "")).startswith("local_") else 1,
+            0
+            if prefer_local
+            and str(item.get("provider_id", "")).startswith("local_")
+            else 1,
             str(item.get("provider_id", "")),
         ),
     )
@@ -35,6 +38,8 @@ def select_cortex_provider(
         "provider_id": selected.get("provider_id"),
         "permission_mode": selected.get("permission_mode"),
         "secure_context_required": selected.get("secure_context_required"),
-        "raw_input_persistence_allowed": selected.get("raw_input_persistence_allowed"),
+        "raw_input_persistence_allowed": selected.get(
+            "raw_input_persistence_allowed"
+        ),
         "candidate_count": len(candidates),
     }
