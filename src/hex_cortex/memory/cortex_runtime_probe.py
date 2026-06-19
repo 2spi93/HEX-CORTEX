@@ -81,6 +81,12 @@ def probe_cortex_runtime(
         "operational_media_cli_available": (
             memory_root / "cortex_operational_media_cli.py"
         ).is_file(),
+        "media_to_latent_pipeline_available": (
+            memory_root / "cortex_media_to_latent_pipeline.py"
+        ).is_file(),
+        "media_to_latent_cli_available": (
+            memory_root / "cortex_media_to_latent_cli.py"
+        ).is_file(),
         "homologated_comfyui_template_available": (
             (workflow_root / "txt2img_basic_api_v1.workflow.json").is_file()
             and (workflow_root / "txt2img_basic_api_v1.profile.json").is_file()
@@ -95,6 +101,7 @@ def probe_cortex_runtime(
         "comfyui_endpoint_configured": False,
         "frozen_encoder_runtime_available": False,
         "dinov2_model_cached": False,
+        "media_to_latent_operational": False,
         "web_search_adapter_configured": False,
         "hardware_adapter_available": False,
         "project_adapter_available": False,
