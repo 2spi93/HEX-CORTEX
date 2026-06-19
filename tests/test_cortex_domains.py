@@ -9,6 +9,10 @@ def test_domain_candidates_include_requested_expertise() -> None:
     assert "enterprise_management" in ids
     assert "security_and_cyber" in ids
     assert "software_development_all_types" in ids
+    assert "engineering_profile" in ids
+    assert "philosophy" in ids
+    assert "media_generation" in ids
+    assert "spatial_3d_reasoning" in ids
     assert "multimodal_world_model" in ids
 
 
@@ -17,6 +21,13 @@ def test_get_domain_candidate() -> None:
 
     assert payload["state"] == "candidate"
     assert payload["label"] == "Securite et cyber"
+
+
+def test_engineering_profile_candidate() -> None:
+    payload = get_cortex_domain_candidate("engineering_profile")
+
+    assert payload["state"] == "candidate"
+    assert "verification" in payload["scope"]
 
 
 def test_unknown_domain_candidate_blocks() -> None:
