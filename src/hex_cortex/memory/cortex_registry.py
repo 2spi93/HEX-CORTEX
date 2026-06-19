@@ -8,6 +8,8 @@ from hex_cortex.memory.cortex_bus import CortexUnit
 from hex_cortex.memory.cortex_c import build_cortex_c
 from hex_cortex.memory.cortex_lc import build_cortex_lc
 from hex_cortex.memory.cortex_r import build_cortex_r
+from hex_cortex.memory.cortex_stability import compute_cortex_stability
+from hex_cortex.memory.cortex_web import describe_cortex_web
 
 
 def build_cortex_registry() -> dict[str, CortexUnit]:
@@ -47,6 +49,20 @@ def build_cortex_registry() -> dict[str, CortexUnit]:
             mutates_receipt=False,
             requires_operator=False,
         ),
+        "web.describe": CortexUnit(
+            name="web.describe",
+            unit=describe_cortex_web,
+            description="Describe the registered read-only web research adapter.",
+            mutates_receipt=False,
+            requires_operator=False,
+        ),
+        "stability.compute": CortexUnit(
+            name="stability.compute",
+            unit=compute_cortex_stability,
+            description="Compute a stability score and repair suggestions from quality signals.",
+            mutates_receipt=False,
+            requires_operator=False,
+        ),
     }
 
 
@@ -79,6 +95,17 @@ def build_cortex_registry_plan(profile: Path) -> list[dict[str, object]]:
             "kwargs": {
                 "endpoint": "http://127.0.0.1:11434/api/generate",
                 "timeout_seconds": 8.0,
+            },
+        },
+        {"name": "web.describe", "kwargs": {}},
+        {
+            "name": "stability.compute",
+            "kwargs": {
+                "success_rate": 1.0,
+                "error_rate": 0.0,
+                "unknown_unit_rate": 0.0,
+                "citation_rate": 1.0,
+                "receipt_rate": 1.0,
             },
         },
     ]
