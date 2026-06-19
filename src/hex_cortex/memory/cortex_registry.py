@@ -76,7 +76,10 @@ def build_cortex_registry_plan(profile: Path) -> list[dict[str, object]]:
         {"name": "a.build", "kwargs": {"profile": profile, "expected_kind": "ollama"}},
         {
             "name": "r.describe",
-            "kwargs": {"endpoint": "http://127.0.0.1:11434/api/generate", "timeout_seconds": 8.0},
+            "kwargs": {
+                "endpoint": "http://127.0.0.1:11434/api/generate",
+                "timeout_seconds": 8.0,
+            },
         },
     ]
 
