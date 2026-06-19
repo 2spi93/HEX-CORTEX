@@ -21,6 +21,7 @@ hexpreflight = "hex_cortex.memory.profile_dispatch_preflight_cli:main"
 hexcortex = "hex_cortex.memory.cortex_cli:main"
 hexcortex-mcp = "hex_cortex.memory.cortex_stdio:serve_cortex_stdio"
 hexcortex-server = "hex_cortex.memory.cortex_server_api:serve"
+hexcortex-wave = "hex_cortex.memory.cortex_next_wave_cli:main"
 
 [project.optional-dependencies]
 dev = [
