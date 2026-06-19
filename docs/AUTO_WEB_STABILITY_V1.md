@@ -4,13 +4,14 @@ Status: cold implementation notes.
 
 ## What changed
 
-This stage adds four concepts:
+This stage adds five concepts:
 
 - `web.describe`: a known read-only web research adapter descriptor.
 - `web.search`: an injectable read-only web search unit with mandatory citations.
 - `CortexMode.AUTO_SAFE`: a policy mode that can run registered safe units without prompting every time.
 - `stability.compute`: a small stability score that proposes rebalancing when quality drops.
 - `trusted_plan`: a score for when operator intent, plan, preferences, stability, units, and receipts are aligned.
+- `evaluate_cortex_auto_plan`: a dry evaluator that decides whether a plan may run automatically.
 
 ## Unknown names stay blocked
 
@@ -41,6 +42,13 @@ A trusted plan requires:
 - stability score,
 - registered unit rate,
 - receipt rate.
+
+`evaluate_cortex_auto_plan` does not execute tools. It only returns:
+
+- whether the plan is trusted,
+- whether each step is allowed,
+- blockers,
+- the next action.
 
 This lets HEX-CORTEX behave more like a coding agent while preserving receipts and gates.
 
