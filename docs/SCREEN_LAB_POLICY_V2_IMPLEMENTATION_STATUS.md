@@ -1,6 +1,7 @@
 # SCREEN-LAB-POLICY-V2 implementation status
 
 Branch: `screen-lab-policy-v2`
+Pull request: `#8` (draft)
 
 ## Implemented
 
@@ -16,6 +17,14 @@ Branch: `screen-lab-policy-v2`
 - bounded self-correction candidate gates;
 - append-only research hypothesis ledger and frontier projection;
 - operational quickstart and tests for the new contracts.
+
+## CI evidence
+
+- standard CI: success;
+- HEX-CORTEX CI Evidence: success;
+- Ruff step: success;
+- pytest step: success;
+- PR is mergeable but remains draft pending local/runtime validation.
 
 ## Runtime validation still required
 
