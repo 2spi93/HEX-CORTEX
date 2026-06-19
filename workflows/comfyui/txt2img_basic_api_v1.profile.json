@@ -1,0 +1,52 @@
+{
+  "workflow_id": "txt2img_basic_api_v1",
+  "capability": "generate_image",
+  "template_mode": true,
+  "review_status": "approved_template",
+  "source_basis": "ComfyUI official basic API graph pattern",
+  "required_classes": [
+    "CheckpointLoaderSimple",
+    "CLIPTextEncode",
+    "EmptyLatentImage",
+    "KSampler",
+    "SaveImage",
+    "VAEDecode"
+  ],
+  "bindings": {
+    "checkpoint": {
+      "node_id": "4",
+      "input": "ckpt_name",
+      "required": true
+    },
+    "prompt": {
+      "node_id": "6",
+      "input": "text",
+      "required": true
+    },
+    "negative_prompt": {
+      "node_id": "7",
+      "input": "text",
+      "required": true
+    },
+    "seed": {
+      "node_id": "3",
+      "input": "seed",
+      "required": true
+    },
+    "width": {
+      "node_id": "5",
+      "input": "width",
+      "required": true
+    },
+    "height": {
+      "node_id": "5",
+      "input": "height",
+      "required": true
+    },
+    "filename_prefix": {
+      "node_id": "9",
+      "input": "filename_prefix",
+      "required": false
+    }
+  }
+}
