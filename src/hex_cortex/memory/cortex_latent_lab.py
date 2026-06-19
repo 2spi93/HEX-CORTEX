@@ -61,7 +61,10 @@ def predict_latent_transition(
         raise ValueError("bias shape mismatch")
     result = []
     for index, current in enumerate(state):
-        delta = sum(float(weight) * float(value) for weight, value in zip(weights[index], action))
+        delta = sum(
+            float(weight) * float(value)
+            for weight, value in zip(weights[index], action, strict=True)
+        )
         offset = float(bias[index]) if bias is not None else 0.0
         result.append(float(current) + delta + offset)
     return result
@@ -92,7 +95,10 @@ def evaluate_latent_prediction(
         raise ValueError("prediction shape mismatch")
     if surprise_threshold <= 0:
         raise ValueError("surprise_threshold must be positive")
-    errors = [float(predicted_value) - float(observed_value) for predicted_value, observed_value in zip(predicted, observed)]
+    errors = [
+        float(predicted_value) - float(observed_value)
+        for predicted_value, observed_value in zip(predicted, observed, strict=True)
+    ]
     mse = sum(value * value for value in errors) / len(errors)
     rmse = math.sqrt(mse)
     scale = max(math.sqrt(sum(float(value) ** 2 for value in observed) / len(observed)), 1e-9)
