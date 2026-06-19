@@ -47,8 +47,15 @@ def build_cortex_r(
             return {
                 "status": "blocked",
                 "summary": f"local request failed: {exc.reason}",
+                "network_call_performed": True,
+                "external_effect_performed": False,
             }
-        return _extract(raw, protocol=protocol)
+        result = _extract(raw, protocol=protocol)
+        return {
+            **result,
+            "network_call_performed": True,
+            "external_effect_performed": False,
+        }
 
     return run
 
