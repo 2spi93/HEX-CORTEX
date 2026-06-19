@@ -2,6 +2,10 @@
 
 This sprint closes the gap between the validated media-to-latent rail and a compact trainable world-model candidate.
 
+## Fast path
+
+Use `docs/WORLD_MODEL_LAB_FINISH_RUNBOOK.md` and `scripts/run_world_model_lab_finish.ps1` to run the complete guarded local lab cycle with one command.
+
 ## What is now implemented
 
 ```text
