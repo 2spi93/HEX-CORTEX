@@ -1,0 +1,30 @@
+{
+  "status": "ready",
+  "states": ["unknown", "candidate", "learning", "competent", "advanced", "ready", "active", "retired"],
+  "score_range": [0, 100],
+  "bands": {
+    "0_19": "candidate",
+    "20_39": "learning",
+    "40_59": "competent",
+    "60_79": "advanced",
+    "80_100": "ready"
+  },
+  "signals": [
+    "source_quality",
+    "source_diversity",
+    "recency",
+    "task_success",
+    "error_correction",
+    "pattern_reuse",
+    "feedback",
+    "boundary_compliance"
+  ],
+  "activation_requires": [
+    "evidence_summary",
+    "boundary_review",
+    "approval",
+    "preset_creation",
+    "rollback_path"
+  ],
+  "next_action": "prepare_learning_receipt_v1"
+}
