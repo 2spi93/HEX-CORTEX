@@ -113,7 +113,10 @@ def build_cortex_registry_plan(profile: Path) -> list[dict[str, object]]:
                 "target": "http://127.0.0.1:11434",
             },
         },
-        {"name": "a.build", "kwargs": {"profile": profile, "expected_kind": "ollama"}},
+        {
+            "name": "a.build",
+            "kwargs": {"profile": profile, "expected_kind": "ollama"},
+        },
         {
             "name": "r.describe",
             "kwargs": {
