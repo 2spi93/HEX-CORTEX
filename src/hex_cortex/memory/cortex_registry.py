@@ -8,7 +8,9 @@ from hex_cortex.memory.cortex_bus import CortexUnit
 from hex_cortex.memory.cortex_c import build_cortex_c
 from hex_cortex.memory.cortex_domains import list_cortex_domain_candidates
 from hex_cortex.memory.cortex_lc import build_cortex_lc
-from hex_cortex.memory.cortex_modal import list_cortex_multimodal_capabilities
+from hex_cortex.memory.cortex_modal import (
+    list_cortex_multimodal_capabilities,
+)
 from hex_cortex.memory.cortex_r import build_cortex_r
 from hex_cortex.memory.cortex_stability import compute_cortex_stability
 from hex_cortex.memory.cortex_web import describe_cortex_web
