@@ -10,6 +10,7 @@ from hex_cortex.memory.cortex_environment_sequence import ingest_environment_epi
 from hex_cortex.memory.cortex_environment_sequence import write_environment_manifest
 from hex_cortex.memory.cortex_frozen_encoder import build_frozen_encoder_descriptor
 from hex_cortex.memory.cortex_observed_transition_dataset import load_transition_records
+from hex_cortex.memory.cortex_screen_lab import bootstrap_screen_lab
 from hex_cortex.memory.cortex_world_model_decision_router import (
     WORLD_MODEL_ROUTE_FILENAME,
     bridge_world_model_route_to_planner,
@@ -20,6 +21,13 @@ from hex_cortex.memory.cortex_world_model_decision_router import (
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="hexcortex-env-router")
     commands = parser.add_subparsers(dest="command", required=True)
+
+    bootstrap = commands.add_parser("bootstrap-screen-lab")
+    bootstrap.add_argument("--workspace-root", required=True)
+    bootstrap.add_argument("--seed", type=int, default=42)
+    bootstrap.add_argument("--replace-existing-source", action="store_true")
+    bootstrap.add_argument("--operator-approved", action="store_true")
+    _add_encoder_options(bootstrap)
 
     ingest = commands.add_parser("ingest-episode")
     ingest.add_argument("frames_dir")
@@ -51,6 +59,10 @@ def build_parser() -> argparse.ArgumentParser:
     route.add_argument("--domain", required=True)
     route.add_argument("--profile")
     route.add_argument("--route-store")
+    route.add_argument(
+        "--output",
+        help="Write the latest route as canonical UTF-8 JSON without relying on PowerShell piping.",
+    )
     _add_encoder_options(route)
 
     bridge = commands.add_parser("bridge")
@@ -62,6 +74,21 @@ def build_parser() -> argparse.ArgumentParser:
 
 def main(argv: Sequence[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
+    if args.command == "bootstrap-screen-lab":
+        descriptor = build_frozen_encoder_descriptor(
+            model_ref=args.model_ref,
+            pooling=args.pooling,
+            device=args.device,
+        )
+        payload = bootstrap_screen_lab(
+            workspace_root=Path(args.workspace_root),
+            encoder_descriptor=descriptor,
+            operator_approved=args.operator_approved,
+            seed=args.seed,
+            replace_existing_source=args.replace_existing_source,
+        )
+        _emit(payload)
+        return 0 if payload.get("status") == "ready" else 2
     if args.command == "ingest-episode":
         descriptor = build_frozen_encoder_descriptor(
             model_ref=args.model_ref,
@@ -124,6 +151,8 @@ def main(argv: Sequence[str] | None = None) -> int:
             profile=profile,
             route_store_path=route_store,
         )
+        if args.output:
+            _write_json(Path(args.output), payload)
         _emit(payload)
         return 0 if payload.get("status") == "advisory_ready" else 2
     route_payload = _read_json_object(Path(args.route_json), "route")
@@ -145,10 +174,8 @@ def _add_encoder_options(parser: argparse.ArgumentParser) -> None:
 
 
 def _read_json_object(path: Path, name: str) -> dict[str, object] | None:
-    try:
-        payload = json.loads(path.resolve().read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError):
-        _emit({"status": "blocked", "blockers": [f"{name}_invalid_json"]})
+    payload = _read_json_document(path, name)
+    if payload is None:
         return None
     if not isinstance(payload, dict):
         _emit({"status": "blocked", "blockers": [f"{name}_must_be_object"]})
@@ -157,15 +184,34 @@ def _read_json_object(path: Path, name: str) -> dict[str, object] | None:
 
 
 def _read_json_list(path: Path, name: str) -> list[dict[str, object]] | None:
-    try:
-        payload = json.loads(path.resolve().read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError):
-        _emit({"status": "blocked", "blockers": [f"{name}_invalid_json"]})
+    payload = _read_json_document(path, name)
+    if payload is None:
         return None
     if not isinstance(payload, list) or not all(isinstance(item, dict) for item in payload):
         _emit({"status": "blocked", "blockers": [f"{name}_must_be_object_list"]})
         return None
     return payload
+
+
+def _read_json_document(path: Path, name: str) -> object | None:
+    try:
+        raw = path.resolve().read_bytes()
+        if raw.startswith((b"\xff\xfe", b"\xfe\xff")):
+            text = raw.decode("utf-16")
+        elif raw.startswith(b"\xef\xbb\xbf"):
+            text = raw.decode("utf-8-sig")
+        else:
+            text = raw.decode("utf-8")
+        return json.loads(text)
+    except (OSError, UnicodeError, json.JSONDecodeError):
+        _emit({"status": "blocked", "blockers": [f"{name}_invalid_json"]})
+        return None
+
+
+def _write_json(path: Path, payload: dict[str, object]) -> None:
+    target = path.resolve()
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_text(json.dumps(payload, sort_keys=True, indent=2) + "\n", encoding="utf-8")
 
 
 def _emit(payload: dict[str, object]) -> None:
