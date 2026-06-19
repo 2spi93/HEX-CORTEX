@@ -40,7 +40,8 @@ def build_parser() -> argparse.ArgumentParser:
 
     workflow_run = subparsers.add_parser("workflow-run")
     workflow_run.add_argument("workflow_id")
-    workflow_run.add_argument("values_json")
+    workflow_run.add_argument("values_json", nargs="?")
+    workflow_run.add_argument("--values-file")
     workflow_run.add_argument("--registry-root", default=".hex-cortex/comfyui-workflows")
     workflow_run.add_argument("--endpoint", default="http://127.0.0.1:8188")
     workflow_run.add_argument("--timeout-seconds", type=float, default=120.0)
@@ -107,8 +108,18 @@ def main(argv: Sequence[str] | None = None) -> int:
         _emit(payload)
         return 0 if payload["imported"] is True else 2
     if args.command == "workflow-run":
-        values = _parse_json_object(args.values_json, "values")
+        values = _load_workflow_values(args.values_json, args.values_file)
         if values is None:
+            return 2
+        value_blockers = _validate_workflow_values(values)
+        if value_blockers:
+            _emit(
+                {
+                    "status": "blocked",
+                    "blockers": value_blockers,
+                    "next_action": "repair_workflow_values",
+                }
+            )
             return 2
         try:
             workflow, manifest = load_workflow_bundle(
@@ -175,6 +186,58 @@ def _add_encoder_options(parser: argparse.ArgumentParser, *, include_image: bool
     parser.add_argument("--model-ref", default="facebook/dinov2-base")
     parser.add_argument("--pooling", choices=("cls", "mean_patch"), default="cls")
     parser.add_argument("--device", choices=("auto", "cpu", "cuda", "mps"), default="auto")
+
+
+def _load_workflow_values(
+    values_json: str | None,
+    values_file: str | None,
+) -> dict[str, object] | None:
+    if values_json and values_file:
+        _emit(
+            {
+                "status": "blocked",
+                "blockers": ["values_source_conflict"],
+                "next_action": "use_values_json_or_values_file_not_both",
+            }
+        )
+        return None
+    if values_file:
+        return _read_json_object(Path(values_file), "values")
+    if values_json:
+        return _parse_json_object(values_json, "values")
+    _emit(
+        {
+            "status": "blocked",
+            "blockers": ["values_source_missing"],
+            "next_action": "provide_values_file",
+        }
+    )
+    return None
+
+
+def _validate_workflow_values(values: dict[str, object]) -> list[str]:
+    blockers: list[str] = []
+    checkpoint = values.get("checkpoint")
+    if not isinstance(checkpoint, str) or not checkpoint.strip():
+        blockers.append("checkpoint_missing")
+    elif Path(checkpoint).is_absolute() or ":" in checkpoint:
+        blockers.append("checkpoint_must_be_comfyui_relative_name")
+    elif not checkpoint.lower().endswith((".safetensors", ".ckpt")):
+        blockers.append("checkpoint_extension_invalid")
+    for key in ("prompt", "negative_prompt", "filename_prefix"):
+        value = values.get(key)
+        if not isinstance(value, str):
+            blockers.append(f"{key}_must_be_string")
+    for key in ("seed", "width", "height"):
+        if not isinstance(values.get(key), int):
+            blockers.append(f"{key}_must_be_integer")
+    width = values.get("width")
+    height = values.get("height")
+    if isinstance(width, int) and (width < 64 or width % 8):
+        blockers.append("width_invalid")
+    if isinstance(height, int) and (height < 64 or height % 8):
+        blockers.append("height_invalid")
+    return sorted(set(blockers))
 
 
 def _read_json_object(path: Path, name: str) -> dict[str, object] | None:
