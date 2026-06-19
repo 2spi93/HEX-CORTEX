@@ -1,0 +1,16 @@
+# Useful candidate fields
+
+- IA / Machine Learning
+- Data science
+- Economie
+- Droit / politique / regulation
+- Biologie / sante informationnelle
+- Hardware / robotique
+- Energie / climat
+- Langage / ecriture
+- Education / entrainement
+- Produit / operations
+- Histoire / civilisations
+- Reseaux / systemes
+
+Rule: every field uses the same candidate -> learning -> competent -> advanced -> ready -> active ladder from docs/LEVELS_V1.json.
