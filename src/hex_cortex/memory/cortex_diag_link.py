@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from hex_cortex.memory.cortex_bus import CortexUnit
+from hex_cortex.memory.cortex_runtime_probe import probe_cortex_runtime
 from hex_cortex.memory.cortex_surfaces import audit_cortex_surface
 from hex_cortex.memory.cortex_surfaces import build_cortex_surface_manifest
 from hex_cortex.memory.cortex_surfaces import list_cortex_surfaces
@@ -25,6 +26,11 @@ def build_cortex_diag_link() -> dict[str, CortexUnit]:
             name="runtime.facts",
             unit=list_cortex_runtime_facts,
             description="List runtime facts required for operation.",
+        ),
+        "runtime.probe": CortexUnit(
+            name="runtime.probe",
+            unit=probe_cortex_runtime,
+            description="Probe static runtime evidence without network or processes.",
         ),
         "surfaces.list": CortexUnit(
             name="surfaces.list",
