@@ -55,6 +55,24 @@ _STAGE_UNITS = {
         "web.describe",
         "stability.compute",
     },
+    "external_runtime_integrations": {
+        "runtime.targets",
+        "runtime.health",
+        "runtime.select",
+        "runtime.benchmark.plan",
+        "research.flow",
+        "auth.ref.build",
+        "auth.ref.register",
+        "connectors.list",
+        "connector.plan",
+        "bridge.transports",
+        "bridge.detect",
+        "exchange.build",
+        "exchange.verify",
+        "project.fit",
+        "service.profile",
+        "service.caddy",
+    },
 }
 
 _RUNTIME_FACTS = {
@@ -64,6 +82,7 @@ _RUNTIME_FACTS = {
     "service_packaging_available": "service_packaging_not_available",
     "hardware_adapter_available": "hardware_adapter_not_available",
     "project_adapter_available": "project_adapter_not_available",
+    "hermes_adapter_available": "hermes_adapter_not_available",
     "learned_world_model_available": "learned_world_model_not_available",
 }
 
