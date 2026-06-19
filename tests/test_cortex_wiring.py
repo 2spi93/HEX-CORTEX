@@ -14,13 +14,11 @@ def test_wiring_audit_confirms_complete_static_architecture() -> None:
     assert payload["operational_ready"] is False
     assert "native_mcp_server_not_available" in payload["runtime_blockers"]
     assert "learned_world_model_not_available" in payload["runtime_blockers"]
+    assert "runtime_model_orchestration_not_available" in payload["runtime_blockers"]
 
 
 def test_wiring_audit_can_reach_operational_ready() -> None:
-    facts = {
-        row["fact"]: True
-        for row in list_cortex_runtime_facts()
-    }
+    facts = {row["fact"]: True for row in list_cortex_runtime_facts()}
 
     payload = audit_cortex_wiring(
         build_cortex_bundle(),
@@ -56,4 +54,4 @@ def test_wiring_catalog_lists_all_stages_and_runtime_facts() -> None:
         "execution_gateway",
         "knowledge_and_integrations",
     }
-    assert len(facts) == 7
+    assert len(facts) == 10
