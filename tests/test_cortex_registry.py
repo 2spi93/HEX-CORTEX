@@ -17,7 +17,10 @@ def test_cortex_registry_lists_expected_units() -> None:
 
 
 def test_describe_cortex_r_does_not_execute_runner() -> None:
-    payload = describe_cortex_r(endpoint="http://127.0.0.1:11434/api/generate", timeout_seconds=3.0)
+    payload = describe_cortex_r(
+        endpoint="http://127.0.0.1:11434/api/generate",
+        timeout_seconds=3.0,
+    )
 
     assert payload["adapter_type"] == "cortex_r"
     assert payload["endpoint_redacted"] == "http://127.0.0.1:<redacted>"
