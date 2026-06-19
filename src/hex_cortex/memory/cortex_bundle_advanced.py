@@ -12,6 +12,7 @@ from hex_cortex.memory.cortex_surprise_registry import (
 from hex_cortex.memory.cortex_transition_registry import (
     build_cortex_transition_registry,
 )
+from hex_cortex.memory.cortex_xlink import build_cortex_xlink
 
 
 def build_cortex_bundle_advanced():
@@ -23,4 +24,5 @@ def build_cortex_bundle_advanced():
         build_cortex_action_link(),
         build_cortex_channel_link(),
         build_cortex_ext3(),
+        build_cortex_xlink(),
     )
