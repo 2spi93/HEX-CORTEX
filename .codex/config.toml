@@ -1,0 +1,5 @@
+[mcp_servers.hex-cortex]
+command = "python"
+args = ["-m", "hex_cortex.memory.cortex_stdio"]
+cwd = "."
+env = { PYTHONPATH = "./src" }
