@@ -3,6 +3,7 @@ from __future__ import annotations
 from hex_cortex.memory.cortex_action_link import build_cortex_action_link
 from hex_cortex.memory.cortex_bus import combine_cortex_registries
 from hex_cortex.memory.cortex_channel_link import build_cortex_channel_link
+from hex_cortex.memory.cortex_diag_link import build_cortex_diag_link
 from hex_cortex.memory.cortex_ext3 import build_cortex_ext3
 from hex_cortex.memory.cortex_goal_link import build_cortex_goal_link
 from hex_cortex.memory.cortex_seq_link import build_cortex_seq_link
@@ -25,4 +26,5 @@ def build_cortex_bundle_advanced():
         build_cortex_channel_link(),
         build_cortex_ext3(),
         build_cortex_xlink(),
+        build_cortex_diag_link(),
     )
