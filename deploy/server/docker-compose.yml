@@ -8,64 +8,23 @@ services:
     environment:
       HEX_CORTEX_API_HOST: 0.0.0.0
       HEX_CORTEX_API_PORT: 8765
-      HEX_CORTEX_TRUSTED_CONTAINER_NETWORK: "true"
       HEX_CORTEX_PROFILE: /data/.hex-cortex
       HEX_CORTEX_FEDERATION_SIGNING_KEY: ${HEX_CORTEX_FEDERATION_SIGNING_KEY:?set signing key}
       HEX_CORTEX_TELEGRAM_WEBHOOK_SECRET: ${HEX_CORTEX_TELEGRAM_WEBHOOK_SECRET:-}
       HEX_CORTEX_INTERNAL_API_AVAILABLE: "true"
-      HEX_CORTEX_HTTPS_REVERSE_PROXY_AVAILABLE: "true"
+      HEX_CORTEX_HTTPS_REVERSE_PROXY_AVAILABLE: ${HEX_CORTEX_HTTPS_REVERSE_PROXY_AVAILABLE:-false}
+      HEX_CORTEX_PRIVATE_OR_TUNNELED_TRANSPORT_AVAILABLE: ${HEX_CORTEX_PRIVATE_OR_TUNNELED_TRANSPORT_AVAILABLE:-false}
       HEX_CORTEX_SERVER_WORKER_QUEUE_AVAILABLE: "true"
       HEX_CORTEX_SIGNED_TASK_ENVELOPES_AVAILABLE: "true"
       HEX_CORTEX_REMOTE_RECEIPTS_AVAILABLE: "true"
       HEX_CORTEX_HERMES_AUTODISCOVERY_AVAILABLE: "true"
       HEX_CORTEX_GTIXT_READ_ONLY_AUDIT_AVAILABLE: "true"
-      HEX_CORTEX_PRIVATE_OR_TUNNELED_TRANSPORT_AVAILABLE: ${HEX_CORTEX_PRIVATE_OR_TUNNELED_TRANSPORT_AVAILABLE:-false}
     volumes:
       - cortex-profile:/data/.hex-cortex
-    expose:
-      - "8765"
-    networks:
-      - cortex-private
-    security_opt:
-      - no-new-privileges:true
-
-  caddy:
-    image: caddy:2-alpine
-    container_name: hex-cortex-caddy
-    restart: unless-stopped
-    depends_on:
-      - api
-    environment:
-      HEX_CORTEX_DOMAIN: ${HEX_CORTEX_DOMAIN:?set public HTTPS domain}
     ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile:ro
-      - caddy-data:/data
-      - caddy-config:/config
-    networks:
-      - cortex-private
+      - "127.0.0.1:8765:8765"
     security_opt:
       - no-new-privileges:true
-
-  cloudflared:
-    image: cloudflare/cloudflared:latest
-    profiles: ["cloudflare"]
-    restart: unless-stopped
-    command: tunnel --no-autoupdate run --token ${CLOUDFLARE_TUNNEL_TOKEN}
-    depends_on:
-      - caddy
-    networks:
-      - cortex-private
-    security_opt:
-      - no-new-privileges:true
-
-networks:
-  cortex-private:
-    driver: bridge
 
 volumes:
   cortex-profile:
-  caddy-data:
-  caddy-config:
