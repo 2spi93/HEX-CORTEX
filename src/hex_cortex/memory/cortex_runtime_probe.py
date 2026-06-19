@@ -10,6 +10,9 @@ def probe_cortex_runtime(
 ) -> dict[str, object]:
     root = project_root.resolve()
     memory_root = root / "src" / "hex_cortex" / "memory"
+    research_compose = root / "deploy" / "research" / "docker-compose.yml"
+    server_compose = root / "deploy" / "server" / "docker-compose.yml"
+    caddyfile = root / "deploy" / "server" / "Caddyfile"
     evidence = {
         "cli_entrypoint_available": (memory_root / "cortex_cli.py").is_file(),
         "mcp_server_available": (
@@ -18,37 +21,54 @@ def probe_cortex_runtime(
             and (memory_root / "cortex_rpc_tools.py").is_file()
         ),
         "claude_project_configured": (root / ".mcp.json").is_file(),
-        "codex_project_configured": (
-            root / ".codex" / "config.toml"
+        "codex_project_configured": (root / ".codex" / "config.toml").is_file(),
+        "ollama_adapter_available": (memory_root / "cortex_ollama_link.py").is_file(),
+        "llama_cpp_adapter_available": (memory_root / "cortex_openai_local.py").is_file(),
+        "project_adapter_factory_available": (memory_root / "cortex_project_adapter.py").is_file(),
+        "hardware_adapter_factory_available": (memory_root / "cortex_hardware_adapter.py").is_file(),
+        "service_adapter_factory_available": (memory_root / "cortex_service_adapter.py").is_file(),
+        "research_adapter_factory_available": (memory_root / "cortex_research_adapter.py").is_file(),
+        "runtime_orchestration_available": (
+            memory_root / "cortex_runtime_model_orchestration.py"
         ).is_file(),
-        "ollama_adapter_available": (
-            memory_root / "cortex_ollama_link.py"
+        "research_social_credentials_available": (
+            memory_root / "cortex_research_social_credentials.py"
         ).is_file(),
-        "llama_cpp_adapter_available": (
-            memory_root / "cortex_openai_local.py"
+        "server_federation_audit_available": (
+            memory_root / "cortex_server_federation_audit.py"
         ).is_file(),
-        "project_adapter_factory_available": (
-            memory_root / "cortex_project_adapter.py"
+        "server_worker_queue_available": (
+            memory_root / "cortex_federation_queue.py"
         ).is_file(),
-        "hardware_adapter_factory_available": (
-            memory_root / "cortex_hardware_adapter.py"
+        "signed_task_envelopes_available": (
+            memory_root / "cortex_server_federation_audit.py"
         ).is_file(),
-        "service_adapter_factory_available": (
-            memory_root / "cortex_service_adapter.py"
+        "remote_receipts_available": (
+            memory_root / "cortex_server_federation_audit.py"
         ).is_file(),
-        "research_adapter_factory_available": (
-            memory_root / "cortex_research_adapter.py"
+        "hermes_autodiscovery_available": (
+            memory_root / "cortex_server_federation_audit.py"
         ).is_file(),
+        "gtixt_read_only_audit_available": (
+            memory_root / "cortex_server_federation_audit.py"
+        ).is_file(),
+        "internal_api_available": (
+            (memory_root / "cortex_server_api.py").is_file() and server_compose.is_file()
+        ),
+        "https_reverse_proxy_available": caddyfile.is_file(),
+        "research_service_packaging_available": research_compose.is_file(),
+        "service_packaging_available": server_compose.is_file() and caddyfile.is_file(),
     }
     facts: dict[str, bool] = {
         **evidence,
         "local_model_runtime_available": False,
         "ollama_endpoint_configured": False,
+        "llama_server_endpoint_configured": False,
         "web_search_adapter_configured": False,
-        "service_packaging_available": False,
         "hardware_adapter_available": False,
         "project_adapter_available": False,
         "hermes_adapter_available": False,
+        "private_or_tunneled_transport_available": False,
         "kali_profile_configured": False,
         "learned_world_model_available": False,
     }
@@ -72,9 +92,5 @@ def probe_cortex_runtime(
         "false_fact_count": len(false_facts),
         "true_facts": true_facts,
         "false_facts": false_facts,
-        "next_action": (
-            "configure_external_runtimes"
-            if false_facts
-            else "run_operational_audit"
-        ),
+        "next_action": "configure_external_runtimes" if false_facts else "run_operational_audit",
     }
