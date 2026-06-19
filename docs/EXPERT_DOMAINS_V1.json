@@ -2,13 +2,22 @@
   "registry_status": "ready",
   "registry_decision": "expert_domain_registry_ready",
   "autonomy_level": "L1_receipts_and_static_analysis",
-  "next_action": "prepare_skill_candidate_intake",
+  "next_action": "prepare_domain_mastery_score",
+  "expert_request_policy": {
+    "operator_phrase": "become expert in <domain>",
+    "effect": "create_or_update_domain_candidate",
+    "execution": "candidate_only_until_evidence_threshold_and_operator_approval",
+    "default_state": "learning",
+    "auto_install": false,
+    "auto_execute": false
+  },
   "domains": [
     {
       "domain_key": "coding",
       "title": "Coding Expert",
       "scope": ["implementation", "debugging", "tests", "refactoring", "architecture"],
       "required_evidence": ["pytest", "ruff", "diff", "receipt"],
+      "mastery_signals": ["bugs_fixed", "tests_added", "regressions_prevented", "patterns_reused"],
       "forbidden_actions": ["hidden_mutation", "secret_access", "destructive_shell"]
     },
     {
@@ -16,20 +25,55 @@
       "title": "Research Expert",
       "scope": ["web_research", "source_synthesis", "citation_review"],
       "required_evidence": ["sources", "citations", "uncertainty_notes"],
+      "mastery_signals": ["source_quality", "citation_accuracy", "contradiction_tracking"],
       "forbidden_actions": ["uncited_factual_claims", "fabricated_quotes"]
+    },
+    {
+      "domain_key": "mathematics",
+      "title": "Mathematics Expert",
+      "scope": ["algebra", "analysis", "probability", "statistics", "proofs", "optimization"],
+      "required_evidence": ["definitions", "assumptions", "derivation", "verification"],
+      "mastery_signals": ["proof_validity", "error_correction", "symbolic_consistency"],
+      "forbidden_actions": ["unstated_assumptions", "numerology_as_proof", "missing_derivation"]
     },
     {
       "domain_key": "geometry_universe",
       "title": "Geometry And Universe Expert",
       "scope": ["geometry", "topology", "cosmology", "physics_reasoning"],
       "required_evidence": ["definitions", "assumptions", "derivation_notes"],
+      "mastery_signals": ["model_coherence", "unit_consistency", "source_backing"],
       "forbidden_actions": ["presenting_speculation_as_fact", "missing_units"]
+    },
+    {
+      "domain_key": "trading",
+      "title": "Trading Expert",
+      "scope": ["market_structure", "risk_management", "backtesting", "execution", "portfolio_review"],
+      "required_evidence": ["risk_limits", "backtest_receipt", "out_of_sample_check", "drawdown_review"],
+      "mastery_signals": ["risk_adjusted_outcome", "replay_quality", "regime_awareness", "execution_slippage"],
+      "forbidden_actions": ["financial_advice_as_certainty", "unapproved_live_trade", "hidden_leverage", "ignored_risk"]
+    },
+    {
+      "domain_key": "geopolitics",
+      "title": "Geopolitics Expert",
+      "scope": ["state_actors", "conflict_analysis", "policy", "sanctions", "macro_risk"],
+      "required_evidence": ["dated_sources", "source_diversity", "uncertainty", "scenario_map"],
+      "mastery_signals": ["recency", "multi_source_corroboration", "bias_detection"],
+      "forbidden_actions": ["single_source_certainty", "undated_claims", "propaganda_as_fact"]
+    },
+    {
+      "domain_key": "cryptography",
+      "title": "Cryptography Expert",
+      "scope": ["protocols", "hashing", "signatures", "zero_knowledge", "key_management"],
+      "required_evidence": ["threat_model", "primitive_definition", "implementation_warning", "test_vectors"],
+      "mastery_signals": ["correct_primitive_choice", "threat_model_quality", "safe_implementation_notes"],
+      "forbidden_actions": ["roll_your_own_crypto_for_production", "secret_exposure", "bypassing_authentication"]
     },
     {
       "domain_key": "skill_curator",
       "title": "Skill Curator",
       "scope": ["skill_candidates", "preset_candidates", "reuse_patterns"],
       "required_evidence": ["success_pattern", "failure_pattern", "candidate_receipt"],
+      "mastery_signals": ["reuse_rate", "failure_reduction", "operator_acceptance"],
       "forbidden_actions": ["auto_install_external_code", "silent_skill_mutation"]
     },
     {
@@ -37,6 +81,7 @@
       "title": "Defensive Audit Expert",
       "scope": ["local_audit", "authorized_testing", "hardening", "secret_scan"],
       "required_evidence": ["scope_statement", "authorization", "local_target"],
+      "mastery_signals": ["false_positive_reduction", "coverage", "safe_remediation"],
       "forbidden_actions": ["intrusion", "credential_theft", "malware", "persistence"]
     }
   ]
