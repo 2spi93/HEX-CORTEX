@@ -20,6 +20,30 @@ _DOMAIN_CANDIDATES = [
         "scope": "frontend, backend, data, ai, devops, tests, architecture",
     },
     {
+        "domain_id": "engineering_profile",
+        "label": "Profil ingenieur generaliste",
+        "state": "candidate",
+        "scope": "systems, mechanical, electrical, software, tradeoffs, verification",
+    },
+    {
+        "domain_id": "philosophy",
+        "label": "Philosophie et epistemologie",
+        "state": "candidate",
+        "scope": "logic, ethics, epistemology, philosophy of science, argument analysis",
+    },
+    {
+        "domain_id": "media_generation",
+        "label": "Generation image et video",
+        "state": "candidate",
+        "scope": "image, video, editing, storyboard, rendering",
+    },
+    {
+        "domain_id": "spatial_3d_reasoning",
+        "label": "Vision et raisonnement 3D",
+        "state": "candidate",
+        "scope": "multi-view geometry, depth, point clouds, meshes, scene graphs",
+    },
+    {
         "domain_id": "screen_vision",
         "label": "Vision ecran",
         "state": "candidate",
