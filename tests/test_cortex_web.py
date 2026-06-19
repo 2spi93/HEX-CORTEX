@@ -1,3 +1,7 @@
+from hex_cortex.memory.cortex_bus import combine_cortex_registries
+from hex_cortex.memory.cortex_bus import run_cortex_units
+from hex_cortex.memory.cortex_registry import build_cortex_registry
+from hex_cortex.memory.cortex_web import build_cortex_web_registry
 from hex_cortex.memory.cortex_web import build_cortex_web_search
 from hex_cortex.memory.cortex_web import describe_cortex_web
 
@@ -43,3 +47,24 @@ def test_web_search_accepts_cited_result() -> None:
     assert result["status"] == "ok"
     assert result["citations"] == ["source:arxiv"]
     assert result["raw_page_persisted"] is False
+
+
+def test_web_search_registry_combines_with_base_registry() -> None:
+    base = build_cortex_registry()
+    web = build_cortex_web_registry(
+        lambda query: {
+            "status": "ok",
+            "summary": f"found: {query}",
+            "citations": ["source:web"],
+        }
+    )
+    registry = combine_cortex_registries(base, web)
+
+    payload = run_cortex_units(
+        registry,
+        [{"name": "web.search", "kwargs": {"query": "Adinkra codes"}}],
+    )
+
+    assert payload["bus_allowed"] is True
+    assert payload["results"][0]["name"] == "web.search"
+    assert payload["results"][0]["output"]["citations"] == ["source:web"]
