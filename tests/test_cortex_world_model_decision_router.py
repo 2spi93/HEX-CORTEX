@@ -101,7 +101,8 @@ def test_router_ranks_candidate_actions_without_dispatch(tmp_path: Path) -> None
     assert route["execution_performed"] is False
     assert route["latent_vector_persisted"] is False
     assert route["route_store"]["appended"] is True
-    assert "current_latent" not in json.dumps(route)
+    assert "current_latent" not in route
+    assert "goal_latent" not in route
 
 
 def test_router_blocks_domain_mismatch_before_model_call(tmp_path: Path) -> None:
