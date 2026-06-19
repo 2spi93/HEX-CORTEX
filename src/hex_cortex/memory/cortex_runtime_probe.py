@@ -27,6 +27,14 @@ def probe_cortex_runtime(
         "llama_cpp_adapter_available": (
             memory_root / "cortex_openai_local.py"
         ).is_file(),
+        "runtime_orchestration_available": all(
+            (memory_root / filename).is_file()
+            for filename in (
+                "cortex_runtime_targets.py",
+                "cortex_runtime_health.py",
+                "cortex_runtime_select.py",
+            )
+        ),
         "project_adapter_factory_available": (
             memory_root / "cortex_project_adapter.py"
         ).is_file(),
@@ -39,13 +47,48 @@ def probe_cortex_runtime(
         "research_adapter_factory_available": (
             memory_root / "cortex_research_adapter.py"
         ).is_file(),
+        "research_stack_available": all(
+            (memory_root / filename).is_file()
+            for filename in (
+                "cortex_searxng.py",
+                "cortex_research_flow.py",
+            )
+        ),
+        "connector_plans_available": all(
+            (memory_root / filename).is_file()
+            for filename in (
+                "cortex_auth_ref.py",
+                "cortex_connectors.py",
+            )
+        ),
+        "exchange_protocol_available": all(
+            (memory_root / filename).is_file()
+            for filename in (
+                "cortex_exchange.py",
+                "cortex_bridge_detect.py",
+            )
+        ),
+        "project_fit_audit_available": (
+            memory_root / "cortex_project_fit.py"
+        ).is_file(),
+        "telegram_webhook_available": (
+            memory_root / "cortex_http_readonly.py"
+        ).is_file(),
+        "service_packaging_available": all(
+            (memory_root / filename).is_file()
+            for filename in (
+                "cortex_http_readonly.py",
+                "cortex_service_profile.py",
+                "cortex_caddy.py",
+            )
+        ),
     }
     facts: dict[str, bool] = {
         **evidence,
         "local_model_runtime_available": False,
         "ollama_endpoint_configured": False,
+        "llama_server_endpoint_configured": False,
         "web_search_adapter_configured": False,
-        "service_packaging_available": False,
         "hardware_adapter_available": False,
         "project_adapter_available": False,
         "hermes_adapter_available": False,
