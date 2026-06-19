@@ -15,11 +15,16 @@ from hex_cortex.memory.cortex_observed_transition_dataset import build_transitio
 from hex_cortex.memory.cortex_observed_transition_dataset import capture_observed_transition
 from hex_cortex.memory.cortex_observed_transition_dataset import load_transition_records
 from hex_cortex.memory.cortex_observed_transition_dataset import write_transition_manifest
+from hex_cortex.memory.cortex_world_model_completion_audit import audit_world_model_completion
 
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="hexcortex-world-train")
     commands = parser.add_subparsers(dest="command", required=True)
+
+    audit = commands.add_parser("audit")
+    audit.add_argument("--project-root", default=".")
+    audit.add_argument("--state-root")
 
     capture = commands.add_parser("capture")
     capture.add_argument("current_image")
@@ -75,6 +80,13 @@ def build_parser() -> argparse.ArgumentParser:
 
 def main(argv: Sequence[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
+    if args.command == "audit":
+        payload = audit_world_model_completion(
+            Path(args.project_root),
+            state_root=Path(args.state_root) if args.state_root else None,
+        )
+        _emit(payload)
+        return 0 if payload["architecture_ready"] is True else 2
     if args.command == "capture":
         action = _parse_float_csv(args.action, "action")
         schema = _parse_string_csv(args.action_schema, "action_schema")
