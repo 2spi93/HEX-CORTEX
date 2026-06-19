@@ -242,8 +242,11 @@ def run_media_to_latent_pipeline(
             observed_latent,
             surprise_threshold=surprise_threshold,
         )
+    source_receipt_hash = source_receipt.get("receipt_hash")
+    upstream_source_receipt_hash = _resolve_upstream_source_receipt_hash(source_receipt)
     stable = {
-        "source_receipt_hash": source_receipt.get("receipt_hash"),
+        "source_receipt_hash": source_receipt_hash,
+        "upstream_source_receipt_hash": upstream_source_receipt_hash,
         "asset_resolution_hash": asset_receipt["resolution_hash"],
         "encoder_receipt_hash": encoder_receipt.get("receipt_hash"),
         "action_hash": _stable_hash(action_values),
@@ -257,7 +260,8 @@ def run_media_to_latent_pipeline(
         "status": "completed",
         "pipeline_completed": True,
         "source_receipt_type": source_receipt.get("receipt_type"),
-        "source_receipt_hash": source_receipt.get("receipt_hash"),
+        "source_receipt_hash": source_receipt_hash,
+        "upstream_source_receipt_hash": upstream_source_receipt_hash,
         "asset": asset_receipt,
         "encoder": encoder_receipt,
         "latent_dim": len(current_latent),
@@ -287,6 +291,11 @@ def run_media_to_latent_pipeline(
             else "prepare_observed_transition_dataset"
         ),
     }
+
+
+def _resolve_upstream_source_receipt_hash(source_receipt: dict[str, object]) -> object:
+    upstream = source_receipt.get("source_receipt_hash")
+    return upstream if upstream is not None else source_receipt.get("receipt_hash")
 
 
 def _validate_source_receipt(source_receipt: dict[str, object]) -> list[str]:
