@@ -1,4 +1,4 @@
 {$HEX_CORTEX_DOMAIN} {
     encode zstd gzip
-    reverse_proxy api:8765
+    reverse_proxy 127.0.0.1:8765
 }
