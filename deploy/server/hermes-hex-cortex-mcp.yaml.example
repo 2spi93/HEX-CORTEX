@@ -1,0 +1,26 @@
+# Merge this block into ~/.hermes/config.yaml on the Linux server.
+# Replace /opt/HEX-CORTEX with the actual checkout path.
+mcp_servers:
+  hex_cortex:
+    command: "/opt/HEX-CORTEX/.venv/bin/python"
+    args: ["-m", "hex_cortex.memory.cortex_stdio"]
+    env:
+      PYTHONPATH: "/opt/HEX-CORTEX/src"
+    enabled: true
+    supports_parallel_tool_calls: false
+    tools:
+      include:
+        - hex_cortex_units
+        - hex_cortex_wiring
+        - hex_cortex_surfaces
+        - hex_cortex_surface_audit
+        - hex_cortex_manifest
+        - hex_cortex_read_plan
+        - hex_cortex_runtime_facts
+        - hex_cortex_coding_model_catalog
+        - hex_cortex_coding_route
+        - hex_cortex_self_correction_plan
+      prompts: false
+      resources: false
+    sampling:
+      enabled: false
