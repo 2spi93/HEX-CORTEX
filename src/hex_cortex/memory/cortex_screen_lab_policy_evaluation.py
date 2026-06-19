@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import hashlib
 import json
+from collections.abc import Callable
 from pathlib import Path
-from typing import Callable
 
 from hex_cortex.memory.cortex_observed_transition_dataset import load_transition_records
 from hex_cortex.memory.cortex_world_model_decision_router import route_world_model_decision
