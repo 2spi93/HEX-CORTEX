@@ -5,30 +5,27 @@ from hex_cortex.memory.cortex_registry import build_cortex_registry
 from hex_cortex.memory.cortex_registry import build_cortex_registry_plan
 from hex_cortex.memory.cortex_registry import describe_cortex_r
 
+_EXPECTED_UNITS = [
+    "a.build",
+    "b.build",
+    "c.build",
+    "domains.list",
+    "lc.build",
+    "modal.list",
+    "r.describe",
+    "stability.compute",
+    "web.describe",
+    "world.compute",
+]
+
 
 def test_cortex_registry_lists_expected_units() -> None:
     registry = build_cortex_registry()
 
-    assert sorted(registry) == [
-        "a.build",
-        "b.build",
-        "c.build",
-        "lc.build",
-        "r.describe",
-        "stability.compute",
-        "web.describe",
-    ]
+    assert sorted(registry) == _EXPECTED_UNITS
     rows = list_cortex_units(registry)
     names = [row["name"] for row in rows]
-    assert names == [
-        "a.build",
-        "b.build",
-        "c.build",
-        "lc.build",
-        "r.describe",
-        "stability.compute",
-        "web.describe",
-    ]
+    assert names == _EXPECTED_UNITS
     assert any(row["requires_operator"] is True for row in rows)
 
 
@@ -55,13 +52,16 @@ def test_cortex_registry_plan_runs_safe_units(tmp_path) -> None:
     payload = run_cortex_units(registry, plan)
 
     assert payload["bus_allowed"] is True
-    assert payload["step_count"] == 5
-    assert payload["result_count"] == 5
+    assert payload["step_count"] == 8
+    assert payload["result_count"] == 8
     assert payload["results"][0]["name"] == "lc.build"
     assert payload["results"][1]["name"] == "a.build"
     assert payload["results"][2]["name"] == "r.describe"
     assert payload["results"][3]["name"] == "web.describe"
     assert payload["results"][4]["name"] == "stability.compute"
+    assert payload["results"][5]["name"] == "domains.list"
+    assert payload["results"][6]["name"] == "modal.list"
+    assert payload["results"][7]["name"] == "world.compute"
 
 
 def test_cortex_registry_combines_without_duplicate() -> None:
