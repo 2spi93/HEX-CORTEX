@@ -8,7 +8,7 @@ from hex_cortex.memory.cortex_rpc_tools import list_cortex_rpc_tools
 def test_rpc_tool_catalog_is_read_only() -> None:
     rows = list_cortex_rpc_tools()
 
-    assert len(rows) == 7
+    assert len(rows) == 10
     assert {row["name"] for row in rows} == {
         "hex_cortex_units",
         "hex_cortex_wiring",
@@ -17,6 +17,9 @@ def test_rpc_tool_catalog_is_read_only() -> None:
         "hex_cortex_manifest",
         "hex_cortex_read_plan",
         "hex_cortex_runtime_facts",
+        "hex_cortex_coding_model_catalog",
+        "hex_cortex_coding_route",
+        "hex_cortex_self_correction_plan",
     }
     assert all(row["annotations"]["readOnlyHint"] is True for row in rows)
     assert all(row["annotations"]["destructiveHint"] is False for row in rows)
@@ -64,7 +67,7 @@ def test_rpc_initialization_and_tool_listing() -> None:
     }
     assert notification is None
     assert session.client_initialized is True
-    assert len(listing["result"]["tools"]) == 7
+    assert len(listing["result"]["tools"]) == 10
 
 
 def test_rpc_tool_call_returns_structured_and_text_content() -> None:
@@ -87,6 +90,41 @@ def test_rpc_tool_call_returns_structured_and_text_content() -> None:
     assert result["isError"] is False
     assert result["structuredContent"]["architecture_ready"] is True
     assert result["content"][0]["type"] == "text"
+
+
+def test_rpc_exposes_coding_route_without_model_call() -> None:
+    payload, is_error = call_cortex_rpc_tool(
+        "hex_cortex_coding_route",
+        {
+            "task_class": "routine_patch",
+            "context_sensitivity": "private",
+            "complexity": "medium",
+            "local_available": True,
+            "remote_available": False,
+            "operator_allows_remote": False,
+        },
+    )
+
+    assert is_error is False
+    assert payload["selected_provider_id"] == "local_open_weight"
+    assert payload["model_call_performed"] is False
+
+
+def test_rpc_exposes_bounded_self_correction_plan() -> None:
+    payload, is_error = call_cortex_rpc_tool(
+        "hex_cortex_self_correction_plan",
+        {
+            "failure_class": "test_failure",
+            "hypothesis": "Fix the parser without changing its evaluator.",
+            "baseline_ref": "main@abc123",
+            "evaluator_ref": "pytest",
+        },
+    )
+
+    assert is_error is False
+    assert payload["status"] == "ready"
+    assert payload["evaluator_mutation_allowed"] is False
+    assert payload["operator_merge_approval_required"] is True
 
 
 def test_rpc_unknown_tool_is_tool_error() -> None:
