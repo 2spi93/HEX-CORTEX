@@ -18,7 +18,7 @@ def build_cortex_local_runtime_probe_dry_run(
     *,
     expected_backend: str | None = None,
 ) -> dict[str, object]:
-    contract = _latest_jsonl(profile / SOURCE_CONTRACT_FILENAME)
+    contract = _latest_json(profile / SOURCE_CONTRACT_FILENAME)
     blockers = _blockers(contract=contract, expected_backend=expected_backend)
     allowed = not blockers
     probe_contract = _probe_contract(contract) if contract else {}
@@ -78,10 +78,10 @@ def build_cortex_local_runtime_probe_dry_run(
         "runtime_probe_dry_run_hash": dry_run_hash,
     }
     path = profile / CORTEX_LOCAL_RUNTIME_PROBE_FILENAME
-    records = _load_jsonl(path)
+    records = _load_json(path)
     if not any(row.get("runtime_probe_dry_run_hash") == dry_run_hash for row in records):
         records.append(record)
-    _write_jsonl(path, records)
+    _write_json(path, records)
     return {
         "runtime_probe_dry_run_type": "cortex_local_runtime_probe_dry_run",
         "profile_path": str(profile),
