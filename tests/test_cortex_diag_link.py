@@ -8,6 +8,7 @@ def test_diag_link_exposes_expected_units() -> None:
 
     assert sorted(registry) == [
         "runtime.facts",
+        "runtime.probe",
         "surface.audit",
         "surface.manifest",
         "surfaces.list",
@@ -34,6 +35,24 @@ def test_wiring_audit_runs_through_full_bundle() -> None:
     assert audit["architecture_ready"] is True
     assert audit["coverage"] == 1.0
     assert audit["operational_ready"] is False
+
+
+def test_runtime_probe_runs_through_full_bundle(tmp_path) -> None:
+    registry = build_cortex_bundle()
+    payload = run_cortex_units(
+        registry,
+        [
+            {
+                "name": "runtime.probe",
+                "kwargs": {"project_root": tmp_path},
+            }
+        ],
+    )
+
+    assert payload["bus_allowed"] is True
+    probe = payload["results"][0]["output"]
+    assert probe["filesystem_only"] is True
+    assert probe["network_probe_performed"] is False
 
 
 def test_surface_audit_runs_through_full_bundle() -> None:
