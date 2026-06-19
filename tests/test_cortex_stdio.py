@@ -43,7 +43,7 @@ def test_stdio_serves_lifecycle_and_tools() -> None:
     assert len(rows) == 3
     assert rows[0]["id"] == 1
     assert rows[1]["id"] == 2
-    assert len(rows[1]["result"]["tools"]) == 7
+    assert len(rows[1]["result"]["tools"]) == 10
     assert rows[2]["id"] == 3
     assert rows[2]["result"]["isError"] is False
 
