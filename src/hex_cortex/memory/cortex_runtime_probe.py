@@ -13,6 +13,7 @@ def probe_cortex_runtime(
     research_compose = root / "deploy" / "research" / "docker-compose.yml"
     server_compose = root / "deploy" / "server" / "docker-compose.yml"
     caddyfile = root / "deploy" / "server" / "Caddyfile"
+    workflow_root = root / "workflows" / "comfyui"
     evidence = {
         "cli_entrypoint_available": (memory_root / "cortex_cli.py").is_file(),
         "mcp_server_available": (
@@ -71,6 +72,19 @@ def probe_cortex_runtime(
         "next_wave_cli_available": (
             memory_root / "cortex_next_wave_cli.py"
         ).is_file(),
+        "comfyui_operational_gateway_available": (
+            memory_root / "cortex_comfyui_operational.py"
+        ).is_file(),
+        "frozen_encoder_adapter_available": (
+            memory_root / "cortex_frozen_encoder.py"
+        ).is_file(),
+        "operational_media_cli_available": (
+            memory_root / "cortex_operational_media_cli.py"
+        ).is_file(),
+        "homologated_comfyui_template_available": (
+            (workflow_root / "txt2img_basic_api_v1.workflow.json").is_file()
+            and (workflow_root / "txt2img_basic_api_v1.profile.json").is_file()
+        ),
     }
     facts: dict[str, bool] = {
         **evidence,
@@ -79,6 +93,8 @@ def probe_cortex_runtime(
         "llama_server_endpoint_configured": False,
         "media_runtime_available": False,
         "comfyui_endpoint_configured": False,
+        "frozen_encoder_runtime_available": False,
+        "dinov2_model_cached": False,
         "web_search_adapter_configured": False,
         "hardware_adapter_available": False,
         "project_adapter_available": False,
