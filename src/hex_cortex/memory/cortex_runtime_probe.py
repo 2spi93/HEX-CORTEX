@@ -105,6 +105,10 @@ def probe_cortex_runtime(
         "environment_router_cli_available": (
             memory_root / "cortex_environment_router_cli.py"
         ).is_file(),
+        "screen_lab_bootstrap_available": (
+            (memory_root / "cortex_screen_lab.py").is_file()
+            and (root / "scripts" / "bootstrap_screen_lab.py").is_file()
+        ),
         "homologated_comfyui_template_available": (
             (workflow_root / "txt2img_basic_api_v1.workflow.json").is_file()
             and (workflow_root / "txt2img_basic_api_v1.profile.json").is_file()
