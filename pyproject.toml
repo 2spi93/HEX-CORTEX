@@ -20,6 +20,7 @@ hexdispatch-history = "hex_cortex.memory.profile_dispatch_history_cli:main"
 hexpreflight = "hex_cortex.memory.profile_dispatch_preflight_cli:main"
 hexcortex = "hex_cortex.memory.cortex_cli:main"
 hexcortex-mcp = "hex_cortex.memory.cortex_stdio:serve_cortex_stdio"
+hexcortex-server = "hex_cortex.memory.cortex_server_api:serve"
 
 [project.optional-dependencies]
 dev = [
