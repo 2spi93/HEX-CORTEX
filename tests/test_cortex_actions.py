@@ -11,7 +11,13 @@ def test_output_catalog_has_expected_entries() -> None:
     assert "write_document" in ids
     assert "write_structured_data" in ids
     assert "generate_plan" in ids
+    assert "generate_image" in ids
+    assert "generate_video" in ids
+    assert "generate_3d_scene" in ids
+    assert "render_3d_asset" in ids
     assert "annotate_visual" in ids
+    assert "publish_social_content" in ids
+    assert "manage_social_inbox" in ids
 
 
 def test_get_known_output() -> None:
@@ -19,6 +25,14 @@ def test_get_known_output() -> None:
 
     assert payload["state"] == "candidate"
     assert payload["requires_operator"] is False
+    assert payload["raw_input_persistence_allowed"] is False
+
+
+def test_social_publication_requires_operator() -> None:
+    payload = get_cortex_output("publish_social_content")
+
+    assert payload["state"] == "candidate"
+    assert payload["requires_operator"] is True
     assert payload["raw_input_persistence_allowed"] is False
 
 
