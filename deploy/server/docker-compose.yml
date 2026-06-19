@@ -5,8 +5,9 @@ services:
       dockerfile: deploy/server/Dockerfile
     container_name: hex-cortex-api
     restart: unless-stopped
+    network_mode: host
     environment:
-      HEX_CORTEX_API_HOST: 0.0.0.0
+      HEX_CORTEX_API_HOST: 127.0.0.1
       HEX_CORTEX_API_PORT: 8765
       HEX_CORTEX_PROFILE: /data/.hex-cortex
       HEX_CORTEX_FEDERATION_SIGNING_KEY: ${HEX_CORTEX_FEDERATION_SIGNING_KEY:?set signing key}
@@ -21,8 +22,6 @@ services:
       HEX_CORTEX_GTIXT_READ_ONLY_AUDIT_AVAILABLE: "true"
     volumes:
       - cortex-profile:/data/.hex-cortex
-    ports:
-      - "127.0.0.1:8765:8765"
     security_opt:
       - no-new-privileges:true
 
