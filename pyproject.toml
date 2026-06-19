@@ -25,6 +25,7 @@ hexcortex-wave = "hex_cortex.memory.cortex_next_wave_cli:main"
 hexcortex-operational = "hex_cortex.memory.cortex_operational_media_cli:main"
 hexcortex-media-latent = "hex_cortex.memory.cortex_media_to_latent_cli:main"
 hexcortex-world-train = "hex_cortex.memory.cortex_world_training_cli:main"
+hexcortex-env-router = "hex_cortex.memory.cortex_environment_router_cli:main"
 
 [project.optional-dependencies]
 dev = [
