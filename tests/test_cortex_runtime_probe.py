@@ -19,6 +19,19 @@ def test_runtime_probe_detects_static_components(tmp_path) -> None:
         "cortex_hardware_adapter.py",
         "cortex_service_adapter.py",
         "cortex_research_adapter.py",
+        "cortex_runtime_targets.py",
+        "cortex_runtime_health.py",
+        "cortex_runtime_select.py",
+        "cortex_searxng.py",
+        "cortex_research_flow.py",
+        "cortex_auth_ref.py",
+        "cortex_connectors.py",
+        "cortex_exchange.py",
+        "cortex_bridge_detect.py",
+        "cortex_project_fit.py",
+        "cortex_http_readonly.py",
+        "cortex_service_profile.py",
+        "cortex_caddy.py",
     ):
         (memory_root / filename).write_text("", encoding="utf-8")
     (tmp_path / ".codex").mkdir()
@@ -34,6 +47,13 @@ def test_runtime_probe_detects_static_components(tmp_path) -> None:
     assert facts["codex_project_configured"] is True
     assert facts["ollama_adapter_available"] is True
     assert facts["llama_cpp_adapter_available"] is True
+    assert facts["runtime_orchestration_available"] is True
+    assert facts["research_stack_available"] is True
+    assert facts["connector_plans_available"] is True
+    assert facts["exchange_protocol_available"] is True
+    assert facts["project_fit_audit_available"] is True
+    assert facts["telegram_webhook_available"] is True
+    assert facts["service_packaging_available"] is True
     assert facts["local_model_runtime_available"] is False
     assert facts["project_adapter_available"] is False
     assert payload["network_probe_performed"] is False
