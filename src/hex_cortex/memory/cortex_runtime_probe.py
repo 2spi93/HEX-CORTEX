@@ -58,12 +58,24 @@ def probe_cortex_runtime(
         "https_reverse_proxy_available": caddyfile.is_file(),
         "research_service_packaging_available": research_compose.is_file(),
         "service_packaging_available": server_compose.is_file() and caddyfile.is_file(),
+        "media_runtime_contract_available": (
+            memory_root / "cortex_media_runtime.py"
+        ).is_file(),
+        "latent_world_model_lab_available": (
+            (memory_root / "cortex_latent_lab.py").is_file()
+            and (memory_root / "cortex_latent_experiment.py").is_file()
+        ),
+        "world_model_training_evaluation_available": (
+            memory_root / "cortex_world_model_eval.py"
+        ).is_file(),
     }
     facts: dict[str, bool] = {
         **evidence,
         "local_model_runtime_available": False,
         "ollama_endpoint_configured": False,
         "llama_server_endpoint_configured": False,
+        "media_runtime_available": False,
+        "comfyui_endpoint_configured": False,
         "web_search_adapter_configured": False,
         "hardware_adapter_available": False,
         "project_adapter_available": False,
