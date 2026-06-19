@@ -1,6 +1,12 @@
 # Fields
 
+- AI and ML
 - data
+- economy
+- policy
+- biology
+- devices
+- energy
 - writing
 - teaching
 - product
