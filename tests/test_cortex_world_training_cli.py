@@ -55,6 +55,36 @@ def test_parser_supports_train_and_promote() -> None:
     assert promote.operator_approved is True
 
 
+def test_predict_parser_accepts_negative_action_values() -> None:
+    values = build_parser().parse_args(
+        [
+            "predict",
+            "active.json",
+            "current.png",
+            "--comfy-root",
+            "workspace",
+            "--action-values",
+            "-1",
+            "0",
+        ]
+    )
+    csv = build_parser().parse_args(
+        [
+            "predict",
+            "active.json",
+            "current.png",
+            "--comfy-root",
+            "workspace",
+            "--action=-1,0",
+        ]
+    )
+
+    assert values.action_values == [-1.0, 0.0]
+    assert values.action is None
+    assert csv.action == "-1,0"
+    assert csv.action_values is None
+
+
 def test_float_csv_parser(capsys) -> None:
     assert _parse_float_csv("0,-0.5,1", "action") == [0.0, -0.5, 1.0]
     assert _parse_float_csv("bad", "action") is None
