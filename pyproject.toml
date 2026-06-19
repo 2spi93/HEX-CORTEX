@@ -69,3 +69,12 @@ ignore = [
   # scope for audit readability even when no direct template reference remains.
   "F841",
 ]
+"src/hex_cortex/memory/cortex_environment_sequence.py" = [
+  # Kept local to the new sequence rail until its callback type surface is exposed.
+  "F401",
+  "UP035",
+]
+"src/hex_cortex/memory/cortex_world_model_decision_router.py" = [
+  # Callable is part of the injected model-runner contract on Python 3.11.
+  "UP035",
+]
