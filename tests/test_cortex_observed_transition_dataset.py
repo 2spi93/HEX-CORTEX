@@ -73,7 +73,7 @@ def test_capture_rejects_image_outside_comfy_output(tmp_path: Path) -> None:
     )
 
     assert record["status"] == "blocked"
-    assert "image_outside_comfy_output" in record["blockers"]
+    assert "image_outside_comfyui_output" in record["blockers"]
 
 
 def test_append_is_idempotent(tmp_path: Path) -> None:
