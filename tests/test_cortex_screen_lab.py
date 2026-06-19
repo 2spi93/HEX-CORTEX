@@ -1,10 +1,14 @@
 import json
 from pathlib import Path
 
+import pytest
+
 from hex_cortex.memory.cortex_frozen_encoder import build_frozen_encoder_descriptor
 from hex_cortex.memory.cortex_observed_transition_dataset import load_transition_records
 from hex_cortex.memory.cortex_screen_lab import bootstrap_screen_lab
 from hex_cortex.memory.cortex_screen_lab import generate_screen_lab_suite
+
+pytest.importorskip("PIL")
 
 
 def _runner(image_path, model_ref, pooling, device, local_files_only):
