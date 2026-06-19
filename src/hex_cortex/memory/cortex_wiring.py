@@ -58,6 +58,9 @@ _STAGE_UNITS = {
 }
 
 _RUNTIME_FACTS = {
+    "runtime_orchestration_available": "runtime_model_orchestration_not_available",
+    "research_social_credentials_available": "research_social_credentials_not_available",
+    "server_federation_audit_available": "server_federation_audit_not_available",
     "web_search_adapter_configured": "real_web_search_not_configured",
     "mcp_server_available": "native_mcp_server_not_available",
     "local_model_runtime_available": "local_model_runtime_not_available",
@@ -110,11 +113,7 @@ def audit_cortex_wiring(
     ]
     architecture_ready = not missing_all and not missing_route_units
     operational_ready = architecture_ready and not runtime_blockers
-    coverage = (
-        round(present_count / required_count, 4)
-        if required_count
-        else 0.0
-    )
+    coverage = round(present_count / required_count, 4) if required_count else 0.0
     return {
         "audit_type": "cortex_wiring_audit",
         "registry_unit_count": len(registry),
@@ -129,11 +128,7 @@ def audit_cortex_wiring(
         "missing_route_units": missing_route_units,
         "runtime_facts": facts,
         "runtime_blockers": runtime_blockers,
-        "next_action": (
-            "operate_cortex"
-            if operational_ready
-            else "configure_remaining_runtime_adapters"
-        ),
+        "next_action": "operate_cortex" if operational_ready else "configure_remaining_runtime_adapters",
     }
 
 
