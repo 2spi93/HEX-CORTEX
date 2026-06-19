@@ -87,6 +87,15 @@ def probe_cortex_runtime(
         "media_to_latent_cli_available": (
             memory_root / "cortex_media_to_latent_cli.py"
         ).is_file(),
+        "observed_transition_dataset_available": (
+            memory_root / "cortex_observed_transition_dataset.py"
+        ).is_file(),
+        "compact_world_model_trainer_available": (
+            memory_root / "cortex_compact_world_model.py"
+        ).is_file(),
+        "world_model_training_cli_available": (
+            memory_root / "cortex_world_training_cli.py"
+        ).is_file(),
         "homologated_comfyui_template_available": (
             (workflow_root / "txt2img_basic_api_v1.workflow.json").is_file()
             and (workflow_root / "txt2img_basic_api_v1.profile.json").is_file()
@@ -102,6 +111,9 @@ def probe_cortex_runtime(
         "frozen_encoder_runtime_available": False,
         "dinov2_model_cached": False,
         "media_to_latent_operational": False,
+        "observed_transition_dataset_ready": False,
+        "compact_world_model_candidate_available": False,
+        "active_compact_world_model_available": False,
         "web_search_adapter_configured": False,
         "hardware_adapter_available": False,
         "project_adapter_available": False,
