@@ -6,6 +6,9 @@ from hex_cortex.memory.cortex_bundle import build_cortex_bundle
 from hex_cortex.memory.cortex_bundle import build_cortex_bundle_read_plan
 from hex_cortex.memory.cortex_bus import list_cortex_units
 from hex_cortex.memory.cortex_bus import run_cortex_units
+from hex_cortex.memory.cortex_coding_model_router import build_coding_model_catalog
+from hex_cortex.memory.cortex_coding_model_router import route_coding_task
+from hex_cortex.memory.cortex_self_correction import build_self_correction_plan
 from hex_cortex.memory.cortex_surfaces import audit_cortex_surface
 from hex_cortex.memory.cortex_surfaces import build_cortex_surface_manifest
 from hex_cortex.memory.cortex_surfaces import list_cortex_surfaces
@@ -97,6 +100,80 @@ def list_cortex_rpc_tools() -> list[dict[str, object]]:
             "inputSchema": empty_schema,
             "annotations": readonly,
         },
+        {
+            "name": "hex_cortex_coding_model_catalog",
+            "title": "HEX-CORTEX Coding Model Catalog",
+            "description": "Describe the local open-weight and remote API coding rails without calling either model.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "local_endpoint": {"type": "string"},
+                    "local_model": {"type": "string"},
+                    "remote_provider": {"type": "string"},
+                    "remote_model": {"type": "string"},
+                    "remote_api_key_ref": {"type": "string"},
+                },
+                "additionalProperties": False,
+            },
+            "annotations": readonly,
+        },
+        {
+            "name": "hex_cortex_coding_route",
+            "title": "HEX-CORTEX Coding Route",
+            "description": "Choose an eligible coding model rail under privacy and operator-approval constraints.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "task_class": {
+                        "type": "string",
+                        "enum": [
+                            "repository_index",
+                            "routine_patch",
+                            "complex_patch",
+                            "critique",
+                            "final_review",
+                            "test_failure_repair",
+                        ],
+                    },
+                    "context_sensitivity": {
+                        "type": "string",
+                        "enum": ["public", "private", "secret"],
+                    },
+                    "complexity": {
+                        "type": "string",
+                        "enum": ["low", "medium", "high"],
+                    },
+                    "local_available": {"type": "boolean"},
+                    "remote_available": {"type": "boolean"},
+                    "operator_allows_remote": {"type": "boolean"},
+                },
+                "required": ["task_class"],
+                "additionalProperties": False,
+            },
+            "annotations": readonly,
+        },
+        {
+            "name": "hex_cortex_self_correction_plan",
+            "title": "HEX-CORTEX Self-Correction Plan",
+            "description": "Build a bounded, non-mutating repair hypothesis plan for an isolated worktree.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "failure_class": {"type": "string", "minLength": 1},
+                    "hypothesis": {"type": "string", "minLength": 1},
+                    "baseline_ref": {"type": "string", "minLength": 1},
+                    "evaluator_ref": {"type": "string", "minLength": 1},
+                },
+                "required": [
+                    "failure_class",
+                    "hypothesis",
+                    "baseline_ref",
+                    "evaluator_ref",
+                ],
+                "additionalProperties": False,
+            },
+            "annotations": readonly,
+        },
     ]
 
 
@@ -162,6 +239,51 @@ def call_cortex_rpc_tool(
             "fact_count": len(rows),
             "runtime_facts": rows,
         }, False
+    if name == "hex_cortex_coding_model_catalog":
+        allowed = {
+            "local_endpoint",
+            "local_model",
+            "remote_provider",
+            "remote_model",
+            "remote_api_key_ref",
+        }
+        if any(key not in allowed for key in arguments):
+            return _blocked("coding_catalog_arguments_invalid"), True
+        try:
+            payload = build_coding_model_catalog(
+                local_endpoint=str(arguments.get("local_endpoint", "http://127.0.0.1:8080")),
+                local_model=str(arguments.get("local_model", "Qwen3-Coder-30B-A3B-Instruct")),
+                remote_provider=str(arguments.get("remote_provider", "openai")),
+                remote_model=str(arguments.get("remote_model", "gpt-5.5")),
+                remote_api_key_ref=str(arguments.get("remote_api_key_ref", "env:OPENAI_API_KEY")),
+            )
+        except ValueError:
+            return _blocked("coding_catalog_invalid"), True
+        return payload, payload.get("status") != "ready"
+    if name == "hex_cortex_coding_route":
+        task_class = arguments.get("task_class")
+        if not isinstance(task_class, str):
+            return _blocked("task_class_invalid"), True
+        payload = route_coding_task(
+            task_class=task_class,
+            context_sensitivity=str(arguments.get("context_sensitivity", "private")),
+            complexity=str(arguments.get("complexity", "medium")),
+            local_available=arguments.get("local_available", True) is True,
+            remote_available=arguments.get("remote_available", False) is True,
+            operator_allows_remote=arguments.get("operator_allows_remote", False) is True,
+        )
+        return payload, payload.get("status") != "ready"
+    if name == "hex_cortex_self_correction_plan":
+        required = ("failure_class", "hypothesis", "baseline_ref", "evaluator_ref")
+        if any(not isinstance(arguments.get(key), str) for key in required):
+            return _blocked("self_correction_arguments_invalid"), True
+        payload = build_self_correction_plan(
+            failure_class=str(arguments["failure_class"]),
+            hypothesis=str(arguments["hypothesis"]),
+            baseline_ref=str(arguments["baseline_ref"]),
+            evaluator_ref=str(arguments["evaluator_ref"]),
+        )
+        return payload, payload.get("status") != "ready"
     return _blocked("unknown_tool"), True
 
 
