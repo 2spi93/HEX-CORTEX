@@ -27,6 +27,29 @@ def test_route_parser_supports_canonical_output_file() -> None:
     assert args.output == "route-latest.json"
 
 
+def test_policy_evaluation_parser_defaults_to_strict_test_gate() -> None:
+    args = build_parser().parse_args(
+        [
+            "evaluate-policy",
+            "active.json",
+            "transitions.jsonl",
+            "actions.json",
+            "--environment-root",
+            "workspace",
+            "--domain",
+            "screen_lab_v1",
+            "--output",
+            "policy-evaluation.json",
+        ]
+    )
+
+    assert args.command == "evaluate-policy"
+    assert args.split == "test"
+    assert args.minimum_samples == 4
+    assert args.minimum_top1_accuracy == 1.0
+    assert args.minimum_positive_improvement_rate == 1.0
+
+
 def test_read_json_object_accepts_windows_powershell_utf16(tmp_path: Path) -> None:
     path = tmp_path / "route.json"
     path.write_text(json.dumps({"status": "advisory_ready"}), encoding="utf-16")
