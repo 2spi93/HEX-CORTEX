@@ -17,6 +17,8 @@ def audit_operational_media_encoder(project_root: Path) -> dict[str, object]:
         "comfyui_operational_gateway": memory_root / "cortex_comfyui_operational.py",
         "frozen_encoder_adapter": memory_root / "cortex_frozen_encoder.py",
         "operational_cli": memory_root / "cortex_operational_media_cli.py",
+        "media_to_latent_pipeline": memory_root / "cortex_media_to_latent_pipeline.py",
+        "media_to_latent_cli": memory_root / "cortex_media_to_latent_cli.py",
         "txt2img_workflow_template": workflow_path,
         "txt2img_homologation_profile": profile_path,
     }
@@ -69,7 +71,7 @@ def audit_operational_media_encoder(project_root: Path) -> dict[str, object]:
         "model_call_performed": False,
         "blockers": blockers,
         "next_action": (
-            "probe_local_comfyui_and_encoder_cache"
+            "run_media_to_latent_local_cache_validation"
             if architecture_ready
             else "repair_operational_media_package"
         ),
