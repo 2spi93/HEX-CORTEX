@@ -8,9 +8,11 @@ from hex_cortex.memory.cortex_bus import CortexUnit
 from hex_cortex.memory.cortex_c import build_cortex_c
 from hex_cortex.memory.cortex_domains import list_cortex_domain_candidates
 from hex_cortex.memory.cortex_lc import build_cortex_lc
+from hex_cortex.memory.cortex_links import list_cortex_links
 from hex_cortex.memory.cortex_modal import (
     list_cortex_multimodal_capabilities,
 )
+from hex_cortex.memory.cortex_preferences import build_operator_preference_profile
 from hex_cortex.memory.cortex_r import build_cortex_r
 from hex_cortex.memory.cortex_stability import compute_cortex_stability
 from hex_cortex.memory.cortex_web import describe_cortex_web
@@ -89,6 +91,20 @@ def build_cortex_registry() -> dict[str, CortexUnit]:
             mutates_receipt=False,
             requires_operator=False,
         ),
+        "links.list": CortexUnit(
+            name="links.list",
+            unit=list_cortex_links,
+            description="List candidate external agent links.",
+            mutates_receipt=False,
+            requires_operator=False,
+        ),
+        "preferences.profile": CortexUnit(
+            name="preferences.profile",
+            unit=build_operator_preference_profile,
+            description="Build the operator preference profile for trusted plan scoring.",
+            mutates_receipt=False,
+            requires_operator=False,
+        ),
     }
 
 
@@ -150,6 +166,8 @@ def build_cortex_registry_plan(profile: Path) -> list[dict[str, object]]:
                 "safety_receipts": 1.0,
             },
         },
+        {"name": "links.list", "kwargs": {}},
+        {"name": "preferences.profile", "kwargs": {}},
     ]
 
 
