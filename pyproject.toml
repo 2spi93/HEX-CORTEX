@@ -22,11 +22,16 @@ hexcortex = "hex_cortex.memory.cortex_cli:main"
 hexcortex-mcp = "hex_cortex.memory.cortex_stdio:serve_cortex_stdio"
 hexcortex-server = "hex_cortex.memory.cortex_server_api:serve"
 hexcortex-wave = "hex_cortex.memory.cortex_next_wave_cli:main"
+hexcortex-operational = "hex_cortex.memory.cortex_operational_media_cli:main"
 
 [project.optional-dependencies]
 dev = [
   "pytest>=8,<9",
   "ruff>=0.5,<1",
+]
+vision = [
+  "Pillow>=10,<13",
+  "transformers>=4.46,<6",
 ]
 
 [tool.setuptools.packages.find]
