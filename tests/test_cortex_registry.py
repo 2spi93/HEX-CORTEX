@@ -11,7 +11,9 @@ _EXPECTED_UNITS = [
     "c.build",
     "domains.list",
     "lc.build",
+    "links.list",
     "modal.list",
+    "preferences.profile",
     "r.describe",
     "stability.compute",
     "web.describe",
@@ -52,8 +54,8 @@ def test_cortex_registry_plan_runs_safe_units(tmp_path) -> None:
     payload = run_cortex_units(registry, plan)
 
     assert payload["bus_allowed"] is True
-    assert payload["step_count"] == 8
-    assert payload["result_count"] == 8
+    assert payload["step_count"] == 10
+    assert payload["result_count"] == 10
     assert payload["results"][0]["name"] == "lc.build"
     assert payload["results"][1]["name"] == "a.build"
     assert payload["results"][2]["name"] == "r.describe"
@@ -62,6 +64,8 @@ def test_cortex_registry_plan_runs_safe_units(tmp_path) -> None:
     assert payload["results"][5]["name"] == "domains.list"
     assert payload["results"][6]["name"] == "modal.list"
     assert payload["results"][7]["name"] == "world.compute"
+    assert payload["results"][8]["name"] == "links.list"
+    assert payload["results"][9]["name"] == "preferences.profile"
 
 
 def test_cortex_registry_combines_without_duplicate() -> None:
