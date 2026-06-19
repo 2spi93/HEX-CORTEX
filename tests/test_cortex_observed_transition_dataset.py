@@ -99,7 +99,7 @@ def test_append_is_idempotent(tmp_path: Path) -> None:
 
 
 def test_manifest_reports_training_readiness(tmp_path: Path) -> None:
-    comfy_root, current, next_image = _images(tmp_path)
+    comfy_root, current, _ = _images(tmp_path)
     descriptor = build_frozen_encoder_descriptor(device="cpu")
     records = []
     splits = ["train", "train", "validation", "test"]
