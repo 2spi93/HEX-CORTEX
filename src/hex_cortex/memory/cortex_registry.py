@@ -6,10 +6,13 @@ from hex_cortex.memory.cortex_a import build_cortex_a
 from hex_cortex.memory.cortex_b import build_cortex_b
 from hex_cortex.memory.cortex_bus import CortexUnit
 from hex_cortex.memory.cortex_c import build_cortex_c
+from hex_cortex.memory.cortex_domains import list_cortex_domain_candidates
 from hex_cortex.memory.cortex_lc import build_cortex_lc
+from hex_cortex.memory.cortex_modal import list_cortex_multimodal_capabilities
 from hex_cortex.memory.cortex_r import build_cortex_r
 from hex_cortex.memory.cortex_stability import compute_cortex_stability
 from hex_cortex.memory.cortex_web import describe_cortex_web
+from hex_cortex.memory.cortex_world import compute_cortex_world_readiness
 
 
 def build_cortex_registry() -> dict[str, CortexUnit]:
@@ -63,6 +66,27 @@ def build_cortex_registry() -> dict[str, CortexUnit]:
             mutates_receipt=False,
             requires_operator=False,
         ),
+        "domains.list": CortexUnit(
+            name="domains.list",
+            unit=list_cortex_domain_candidates,
+            description="List candidate expert domains.",
+            mutates_receipt=False,
+            requires_operator=False,
+        ),
+        "modal.list": CortexUnit(
+            name="modal.list",
+            unit=list_cortex_multimodal_capabilities,
+            description="List candidate screen, camera, and voice capabilities.",
+            mutates_receipt=False,
+            requires_operator=False,
+        ),
+        "world.compute": CortexUnit(
+            name="world.compute",
+            unit=compute_cortex_world_readiness,
+            description="Compute multimodal world-model readiness.",
+            mutates_receipt=False,
+            requires_operator=False,
+        ),
     }
 
 
@@ -106,6 +130,19 @@ def build_cortex_registry_plan(profile: Path) -> list[dict[str, object]]:
                 "unknown_unit_rate": 0.0,
                 "citation_rate": 1.0,
                 "receipt_rate": 1.0,
+            },
+        },
+        {"name": "domains.list", "kwargs": {}},
+        {"name": "modal.list", "kwargs": {}},
+        {
+            "name": "world.compute",
+            "kwargs": {
+                "multimodal_inputs": 0.3,
+                "persistent_memory": 0.7,
+                "predictive_state": 0.2,
+                "planning_loop": 0.6,
+                "surprise_detection": 0.2,
+                "safety_receipts": 1.0,
             },
         },
     ]
