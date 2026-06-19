@@ -5,6 +5,12 @@ import json
 from collections.abc import Sequence
 from pathlib import Path
 
+from hex_cortex.memory.cortex_action_discriminative_world_model import (
+    build_action_discriminative_plan,
+)
+from hex_cortex.memory.cortex_action_discriminative_world_model import (
+    train_action_discriminative_model,
+)
 from hex_cortex.memory.cortex_coding_model_router import build_coding_model_catalog
 from hex_cortex.memory.cortex_coding_model_router import route_coding_task
 from hex_cortex.memory.cortex_frozen_encoder import build_frozen_encoder_descriptor
@@ -54,9 +60,30 @@ def build_parser() -> argparse.ArgumentParser:
     v2_bootstrap.add_argument("--seed", type=int, default=42)
     v2_bootstrap.add_argument("--replace-existing-source", action="store_true")
     v2_bootstrap.add_argument("--operator-approved", action="store_true")
-    v2_bootstrap.add_argument("--model-ref", default="facebook/dinov2-base")
-    v2_bootstrap.add_argument("--pooling", choices=("cls", "mean_patch"), default="cls")
-    v2_bootstrap.add_argument("--device", choices=("auto", "cpu", "cuda", "mps"), default="cpu")
+    _add_encoder_options(v2_bootstrap)
+
+    v2_train_plan = commands.add_parser("screen-v2-train-plan")
+    v2_train_plan.add_argument("manifest_json")
+    v2_train_plan.add_argument("--output", required=True)
+    v2_train_plan.add_argument("--hidden-dim", type=int, default=128)
+    v2_train_plan.add_argument("--epochs", type=int, default=100)
+    v2_train_plan.add_argument("--batch-size", type=int, default=16)
+    v2_train_plan.add_argument("--learning-rate", type=float, default=0.001)
+    v2_train_plan.add_argument("--weight-decay", type=float, default=0.0001)
+    v2_train_plan.add_argument("--ranking-margin", type=float, default=0.0001)
+    v2_train_plan.add_argument("--ranking-weight", type=float, default=1.0)
+    v2_train_plan.add_argument("--minimum-top1-accuracy", type=float, default=1.0)
+    v2_train_plan.add_argument("--seed", type=int, default=42)
+    v2_train_plan.add_argument("--device", choices=("auto", "cpu", "cuda", "mps"), default="cpu")
+    v2_train_plan.add_argument("--max-seconds", type=float, default=1800.0)
+
+    v2_train = commands.add_parser("screen-v2-train")
+    v2_train.add_argument("manifest_json")
+    v2_train.add_argument("plan_json")
+    v2_train.add_argument("--environment-root", required=True)
+    v2_train.add_argument("--output-dir", required=True)
+    v2_train.add_argument("--operator-approved", action="store_true")
+    _add_encoder_options(v2_train)
     return parser
 
 
@@ -127,20 +154,86 @@ def main(argv: Sequence[str] | None = None) -> int:
             payload = {"status": "blocked", "blockers": [str(exc)]}
         _emit(payload)
         return 0 if payload.get("status") == "ready" else 2
+    if args.command == "screen-v2-bootstrap":
+        descriptor = build_frozen_encoder_descriptor(
+            model_ref=args.model_ref,
+            pooling=args.pooling,
+            device=args.device,
+        )
+        payload = bootstrap_screen_lab_policy_v2(
+            workspace_root=Path(args.workspace_root),
+            encoder_descriptor=descriptor,
+            operator_approved=args.operator_approved,
+            seed=args.seed,
+            replace_existing_source=args.replace_existing_source,
+        )
+        _emit(payload)
+        return 0 if payload.get("status") == "ready" else 2
+    if args.command == "screen-v2-train-plan":
+        manifest = _read_json_object(Path(args.manifest_json), "manifest")
+        if manifest is None:
+            return 2
+        payload = build_action_discriminative_plan(
+            manifest=manifest,
+            hidden_dim=args.hidden_dim,
+            epochs=args.epochs,
+            batch_size=args.batch_size,
+            learning_rate=args.learning_rate,
+            weight_decay=args.weight_decay,
+            ranking_margin=args.ranking_margin,
+            ranking_weight=args.ranking_weight,
+            minimum_top1_accuracy=args.minimum_top1_accuracy,
+            seed=args.seed,
+            device=args.device,
+            max_seconds=args.max_seconds,
+        )
+        if payload.get("plan_allowed") is True:
+            _write_json(Path(args.output), payload)
+        _emit(payload)
+        return 0 if payload.get("plan_allowed") is True else 2
+    manifest = _read_json_object(Path(args.manifest_json), "manifest")
+    plan = _read_json_object(Path(args.plan_json), "plan")
+    if manifest is None or plan is None:
+        return 2
     descriptor = build_frozen_encoder_descriptor(
         model_ref=args.model_ref,
         pooling=args.pooling,
         device=args.device,
     )
-    payload = bootstrap_screen_lab_policy_v2(
-        workspace_root=Path(args.workspace_root),
+    payload = train_action_discriminative_model(
+        plan=plan,
+        manifest=manifest,
+        environment_root=Path(args.environment_root),
         encoder_descriptor=descriptor,
+        output_dir=Path(args.output_dir),
         operator_approved=args.operator_approved,
-        seed=args.seed,
-        replace_existing_source=args.replace_existing_source,
     )
     _emit(payload)
-    return 0 if payload.get("status") == "ready" else 2
+    return 0 if payload.get("status") == "trained" else 2
+
+
+def _add_encoder_options(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument("--model-ref", default="facebook/dinov2-base")
+    parser.add_argument("--pooling", choices=("cls", "mean_patch"), default="cls")
+    parser.add_argument("--device", choices=("auto", "cpu", "cuda", "mps"), default="cpu")
+
+
+def _read_json_object(path: Path, name: str) -> dict[str, object] | None:
+    try:
+        payload = json.loads(path.resolve().read_text(encoding="utf-8"))
+    except (OSError, UnicodeError, json.JSONDecodeError):
+        _emit({"status": "blocked", "blockers": [f"{name}_invalid_json"]})
+        return None
+    if not isinstance(payload, dict):
+        _emit({"status": "blocked", "blockers": [f"{name}_must_be_object"]})
+        return None
+    return payload
+
+
+def _write_json(path: Path, payload: dict[str, object]) -> None:
+    target = path.resolve()
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_text(json.dumps(payload, sort_keys=True, indent=2) + "\n", encoding="utf-8")
 
 
 def _emit(payload: dict[str, object]) -> None:
