@@ -4,11 +4,13 @@ Status: cold implementation notes.
 
 ## What changed
 
-This stage adds three concepts:
+This stage adds four concepts:
 
 - `web.describe`: a known read-only web research adapter descriptor.
+- `web.search`: an injectable read-only web search unit with mandatory citations.
 - `CortexMode.AUTO_SAFE`: a policy mode that can run registered safe units without prompting every time.
 - `stability.compute`: a small stability score that proposes rebalancing when quality drops.
+- `trusted_plan`: a score for when operator intent, plan, preferences, stability, units, and receipts are aligned.
 
 ## Unknown names stay blocked
 
@@ -19,7 +21,7 @@ A blocked unknown name does not prevent web research. It prevents phantom tools.
 The correct path is:
 
 1. register `web.describe`,
-2. later register `web.search`,
+2. inject and register `web.search`,
 3. require citations,
 4. require source quality,
 5. require recency for fast-changing claims,
@@ -30,6 +32,15 @@ The correct path is:
 `AUTO_SAFE` may run registered read-only units automatically.
 
 Operator units can run automatically only when the plan is trusted.
+
+A trusted plan requires:
+
+- operator intent known,
+- plan known,
+- preference match,
+- stability score,
+- registered unit rate,
+- receipt rate.
 
 This lets HEX-CORTEX behave more like a coding agent while preserving receipts and gates.
 
