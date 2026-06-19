@@ -129,7 +129,129 @@ hexcortex-agent model-catalog `
   --remote-api-key-ref env:OPENAI_API_KEY
 ```
 
-The catalog command does not call either model. It produces a secret-free routing receipt. Remote calls require a separate operational adapter and explicit approval.
+The catalog command does not call either model. It produces a secret-free routing receipt.
+
+### Execute a local coding task
+
+Prepare UTF-8 files for the instruction, task, and bounded repository context:
+
+```powershell
+$TaskDir = ".hex-cortex\coding-tasks\task-001"
+New-Item -ItemType Directory -Force -Path $TaskDir | Out-Null
+
+Set-Content -Encoding utf8 `
+  (Join-Path $TaskDir "instruction.txt") `
+  "Act as a careful coding agent. Return a reviewable plan or unified diff only."
+
+Set-Content -Encoding utf8 `
+  (Join-Path $TaskDir "prompt.txt") `
+  "Repair the failing parser test without modifying the evaluator."
+
+Set-Content -Encoding utf8 `
+  (Join-Path $TaskDir "context.txt") `
+  "Insert only the bounded source and failure context approved for this task."
+```
+
+Call the local OpenAI-compatible endpoint:
+
+```powershell
+hexcortex-code execute `
+  local_open_weight `
+  (Join-Path $TaskDir "prompt.txt") `
+  --instruction-file (Join-Path $TaskDir "instruction.txt") `
+  --context-file (Join-Path $TaskDir "context.txt") `
+  --model Qwen3-Coder-30B-A3B-Instruct `
+  --local-endpoint http://127.0.0.1:8080 `
+  --context-sensitivity private `
+  --operator-approved
+```
+
+The returned text is volatile and is not appended automatically to a receipt store.
+
+### Execute an explicitly approved remote review
+
+Configure the API key in the current shell without writing it into the repository:
+
+```powershell
+$env:OPENAI_API_KEY = "<set-outside-the-repository>"
+
+hexcortex-code execute `
+  remote_api `
+  (Join-Path $TaskDir "prompt.txt") `
+  --instruction-file (Join-Path $TaskDir "instruction.txt") `
+  --context-file (Join-Path $TaskDir "context.txt") `
+  --model gpt-5.5 `
+  --remote-api-key-ref env:OPENAI_API_KEY `
+  --context-sensitivity private `
+  --operator-approved
+```
+
+Secret-classified context is rejected for remote execution even when an API key exists.
+
+## Reviewable worktree and self-correction flow
+
+Create a worktree plan:
+
+```powershell
+$WorktreePlan = ".hex-cortex\coding-tasks\task-001\worktree-plan.json"
+$WorktreeRoot = Join-Path (Split-Path $PWD -Parent) "HEX-CORTEX-worktrees"
+
+hexcortex-code worktree-plan `
+  "$PWD" `
+  "$WorktreeRoot" `
+  candidate-001 `
+  main `
+  --check pytest `
+  --check ruff `
+  --output "$WorktreePlan"
+```
+
+Create it only after review:
+
+```powershell
+hexcortex-code worktree-create `
+  "$WorktreePlan" `
+  --operator-approved
+```
+
+A proposed patch must be stored as a file and its SHA-256 reviewed before application:
+
+```powershell
+$PatchPath = ".hex-cortex\coding-tasks\task-001\candidate.patch"
+$PatchHash = (Get-FileHash "$PatchPath" -Algorithm SHA256).Hash.ToLowerInvariant()
+$CandidateWorktree = Join-Path $WorktreeRoot "candidate-001"
+
+hexcortex-code patch-apply `
+  "$CandidateWorktree" `
+  "$PatchPath" `
+  "$PatchHash" `
+  --operator-approved
+
+hexcortex-code worktree-check `
+  "$CandidateWorktree" `
+  --check pytest `
+  --check ruff `
+  --operator-approved
+```
+
+No command performs an automatic merge.
+
+## Persistent research hypothesis ledger
+
+```powershell
+$Hypotheses = ".hex-cortex\research\hypotheses.jsonl"
+
+hexcortex-code hypothesis-add `
+  "$Hypotheses" `
+  "Spatial pooling improves held-out action ranking." `
+  "main@957d0eb" `
+  "screen_lab_policy_v2_gate" `
+  --created-by hex-cortex
+
+hexcortex-code hypothesis-frontier "$Hypotheses"
+```
+
+Outcomes become merge-eligible only when marked validated, with a positive metric delta and a passing held-out gate; an operator merge is still required.
 
 ## Safety invariants
 
