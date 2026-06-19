@@ -65,3 +65,31 @@ def get_cortex_sensor_provider(provider_id: str) -> dict[str, object]:
         "state": "blocked",
         "blocker": "unknown_sensor_provider",
     }
+
+
+def score_cortex_sensor_provider(provider_id: str) -> dict[str, object]:
+    provider = get_cortex_sensor_provider(provider_id)
+    if provider.get("state") == "blocked":
+        return {
+            "provider_id": provider_id,
+            "ready": False,
+            "score": 0.0,
+            "blockers": [str(provider.get("blocker"))],
+        }
+    checks = {
+        "candidate_state": provider.get("state") == "candidate",
+        "permission_declared": isinstance(provider.get("permission_mode"), str),
+        "secure_context_declared": isinstance(
+            provider.get("secure_context_required"),
+            bool,
+        ),
+        "raw_persistence_blocked": provider.get("raw_input_persistence_allowed") is False,
+    }
+    score = round(100 * sum(checks.values()) / len(checks), 2)
+    return {
+        "provider_id": provider_id,
+        "ready": all(checks.values()),
+        "score": score,
+        "checks": checks,
+        "blockers": [name for name, passed in checks.items() if not passed],
+    }
