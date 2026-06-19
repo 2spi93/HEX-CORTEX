@@ -16,6 +16,13 @@ _CAPABILITIES = [
         "next_action": "candidate_adapter_receipt",
     },
     {
+        "capability_id": "vision_3d",
+        "input_type": "multi_view_depth_point_cloud_or_mesh",
+        "default_mode": "operator_approved_readonly",
+        "raw_input_persistence_allowed": False,
+        "next_action": "candidate_adapter_receipt",
+    },
+    {
         "capability_id": "voice_input",
         "input_type": "audio_or_transcript",
         "default_mode": "operator_approved_readonly",
