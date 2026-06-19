@@ -55,5 +55,6 @@ def test_wiring_catalog_lists_all_stages_and_runtime_facts() -> None:
         "effect_receipts",
         "execution_gateway",
         "knowledge_and_integrations",
+        "external_runtime_integrations",
     }
-    assert len(facts) == 7
+    assert len(facts) == 8
