@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from collections.abc import Callable
 
+from hex_cortex.memory.cortex_bus import CortexUnit
+
 Searcher = Callable[[str], dict[str, object]]
 
 
@@ -33,9 +35,23 @@ def build_cortex_web_search(searcher: Searcher) -> Searcher:
             }
         return {
             "status": payload.get("status") if isinstance(payload.get("status"), str) else "ok",
-            "summary": payload.get("summary") if isinstance(payload.get("summary"), str) else "web result received",
+            "summary": payload.get("summary")
+            if isinstance(payload.get("summary"), str)
+            else "web result received",
             "citations": citations,
             "raw_page_persisted": False,
         }
 
     return run
+
+
+def build_cortex_web_registry(searcher: Searcher) -> dict[str, CortexUnit]:
+    return {
+        "web.search": CortexUnit(
+            name="web.search",
+            unit=build_cortex_web_search(searcher),
+            description="Run a read-only web research query with mandatory citations.",
+            mutates_receipt=False,
+            requires_operator=False,
+        )
+    }
