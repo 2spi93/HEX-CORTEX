@@ -3,16 +3,21 @@ from __future__ import annotations
 import argparse
 import json
 from collections.abc import Sequence
+from pathlib import Path
 
 from hex_cortex.memory.cortex_latent_experiment import build_latent_experiment_receipt
 from hex_cortex.memory.cortex_latent_lab import build_latent_lab_spec
 from hex_cortex.memory.cortex_media_runtime import orchestrate_media_runtime
+from hex_cortex.memory.cortex_next_wave_audit import audit_next_wave
 from hex_cortex.memory.cortex_world_model_eval import evaluate_world_model_candidate
 
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="hexcortex-wave")
     subparsers = parser.add_subparsers(dest="command", required=True)
+
+    audit = subparsers.add_parser("audit")
+    audit.add_argument("--project-root", default=".")
 
     media = subparsers.add_parser("media-plan")
     media.add_argument("output_id", choices=(
@@ -43,6 +48,10 @@ def build_parser() -> argparse.ArgumentParser:
 
 def main(argv: Sequence[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
+    if args.command == "audit":
+        payload = audit_next_wave(Path(args.project_root))
+        _emit(payload)
+        return 0 if payload["architecture_ready"] is True else 2
     if args.command == "media-plan":
         workflow = _json_object(args.workflow_json, "workflow_json")
         if workflow is None:
