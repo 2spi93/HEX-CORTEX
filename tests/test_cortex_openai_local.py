@@ -75,7 +75,12 @@ def test_openai_compatible_runner_posts_messages(monkeypatch) -> None:
         }
     )
 
-    assert result == {"status": "ok", "summary": "local answer"}
+    assert result == {
+        "status": "ok",
+        "summary": "local answer",
+        "network_call_performed": True,
+        "external_effect_performed": False,
+    }
     assert observed["url"].endswith("/v1/chat/completions")
     assert observed["timeout"] == 8.0
     assert observed["payload"]["model"] == "local-model"
