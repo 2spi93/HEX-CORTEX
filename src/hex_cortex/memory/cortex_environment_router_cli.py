@@ -16,8 +16,8 @@ from hex_cortex.memory.cortex_screen_lab_policy_evaluation import write_policy_e
 from hex_cortex.memory.cortex_world_model_decision_router import (
     WORLD_MODEL_ROUTE_FILENAME,
     bridge_world_model_route_to_planner,
-    route_world_model_decision,
 )
+from hex_cortex.memory.cortex_world_model_route_guard import route_world_model_decision_guarded
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -155,7 +155,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         route_store = Path(args.route_store) if args.route_store else None
         if route_store is None and profile is not None:
             route_store = profile / WORLD_MODEL_ROUTE_FILENAME
-        payload = route_world_model_decision(
+        payload = route_world_model_decision_guarded(
             active_registry_path=Path(args.active_registry),
             environment_root=Path(args.environment_root),
             current_image_path=Path(args.current_image),
@@ -190,6 +190,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             minimum_samples=args.minimum_samples,
             minimum_top1_accuracy=args.minimum_top1_accuracy,
             minimum_positive_improvement_rate=args.minimum_positive_improvement_rate,
+            decision_router=route_world_model_decision_guarded,
         )
         write_policy_evaluation(Path(args.output), payload)
         _emit(payload)
