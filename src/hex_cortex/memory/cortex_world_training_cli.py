@@ -73,7 +73,17 @@ def build_parser() -> argparse.ArgumentParser:
     predict.add_argument("active_registry")
     predict.add_argument("image_path")
     predict.add_argument("--comfy-root", required=True)
-    predict.add_argument("--action", required=True)
+    action_group = predict.add_mutually_exclusive_group(required=True)
+    action_group.add_argument(
+        "--action",
+        help="Comma-separated vector. Use --action=-1,0 when the first value is negative.",
+    )
+    action_group.add_argument(
+        "--action-values",
+        nargs="+",
+        type=float,
+        help="Space-separated numeric vector, including negative values: --action-values -1 0",
+    )
     _add_encoder_options(predict)
     return parser
 
@@ -176,9 +186,12 @@ def main(argv: Sequence[str] | None = None) -> int:
         )
         _emit(payload)
         return 0 if payload.get("status") == "promoted" else 2
-    action = _parse_float_csv(args.action, "action")
-    if action is None:
-        return 2
+    if args.action_values is not None:
+        action = [float(value) for value in args.action_values]
+    else:
+        action = _parse_float_csv(args.action, "action")
+        if action is None:
+            return 2
     descriptor = build_frozen_encoder_descriptor(
         model_ref=args.model_ref,
         pooling=args.pooling,
