@@ -96,6 +96,15 @@ def probe_cortex_runtime(
         "world_model_training_cli_available": (
             memory_root / "cortex_world_training_cli.py"
         ).is_file(),
+        "real_environment_sequence_ingest_available": (
+            memory_root / "cortex_environment_sequence.py"
+        ).is_file(),
+        "active_world_model_decision_router_available": (
+            memory_root / "cortex_world_model_decision_router.py"
+        ).is_file(),
+        "environment_router_cli_available": (
+            memory_root / "cortex_environment_router_cli.py"
+        ).is_file(),
         "homologated_comfyui_template_available": (
             (workflow_root / "txt2img_basic_api_v1.workflow.json").is_file()
             and (workflow_root / "txt2img_basic_api_v1.profile.json").is_file()
@@ -114,6 +123,8 @@ def probe_cortex_runtime(
         "observed_transition_dataset_ready": False,
         "compact_world_model_candidate_available": False,
         "active_compact_world_model_available": False,
+        "real_environment_dataset_ready": False,
+        "active_world_model_router_ready": False,
         "web_search_adapter_configured": False,
         "hardware_adapter_available": False,
         "project_adapter_available": False,
