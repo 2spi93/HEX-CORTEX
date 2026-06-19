@@ -12,6 +12,7 @@ from hex_cortex.memory.cortex_links import list_cortex_links
 from hex_cortex.memory.cortex_modal import (
     list_cortex_multimodal_capabilities,
 )
+from hex_cortex.memory.cortex_modal_receipt import build_cortex_modal_receipt
 from hex_cortex.memory.cortex_preferences import build_operator_preference_profile
 from hex_cortex.memory.cortex_r import build_cortex_r
 from hex_cortex.memory.cortex_stability import compute_cortex_stability
@@ -83,6 +84,13 @@ def build_cortex_registry() -> dict[str, CortexUnit]:
             description="List candidate screen, camera, and voice capabilities.",
             mutates_receipt=False,
             requires_operator=False,
+        ),
+        "sensor.receipt": CortexUnit(
+            name="sensor.receipt",
+            unit=build_cortex_modal_receipt,
+            description="Build an approved multimodal candidate receipt without capture.",
+            mutates_receipt=True,
+            requires_operator=True,
         ),
         "world.compute": CortexUnit(
             name="world.compute",
