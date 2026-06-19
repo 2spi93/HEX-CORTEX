@@ -46,7 +46,12 @@ def test_cortex_r_runner_posts_local_json(monkeypatch) -> None:
 
     result = runner({"model": "qwen2.5-coder:7b-instruct"})
 
-    assert result == {"status": "ok", "summary": "ready"}
+    assert result == {
+        "status": "ok",
+        "summary": "ready",
+        "network_call_performed": True,
+        "external_effect_performed": False,
+    }
     assert len(calls) == 1
     request, timeout = calls[0]
     assert timeout == 3
