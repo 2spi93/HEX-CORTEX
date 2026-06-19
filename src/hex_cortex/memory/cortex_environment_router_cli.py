@@ -11,6 +11,8 @@ from hex_cortex.memory.cortex_environment_sequence import write_environment_mani
 from hex_cortex.memory.cortex_frozen_encoder import build_frozen_encoder_descriptor
 from hex_cortex.memory.cortex_observed_transition_dataset import load_transition_records
 from hex_cortex.memory.cortex_screen_lab import bootstrap_screen_lab
+from hex_cortex.memory.cortex_screen_lab_policy_evaluation import evaluate_screen_lab_policy
+from hex_cortex.memory.cortex_screen_lab_policy_evaluation import write_policy_evaluation
 from hex_cortex.memory.cortex_world_model_decision_router import (
     WORLD_MODEL_ROUTE_FILENAME,
     bridge_world_model_route_to_planner,
@@ -64,6 +66,19 @@ def build_parser() -> argparse.ArgumentParser:
         help="Write the latest route as canonical UTF-8 JSON without relying on PowerShell piping.",
     )
     _add_encoder_options(route)
+
+    policy = commands.add_parser("evaluate-policy")
+    policy.add_argument("active_registry")
+    policy.add_argument("dataset_jsonl")
+    policy.add_argument("actions_json")
+    policy.add_argument("--environment-root", required=True)
+    policy.add_argument("--domain", required=True)
+    policy.add_argument("--split", choices=("train", "validation", "test"), default="test")
+    policy.add_argument("--minimum-samples", type=int, default=4)
+    policy.add_argument("--minimum-top1-accuracy", type=float, default=1.0)
+    policy.add_argument("--minimum-positive-improvement-rate", type=float, default=1.0)
+    policy.add_argument("--output", required=True)
+    _add_encoder_options(policy)
 
     bridge = commands.add_parser("bridge")
     bridge.add_argument("route_json")
@@ -155,6 +170,30 @@ def main(argv: Sequence[str] | None = None) -> int:
             _write_json(Path(args.output), payload)
         _emit(payload)
         return 0 if payload.get("status") == "advisory_ready" else 2
+    if args.command == "evaluate-policy":
+        candidates = _read_json_list(Path(args.actions_json), "actions")
+        if candidates is None:
+            return 2
+        descriptor = build_frozen_encoder_descriptor(
+            model_ref=args.model_ref,
+            pooling=args.pooling,
+            device=args.device,
+        )
+        payload = evaluate_screen_lab_policy(
+            active_registry_path=Path(args.active_registry),
+            environment_root=Path(args.environment_root),
+            dataset_jsonl=Path(args.dataset_jsonl),
+            environment_domain=args.domain,
+            action_candidates=candidates,
+            encoder_descriptor=descriptor,
+            split=args.split,
+            minimum_samples=args.minimum_samples,
+            minimum_top1_accuracy=args.minimum_top1_accuracy,
+            minimum_positive_improvement_rate=args.minimum_positive_improvement_rate,
+        )
+        write_policy_evaluation(Path(args.output), payload)
+        _emit(payload)
+        return 0 if payload.get("status") == "policy_ready" else 2
     route_payload = _read_json_object(Path(args.route_json), "route")
     if route_payload is None:
         return 2
