@@ -3,11 +3,13 @@ from __future__ import annotations
 import argparse
 import json
 from collections.abc import Sequence
+from pathlib import Path
 
 from hex_cortex.memory.cortex_bundle import build_cortex_bundle
 from hex_cortex.memory.cortex_bundle import build_cortex_bundle_read_plan
 from hex_cortex.memory.cortex_bus import list_cortex_units
 from hex_cortex.memory.cortex_bus import run_cortex_units
+from hex_cortex.memory.cortex_runtime_probe import probe_cortex_runtime
 from hex_cortex.memory.cortex_surfaces import audit_cortex_surface
 from hex_cortex.memory.cortex_surfaces import build_cortex_surface_manifest
 from hex_cortex.memory.cortex_surfaces import list_cortex_surfaces
@@ -22,9 +24,18 @@ def build_parser() -> argparse.ArgumentParser:
     subparsers.add_parser("surfaces")
     subparsers.add_parser("read-plan")
 
+    probe_parser = subparsers.add_parser("probe")
+    probe_parser.add_argument("--project-root", default=".")
+    probe_parser.add_argument("--overrides-json", default="{}")
+
     surface_parser = subparsers.add_parser("surface")
     surface_parser.add_argument("surface_id")
     surface_parser.add_argument("--facts-json", default="{}")
+
+    auto_parser = subparsers.add_parser("surface-auto")
+    auto_parser.add_argument("surface_id")
+    auto_parser.add_argument("--project-root", default=".")
+    auto_parser.add_argument("--overrides-json", default="{}")
 
     manifest_parser = subparsers.add_parser("manifest")
     manifest_parser.add_argument("surface_id")
@@ -64,35 +75,54 @@ def main(argv: Sequence[str] | None = None) -> int:
         )
         _emit(payload)
         return 0 if payload["bus_allowed"] is True else 2
-    if args.command == "surface":
-        try:
-            facts = json.loads(args.facts_json)
-        except json.JSONDecodeError:
-            _emit(
-                {
-                    "command": "surface",
-                    "status": "blocked",
-                    "blockers": ["facts_json_invalid"],
-                }
-            )
+    if args.command == "probe":
+        overrides = _parse_boolean_object(
+            args.overrides_json,
+            command="probe",
+        )
+        if overrides is None:
             return 2
-        if not isinstance(facts, dict) or not all(
-            isinstance(key, str) and isinstance(value, bool)
-            for key, value in facts.items()
-        ):
-            _emit(
-                {
-                    "command": "surface",
-                    "status": "blocked",
-                    "blockers": ["facts_json_must_be_boolean_object"],
-                }
-            )
+        payload = probe_cortex_runtime(
+            Path(args.project_root),
+            overrides=overrides,
+        )
+        _emit(payload)
+        return 0
+    if args.command == "surface":
+        facts = _parse_boolean_object(
+            args.facts_json,
+            command="surface",
+        )
+        if facts is None:
             return 2
         payload = audit_cortex_surface(
             surface_id=args.surface_id,
             registry=registry,
             runtime_facts=facts,
         )
+        _emit(payload)
+        return 0 if payload["contract_ready"] is True else 2
+    if args.command == "surface-auto":
+        overrides = _parse_boolean_object(
+            args.overrides_json,
+            command="surface-auto",
+        )
+        if overrides is None:
+            return 2
+        probe = probe_cortex_runtime(
+            Path(args.project_root),
+            overrides=overrides,
+        )
+        payload = audit_cortex_surface(
+            surface_id=args.surface_id,
+            registry=registry,
+            runtime_facts=probe["runtime_facts"],
+        )
+        payload["runtime_probe"] = {
+            "project_root": probe["project_root"],
+            "network_probe_performed": probe["network_probe_performed"],
+            "process_probe_performed": probe["process_probe_performed"],
+        }
         _emit(payload)
         return 0 if payload["contract_ready"] is True else 2
     if args.command == "manifest":
@@ -106,6 +136,37 @@ def main(argv: Sequence[str] | None = None) -> int:
         }
     )
     return 2
+
+
+def _parse_boolean_object(
+    raw: str,
+    *,
+    command: str,
+) -> dict[str, bool] | None:
+    try:
+        payload = json.loads(raw)
+    except json.JSONDecodeError:
+        _emit(
+            {
+                "command": command,
+                "status": "blocked",
+                "blockers": ["facts_json_invalid"],
+            }
+        )
+        return None
+    if not isinstance(payload, dict) or not all(
+        isinstance(key, str) and isinstance(value, bool)
+        for key, value in payload.items()
+    ):
+        _emit(
+            {
+                "command": command,
+                "status": "blocked",
+                "blockers": ["facts_json_must_be_boolean_object"],
+            }
+        )
+        return None
+    return dict(payload)
 
 
 def _emit(payload: dict[str, object]) -> None:
