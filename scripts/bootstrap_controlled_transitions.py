@@ -90,7 +90,7 @@ def main() -> int:
 
 
 def _action(index: int, seed: int) -> list[float]:
-    digest = hashlib.sha256(f"{seed}:{index}".encode("utf-8")).digest()
+    digest = hashlib.sha256(f"{seed}:{index}".encode()).digest()
     values = [round(((digest[offset] / 255.0) * 2.0 - 1.0) * 0.75, 4) for offset in range(4)]
     if all(abs(value) < 0.05 for value in values):
         values[0] = 0.25
