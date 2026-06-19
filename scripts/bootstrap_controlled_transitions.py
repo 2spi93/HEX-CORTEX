@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 from pathlib import Path
 
@@ -66,7 +67,7 @@ def main() -> int:
             receipt = append_transition_jsonl(Path(args.dataset_jsonl), record)
             appended += int(receipt["appended"] is True)
             duplicates += int(receipt["duplicate"] is True)
-            split_counts[split] += 1
+            split_counts[split] += int(receipt["appended"] is True)
     print(
         json.dumps(
             {
@@ -89,12 +90,11 @@ def main() -> int:
 
 
 def _action(index: int, seed: int) -> list[float]:
-    cycle = ((index + seed) % 9) - 4
-    brightness = cycle / 8.0
-    contrast = (((index * 3 + seed) % 9) - 4) / 8.0
-    translate_x = (((index * 5 + seed) % 9) - 4) / 8.0
-    translate_y = (((index * 7 + seed) % 9) - 4) / 8.0
-    return [brightness, contrast, translate_x, translate_y]
+    digest = hashlib.sha256(f"{seed}:{index}".encode("utf-8")).digest()
+    values = [round(((digest[offset] / 255.0) * 2.0 - 1.0) * 0.75, 4) for offset in range(4)]
+    if all(abs(value) < 0.05 for value in values):
+        values[0] = 0.25
+    return values
 
 
 def _split(index: int, count: int) -> str:
