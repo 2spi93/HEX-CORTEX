@@ -15,6 +15,11 @@ def test_wiring_audit_confirms_complete_static_architecture() -> None:
     assert "native_mcp_server_not_available" in payload["runtime_blockers"]
     assert "learned_world_model_not_available" in payload["runtime_blockers"]
     assert "runtime_model_orchestration_not_available" in payload["runtime_blockers"]
+    cognitive = next(
+        row for row in payload["stage_rows"] if row["stage"] == "cognitive_genome"
+    )
+    assert cognitive["stage_ready"] is True
+    assert cognitive["present_count"] == 9
 
 
 def test_wiring_audit_can_reach_operational_ready() -> None:
@@ -42,6 +47,16 @@ def test_wiring_audit_detects_missing_route_target() -> None:
     assert "voice.receipt" in payload["missing_route_units"]
 
 
+def test_wiring_audit_detects_missing_cognitive_genome_unit() -> None:
+    registry = build_cortex_bundle()
+    registry.pop("mutation.evaluate")
+
+    payload = audit_cortex_wiring(registry)
+
+    assert payload["architecture_ready"] is False
+    assert "mutation.evaluate" in payload["missing_units"]
+
+
 def test_wiring_catalog_lists_all_stages_and_runtime_facts() -> None:
     stages = list_cortex_wiring_stages()
     facts = list_cortex_runtime_facts()
@@ -53,5 +68,6 @@ def test_wiring_catalog_lists_all_stages_and_runtime_facts() -> None:
         "effect_receipts",
         "execution_gateway",
         "knowledge_and_integrations",
+        "cognitive_genome",
     }
     assert len(facts) == 10
