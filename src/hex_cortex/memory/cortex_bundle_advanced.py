@@ -3,7 +3,7 @@ from __future__ import annotations
 from hex_cortex.memory.cortex_action_link import build_cortex_action_link
 from hex_cortex.memory.cortex_bus import combine_cortex_registries
 from hex_cortex.memory.cortex_channel_link import build_cortex_channel_link
-from hex_cortex.memory.cortex_cognitive_genome_registry import (
+from hex_cortex.memory.cortex_cognitive_genome_registry_v2 import (
     build_cognitive_genome_registry,
 )
 from hex_cortex.memory.cortex_cognitive_memory_registry import (
