@@ -23,10 +23,17 @@ def test_wiring_audit_confirms_complete_static_architecture() -> None:
         for row in payload["stage_rows"]
         if row["stage"] == "cognitive_memory_and_mutation"
     )
+    brains = next(
+        row
+        for row in payload["stage_rows"]
+        if row["stage"] == "interchangeable_brain_fleet"
+    )
     assert cognitive["stage_ready"] is True
     assert cognitive["present_count"] == 9
     assert memory["stage_ready"] is True
     assert memory["present_count"] == 7
+    assert brains["stage_ready"] is True
+    assert brains["present_count"] == 3
 
 
 def test_wiring_audit_can_reach_operational_ready() -> None:
@@ -74,6 +81,16 @@ def test_wiring_audit_detects_missing_cognitive_memory_unit() -> None:
     assert "adapter.transition" in payload["missing_units"]
 
 
+def test_wiring_audit_detects_missing_brain_selector() -> None:
+    registry = build_cortex_bundle()
+    registry.pop("brain.select")
+
+    payload = audit_cortex_wiring(registry)
+
+    assert payload["architecture_ready"] is False
+    assert "brain.select" in payload["missing_units"]
+
+
 def test_wiring_catalog_lists_all_stages_and_runtime_facts() -> None:
     stages = list_cortex_wiring_stages()
     facts = list_cortex_runtime_facts()
@@ -87,5 +104,6 @@ def test_wiring_catalog_lists_all_stages_and_runtime_facts() -> None:
         "knowledge_and_integrations",
         "cognitive_genome",
         "cognitive_memory_and_mutation",
+        "interchangeable_brain_fleet",
     }
     assert len(facts) == 10
