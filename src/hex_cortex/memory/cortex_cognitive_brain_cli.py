@@ -36,6 +36,7 @@ def build_parser() -> argparse.ArgumentParser:
     register.add_argument("--parameter-class", default="unknown")
     register.add_argument("--quantization", default="unknown")
     register.add_argument("--unavailable", action="store_true")
+    register.add_argument("--operator-approved", action="store_true")
 
     listing = commands.add_parser("list")
     listing.add_argument("--ledger", default=_DEFAULT_LEDGER)
@@ -73,7 +74,9 @@ def main(argv: Sequence[str] | None = None) -> int:
 
 def _dispatch(args: argparse.Namespace) -> dict[str, object]:
     if args.command == "register":
-        return append_brain_phenotype(
+        if not args.operator_approved:
+            raise ValueError("operator approval required")
+        payload = append_brain_phenotype(
             Path(args.ledger),
             brain_id=args.brain_id,
             model_id=args.model_id,
@@ -90,6 +93,8 @@ def _dispatch(args: argparse.Namespace) -> dict[str, object]:
             quantization=args.quantization,
             available=not args.unavailable,
         )
+        payload["operator_approved"] = True
+        return payload
     if args.command == "list":
         return project_brain_registry(Path(args.ledger))
     if args.command == "select":
