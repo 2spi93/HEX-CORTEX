@@ -34,7 +34,7 @@ hexcortex-evidence = "hex_cortex.memory.cortex_evidence_cli:main"
 hexcortex-remote-smoke = "hex_cortex.memory.cortex_remote_api_smoke_cli:main"
 hexcortex-n8n-rotation-cert = "hex_cortex.memory.cortex_n8n_rotation_certificate_cli:main"
 hexcortex-service-decommission-cert = "hex_cortex.memory.cortex_service_decommission_certificate_cli:main"
-hexcortex-genome = "hex_cortex.memory.cortex_cognitive_genome_cli:main"
+hexcortex-genome = "hex_cortex.memory.cortex_cognitive_genome_cli_v2:main"
 hexcortex-memory = "hex_cortex.memory.cortex_cognitive_memory_cli:main"
 
 [project.optional-dependencies]
