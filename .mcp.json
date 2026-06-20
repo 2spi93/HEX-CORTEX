@@ -4,7 +4,7 @@
       "command": "python",
       "args": [
         "-m",
-        "hex_cortex.memory.cortex_stdio"
+        "hex_cortex.memory.cortex_operational_stdio"
       ],
       "env": {
         "PYTHONPATH": "${CLAUDE_PROJECT_DIR:-.}/src"
