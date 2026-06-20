@@ -1,13 +1,15 @@
-# Merge this block into ~/.hermes/config.yaml on the Linux server.
-# Replace /opt/HEX-CORTEX with the actual checkout path.
+# Merge this block into ~/.hermes/config.yaml on each Linux Hermes node.
+# Replace /opt/HEX-CORTEX with the actual checkout path on that node.
 mcp_servers:
   hex_cortex:
     command: "/opt/HEX-CORTEX/.venv/bin/python"
-    args: ["-m", "hex_cortex.memory.cortex_stdio"]
+    args: ["-m", "hex_cortex.memory.cortex_operational_stdio"]
     env:
       PYTHONPATH: "/opt/HEX-CORTEX/src"
     enabled: true
     supports_parallel_tool_calls: false
+    memory_policy: "separate_no_merge"
+    raw_memory_exchange_allowed: false
     tools:
       include:
         - hex_cortex_units
@@ -20,6 +22,7 @@ mcp_servers:
         - hex_cortex_coding_model_catalog
         - hex_cortex_coding_route
         - hex_cortex_self_correction_plan
+        - hex_cortex_operational_audit
       prompts: false
       resources: false
     sampling:
