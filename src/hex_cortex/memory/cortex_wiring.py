@@ -75,6 +75,11 @@ _STAGE_UNITS = {
         "adapter.transition",
         "adapter.project",
     },
+    "interchangeable_brain_fleet": {
+        "brain.phenotype.append",
+        "brain.registry.project",
+        "brain.select",
+    },
 }
 
 _RUNTIME_FACTS = {
