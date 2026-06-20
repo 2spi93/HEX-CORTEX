@@ -20,6 +20,9 @@ def test_python_scripts_expose_cortex_cli_and_operational_stdio() -> None:
     assert scripts["hexcortex-memory"] == (
         "hex_cortex.memory.cortex_cognitive_memory_cli:main"
     )
+    assert scripts["hexcortex-brains"] == (
+        "hex_cortex.memory.cortex_cognitive_brain_cli:main"
+    )
 
 
 def test_claude_project_config_starts_operational_readonly_stdio_server() -> None:
