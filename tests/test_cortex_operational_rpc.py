@@ -11,10 +11,11 @@ from hex_cortex.memory.cortex_rpc import PROTOCOL_VERSION
 def test_operational_rpc_catalog_extends_legacy_tools() -> None:
     rows = list_cortex_operational_rpc_tools()
 
-    assert len(rows) == 11
+    assert len(rows) == 12
     assert {row["name"] for row in rows} >= {
         "hex_cortex_wiring",
         "hex_cortex_operational_audit",
+        "hex_cortex_cognitive_genome",
     }
     assert all(row["annotations"]["readOnlyHint"] is True for row in rows)
     assert all(row["annotations"]["destructiveHint"] is False for row in rows)
@@ -64,6 +65,35 @@ def test_operational_audit_tool_returns_snapshot(monkeypatch) -> None:
     assert payload["runtime_ready"] is True
 
 
+def test_cognitive_genome_tool_audits_repository_contract() -> None:
+    payload, is_error = call_cortex_operational_rpc_tool(
+        "hex_cortex_cognitive_genome",
+        {"action": "audit", "project_root": "."},
+    )
+
+    assert is_error is False
+    assert payload["genome_ready"] is True
+    assert payload["base_model_immutable"] is True
+
+
+def test_cognitive_genome_tool_builds_profile_council() -> None:
+    payload, is_error = call_cortex_operational_rpc_tool(
+        "hex_cortex_cognitive_genome",
+        {
+            "action": "council",
+            "failure_class": "planning_error",
+            "novelty": 0.8,
+            "uncertainty": 0.9,
+            "mutation_requested": True,
+        },
+    )
+
+    assert is_error is False
+    assert "scientist" in payload["selected_profiles"]
+    assert "constitutional_judge" in payload["selected_profiles"]
+    assert payload["majority_vote_allowed"] is False
+
+
 def test_operational_rpc_initializes_and_lists_tools() -> None:
     session = CortexRpcSession()
     initialized = handle_cortex_operational_rpc_message(
@@ -85,7 +115,7 @@ def test_operational_rpc_initializes_and_lists_tools() -> None:
     )
 
     assert initialized["result"]["serverInfo"]["version"] == "1.1.0"
-    assert len(listing["result"]["tools"]) == 11
+    assert len(listing["result"]["tools"]) == 12
 
 
 def _snapshot() -> dict[str, object]:
@@ -109,6 +139,7 @@ def _snapshot() -> dict[str, object]:
         "policy_v2_ready": False,
         "self_correction_ready": False,
         "remote_api_ready": False,
+        "cognitive_genome_ready": True,
         "server_ready": False,
         "security_ready": False,
         "branch_ready": False,
