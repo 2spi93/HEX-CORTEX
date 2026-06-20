@@ -1,0 +1,102 @@
+{
+  "genome_type": "hex_cortex_cognitive_genome_v1",
+  "schema_version": 1,
+  "identity": {
+    "base_model_interchangeable": true,
+    "base_model_immutable_by_default": true,
+    "memory_policy": "separate_no_merge",
+    "raw_chain_of_thought_persistence_allowed": false,
+    "autonomous_weight_mutation_allowed": false,
+    "operator_approval_required_for_promotion": true
+  },
+  "error_ontology": [
+    "knowledge_gap",
+    "logic_error",
+    "planning_error",
+    "context_loss",
+    "tool_misuse",
+    "hallucination",
+    "ambiguity_failure",
+    "capability_limit",
+    "uncertainty_failure",
+    "causal_misattribution"
+  ],
+  "profile_council": [
+    "explorer",
+    "researcher",
+    "scientist",
+    "engineer",
+    "statistician",
+    "adversary",
+    "causalist",
+    "archivist",
+    "constitutional_judge"
+  ],
+  "verifier_hierarchy": [
+    "deterministic_truth",
+    "observed_reality",
+    "causal_and_physical_constraints",
+    "independent_sources",
+    "diverse_model_critics",
+    "human_judgment"
+  ],
+  "mutation_ladder": [
+    "external_memory",
+    "skill_procedure",
+    "router_update",
+    "isolated_adapter_candidate",
+    "full_weight_update"
+  ],
+  "mutation_policy": {
+    "preferred_max_level": "isolated_adapter_candidate",
+    "full_weight_update_enabled": false,
+    "worktree_required": true,
+    "heldout_required": true,
+    "reversibility_required": true,
+    "evaluator_mutation_allowed": false,
+    "threshold_reduction_allowed": false,
+    "automatic_merge_allowed": false
+  },
+  "skill_consolidation_policy": {
+    "minimum_recurrences": 3,
+    "minimum_distinct_contexts": 2,
+    "minimum_distinct_models": 2,
+    "causal_intervention_required": true,
+    "verified_correction_required": true
+  },
+  "anti_forgetting_policy": {
+    "critical_competency_max_drop": 0.0,
+    "noncritical_competency_max_drop": 0.02,
+    "baseline_suite_required": true,
+    "heldout_suite_required": true,
+    "revocation_receipt_required": true,
+    "base_model_checkpoint_required": true
+  },
+  "cognitive_homeostasis": {
+    "high_uncertainty_threshold": 0.65,
+    "critical_uncertainty_threshold": 0.85,
+    "repeated_error_threshold": 3,
+    "teacher_escalation_requires_failed_local_verification": true,
+    "weight_mutation_is_last_resort": true
+  },
+  "cr_jepa_v0": {
+    "descriptor_type": "cognitive_residual_jepa_v0",
+    "objective": "predict_latent_residual_between_expected_and_observed_outcomes",
+    "training_enabled": false,
+    "raw_reasoning_required": false,
+    "inputs": [
+      "state_embedding_ref",
+      "model_identity",
+      "profile_set",
+      "tool_set",
+      "action_embedding_ref",
+      "predicted_outcome_embedding_ref"
+    ],
+    "targets": [
+      "observed_outcome_embedding_ref",
+      "cognitive_residual_embedding_ref",
+      "failure_class",
+      "best_corrective_intervention"
+    ]
+  }
+}
