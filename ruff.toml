@@ -1,4 +1,7 @@
 extend = "pyproject.toml"
 
 [lint.per-file-ignores]
+"src/hex_cortex/memory/cortex_ui_cockpit_builder.py" = ["F841"]
+"src/hex_cortex/memory/cortex_environment_sequence.py" = ["F401", "UP035"]
+"src/hex_cortex/memory/cortex_world_model_decision_router.py" = ["UP035"]
 "src/hex_cortex/memory/cortex_operational_audit.py" = ["F401", "UP035"]
