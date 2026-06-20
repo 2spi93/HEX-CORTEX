@@ -9,7 +9,7 @@ search:
 server:
   bind_address: "0.0.0.0"
   port: 8080
-  limiter: true
+  limiter: false
   image_proxy: true
 
 ui:
