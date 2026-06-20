@@ -18,8 +18,15 @@ def test_wiring_audit_confirms_complete_static_architecture() -> None:
     cognitive = next(
         row for row in payload["stage_rows"] if row["stage"] == "cognitive_genome"
     )
+    memory = next(
+        row
+        for row in payload["stage_rows"]
+        if row["stage"] == "cognitive_memory_and_mutation"
+    )
     assert cognitive["stage_ready"] is True
     assert cognitive["present_count"] == 9
+    assert memory["stage_ready"] is True
+    assert memory["present_count"] == 7
 
 
 def test_wiring_audit_can_reach_operational_ready() -> None:
@@ -57,6 +64,16 @@ def test_wiring_audit_detects_missing_cognitive_genome_unit() -> None:
     assert "mutation.evaluate" in payload["missing_units"]
 
 
+def test_wiring_audit_detects_missing_cognitive_memory_unit() -> None:
+    registry = build_cortex_bundle()
+    registry.pop("adapter.transition")
+
+    payload = audit_cortex_wiring(registry)
+
+    assert payload["architecture_ready"] is False
+    assert "adapter.transition" in payload["missing_units"]
+
+
 def test_wiring_catalog_lists_all_stages_and_runtime_facts() -> None:
     stages = list_cortex_wiring_stages()
     facts = list_cortex_runtime_facts()
@@ -69,5 +86,6 @@ def test_wiring_catalog_lists_all_stages_and_runtime_facts() -> None:
         "execution_gateway",
         "knowledge_and_integrations",
         "cognitive_genome",
+        "cognitive_memory_and_mutation",
     }
     assert len(facts) == 10
