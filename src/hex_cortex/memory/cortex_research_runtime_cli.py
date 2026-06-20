@@ -8,6 +8,8 @@ from pathlib import Path
 from hex_cortex.memory.cortex_searxng import audit_searxng_runtime
 from hex_cortex.memory.cortex_searxng import build_searxng_searcher
 
+_DEFAULT_AUDIT_QUERY = "official Python documentation"
+
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="hexcortex-research")
@@ -23,7 +25,7 @@ def build_parser() -> argparse.ArgumentParser:
     search.add_argument("--pretty", action="store_true")
 
     audit = commands.add_parser("audit")
-    audit.add_argument("query")
+    audit.add_argument("query", nargs="?", default=_DEFAULT_AUDIT_QUERY)
     audit.add_argument("--endpoint", default="http://127.0.0.1:8888/search")
     audit.add_argument("--max-items", type=int, default=8)
     audit.add_argument("--timeout-seconds", type=float, default=10.0)
