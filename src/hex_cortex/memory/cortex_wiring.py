@@ -66,6 +66,15 @@ _STAGE_UNITS = {
         "mutation.evaluate",
         "cr_jepa.manifest",
     },
+    "cognitive_memory_and_mutation": {
+        "competency.baseline",
+        "causal.intervention",
+        "skill.graph.append",
+        "skill.graph.project",
+        "adapter.register",
+        "adapter.transition",
+        "adapter.project",
+    },
 }
 
 _RUNTIME_FACTS = {
