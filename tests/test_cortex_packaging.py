@@ -23,6 +23,21 @@ def test_python_scripts_expose_cortex_cli_and_operational_stdio() -> None:
     assert scripts["hexcortex-brains"] == (
         "hex_cortex.memory.cortex_cognitive_brain_cli:main"
     )
+    assert scripts["hexcortex-doctor"] == (
+        "hex_cortex.memory.cortex_environment_doctor_cli:main"
+    )
+
+
+def test_cross_platform_bootstrap_scripts_are_versioned() -> None:
+    powershell = Path("scripts/bootstrap_hex_cortex.ps1").read_text(encoding="utf-8")
+    bash = Path("scripts/bootstrap_hex_cortex.sh").read_text(encoding="utf-8")
+
+    assert "screen-lab-policy-v2" in powershell
+    assert "git pull --ff-only" in powershell
+    assert "hexcortex-doctor" in powershell
+    assert "screen-lab-policy-v2" in bash
+    assert "git pull --ff-only" in bash
+    assert "hexcortex-doctor" in bash
 
 
 def test_claude_project_config_starts_operational_readonly_stdio_server() -> None:
