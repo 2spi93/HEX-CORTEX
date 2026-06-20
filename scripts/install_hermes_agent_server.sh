@@ -18,6 +18,7 @@ if ! command -v hermes >/dev/null 2>&1; then
   exit 3
 fi
 
+hermes --version
 hermes doctor || true
 
 cat <<EOF
@@ -27,6 +28,7 @@ Next steps:
   1. Run: hermes setup
   2. Merge deploy/server/hermes-hex-cortex-mcp.yaml.example into ~/.hermes/config.yaml
   3. Replace /opt/HEX-CORTEX with: ${HEX_CORTEX_ROOT}
-  4. Run: hermes chat
-  5. In Hermes, verify the mcp_hex_cortex_* tools are present.
+  4. Run: hermes tools
+  5. Run: hermes
+  6. Verify the hex_cortex_* MCP tools are present.
 EOF
