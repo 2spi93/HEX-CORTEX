@@ -55,6 +55,17 @@ _STAGE_UNITS = {
         "web.describe",
         "stability.compute",
     },
+    "cognitive_genome": {
+        "genome.audit",
+        "residual.append",
+        "residual.topology",
+        "skill.candidate",
+        "profiles.council",
+        "homeostasis.decide",
+        "mutation.plan",
+        "mutation.evaluate",
+        "cr_jepa.manifest",
+    },
 }
 
 _RUNTIME_FACTS = {
