@@ -1,0 +1,12 @@
+{
+  "node_id": "replace-with-kali-node-id",
+  "role": "kali_vm",
+  "hermes_version": "replace-with-hermes-version",
+  "transport": "private_lan",
+  "doctor_passed": false,
+  "mcp_configured": false,
+  "hex_cortex_tools_visible": false,
+  "peer_reachable": false,
+  "memory_separation_confirmed": false,
+  "operator_approved": false
+}
