@@ -6,6 +6,9 @@ from hex_cortex.memory.cortex_channel_link import build_cortex_channel_link
 from hex_cortex.memory.cortex_cognitive_genome_registry import (
     build_cognitive_genome_registry,
 )
+from hex_cortex.memory.cortex_cognitive_memory_registry import (
+    build_cognitive_memory_registry,
+)
 from hex_cortex.memory.cortex_diag_link import build_cortex_diag_link
 from hex_cortex.memory.cortex_ext3 import build_cortex_ext3
 from hex_cortex.memory.cortex_goal_link import build_cortex_goal_link
@@ -31,4 +34,5 @@ def build_cortex_bundle_advanced():
         build_cortex_xlink(),
         build_cortex_diag_link(),
         build_cognitive_genome_registry(),
+        build_cognitive_memory_registry(),
     )
