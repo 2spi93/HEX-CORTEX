@@ -15,7 +15,7 @@ def test_python_scripts_expose_cortex_cli_and_operational_stdio() -> None:
         "hex_cortex.memory.cortex_operational_audit_cli:main"
     )
     assert scripts["hexcortex-genome"] == (
-        "hex_cortex.memory.cortex_cognitive_genome_cli:main"
+        "hex_cortex.memory.cortex_cognitive_genome_cli_v2:main"
     )
     assert scripts["hexcortex-memory"] == (
         "hex_cortex.memory.cortex_cognitive_memory_cli:main"
