@@ -1,0 +1,12 @@
+{
+  "node_id": "replace-with-server-node-id",
+  "role": "server_primary",
+  "hermes_version": "replace-with-hermes-version",
+  "transport": "tailscale",
+  "doctor_passed": false,
+  "mcp_configured": false,
+  "hex_cortex_tools_visible": false,
+  "peer_reachable": false,
+  "memory_separation_confirmed": false,
+  "operator_approved": false
+}
