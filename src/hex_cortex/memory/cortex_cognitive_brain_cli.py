@@ -5,6 +5,8 @@ import json
 from collections.abc import Sequence
 from pathlib import Path
 
+from hex_cortex.memory.cortex_brain_registration_config import load_registration_config
+from hex_cortex.memory.cortex_brain_registration_config import write_registration_template
 from hex_cortex.memory.cortex_cognitive_brain_registry import append_brain_phenotype
 from hex_cortex.memory.cortex_cognitive_brain_registry import project_brain_registry
 from hex_cortex.memory.cortex_cognitive_brain_registry import select_cognitive_brain
@@ -15,6 +17,15 @@ _DEFAULT_LEDGER = ".hex-cortex/cognitive/brain-registry.jsonl"
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="hexcortex-brains")
     commands = parser.add_subparsers(dest="command", required=True)
+
+    template = commands.add_parser("template")
+    template.add_argument("--output", required=True)
+    template.add_argument("--platform", choices=("windows", "kali", "linux"), required=True)
+    template.add_argument("--overwrite", action="store_true")
+
+    register_file = commands.add_parser("register-file")
+    register_file.add_argument("--config", required=True)
+    register_file.add_argument("--ledger", default=_DEFAULT_LEDGER)
 
     register = commands.add_parser("register")
     register.add_argument("--ledger", default=_DEFAULT_LEDGER)
@@ -73,6 +84,37 @@ def main(argv: Sequence[str] | None = None) -> int:
 
 
 def _dispatch(args: argparse.Namespace) -> dict[str, object]:
+    if args.command == "template":
+        return write_registration_template(
+            Path(args.output),
+            platform_name=args.platform,
+            overwrite=args.overwrite,
+        )
+    if args.command == "register-file":
+        config = load_registration_config(Path(args.config))
+        payload = append_brain_phenotype(
+            Path(args.ledger),
+            brain_id=str(config["brain_id"]),
+            model_id=str(config["model_id"]),
+            model_family=str(config["model_family"]),
+            runtime_id=str(config["runtime_id"]),
+            node_id=str(config["node_id"]),
+            provider_scope=str(config["provider_scope"]),
+            domain_scores={
+                str(key): float(value)
+                for key, value in dict(config["domain_scores"]).items()
+            },
+            reliability_score=float(config["reliability_score"]),
+            latency_ms=float(config["latency_ms"]),
+            normalized_cost=float(config["normalized_cost"]),
+            baseline_hash=str(config["baseline_hash"]),
+            parameter_class=str(config["parameter_class"]),
+            quantization=str(config["quantization"]),
+            available=config.get("available") is True,
+        )
+        payload["operator_approved"] = True
+        payload["registration_source"] = "validated_config_file"
+        return payload
     if args.command == "register":
         if not args.operator_approved:
             raise ValueError("operator approval required")
