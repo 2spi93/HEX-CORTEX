@@ -30,6 +30,8 @@ hexcortex-env-router = "hex_cortex.memory.cortex_environment_router_cli:main"
 hexcortex-agent = "hex_cortex.memory.cortex_agent_runtime_cli:main"
 hexcortex-code = "hex_cortex.memory.cortex_coding_runtime_cli:main"
 hexcortex-research = "hex_cortex.memory.cortex_research_runtime_cli:main"
+hexcortex-evidence = "hex_cortex.memory.cortex_evidence_cli:main"
+hexcortex-remote-smoke = "hex_cortex.memory.cortex_remote_api_smoke_cli:main"
 
 [project.optional-dependencies]
 dev = [
