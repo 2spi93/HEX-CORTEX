@@ -23,7 +23,8 @@ def probe_cortex_runtime(
             and (memory_root / "cortex_rpc.py").is_file()
             and (memory_root / "cortex_rpc_tools.py").is_file()
         ),
-        "claude_project_configured": (root / ".mcp.json").is_file() and is_claude_available(),
+        "claude_project_configured": (root / ".mcp.json").is_file(),
+        "claude_runtime_available": is_claude_available(),
         "codex_project_configured": (root / ".codex" / "config.toml").is_file(),
         "ollama_adapter_available": (memory_root / "cortex_ollama_link.py").is_file(),
         "llama_cpp_adapter_available": (memory_root / "cortex_openai_local.py").is_file(),
@@ -31,6 +32,8 @@ def probe_cortex_runtime(
         "hardware_adapter_factory_available": (memory_root / "cortex_hardware_adapter.py").is_file(),
         "service_adapter_factory_available": (memory_root / "cortex_service_adapter.py").is_file(),
         "research_adapter_factory_available": (memory_root / "cortex_research_adapter.py").is_file(),
+        "searxng_searcher_available": (memory_root / "cortex_searxng.py").is_file(),
+        "research_runtime_cli_available": (memory_root / "cortex_research_runtime_cli.py").is_file(),
         "runtime_orchestration_available": (
             memory_root / "cortex_runtime_model_orchestration.py"
         ).is_file(),
