@@ -174,7 +174,12 @@ def run_operational_audit_lint_cleanup_cycle(
     )
     _write_json(receipts / "06-candidate-evaluation.json", evaluation)
 
-    certified = evaluation.get("status") in {"promotable", "rejected"}
+    certified = (
+        checks_passed
+        and metric_improved
+        and evaluation.get("status") == "promotable"
+        and evaluation.get("candidate_promotable") is True
+    )
     summary = {
         "receipt_type": "self_correction_field_cycle_v1",
         "status": "field_certified" if certified else "blocked",
