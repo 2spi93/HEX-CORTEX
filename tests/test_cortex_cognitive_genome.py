@@ -1,7 +1,6 @@
 import json
 from pathlib import Path
 
-from hex_cortex.memory.cortex_cognitive_genome import append_cognitive_residual
 from hex_cortex.memory.cortex_cognitive_genome import audit_cognitive_genome
 from hex_cortex.memory.cortex_cognitive_genome import build_cr_jepa_v0_manifest
 from hex_cortex.memory.cortex_cognitive_genome import build_homeostasis_decision
@@ -9,7 +8,8 @@ from hex_cortex.memory.cortex_cognitive_genome import build_mutation_plan
 from hex_cortex.memory.cortex_cognitive_genome import build_profile_council
 from hex_cortex.memory.cortex_cognitive_genome import build_skill_candidate
 from hex_cortex.memory.cortex_cognitive_genome import evaluate_mutation_candidate
-from hex_cortex.memory.cortex_cognitive_genome import project_residual_topology
+from hex_cortex.memory.cortex_cognitive_residuals import append_cognitive_residual
+from hex_cortex.memory.cortex_cognitive_residuals import project_residual_topology
 
 
 def test_repository_cognitive_genome_is_ready() -> None:
