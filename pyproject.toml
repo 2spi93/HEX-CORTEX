@@ -32,6 +32,7 @@ hexcortex-code = "hex_cortex.memory.cortex_coding_runtime_cli:main"
 hexcortex-research = "hex_cortex.memory.cortex_research_runtime_cli:main"
 hexcortex-evidence = "hex_cortex.memory.cortex_evidence_cli:main"
 hexcortex-remote-smoke = "hex_cortex.memory.cortex_remote_api_smoke_cli:main"
+hexcortex-n8n-rotation-cert = "hex_cortex.memory.cortex_n8n_rotation_certificate_cli:main"
 
 [project.optional-dependencies]
 dev = [
