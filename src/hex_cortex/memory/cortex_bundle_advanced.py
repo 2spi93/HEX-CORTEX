@@ -3,6 +3,9 @@ from __future__ import annotations
 from hex_cortex.memory.cortex_action_link import build_cortex_action_link
 from hex_cortex.memory.cortex_bus import combine_cortex_registries
 from hex_cortex.memory.cortex_channel_link import build_cortex_channel_link
+from hex_cortex.memory.cortex_cognitive_brain_registry_units import (
+    build_cognitive_brain_registry,
+)
 from hex_cortex.memory.cortex_cognitive_genome_registry_v2 import (
     build_cognitive_genome_registry,
 )
@@ -35,4 +38,5 @@ def build_cortex_bundle_advanced():
         build_cortex_diag_link(),
         build_cognitive_genome_registry(),
         build_cognitive_memory_registry(),
+        build_cognitive_brain_registry(),
     )
