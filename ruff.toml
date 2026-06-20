@@ -1,0 +1,4 @@
+extend = "pyproject.toml"
+
+[lint.per-file-ignores]
+"src/hex_cortex/memory/cortex_operational_audit.py" = ["F401", "UP035"]
