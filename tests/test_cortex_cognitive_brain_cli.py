@@ -33,6 +33,7 @@ def test_brain_cli_registers_and_selects_local_brain(tmp_path: Path, capsys) -> 
             "0.05",
             "--baseline-hash",
             "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "--operator-approved",
         ]
     )
     register_payload = json.loads(capsys.readouterr().out)
@@ -55,8 +56,46 @@ def test_brain_cli_registers_and_selects_local_brain(tmp_path: Path, capsys) -> 
 
     assert register_code == 0
     assert register_payload["raw_model_identifier_persisted"] is False
+    assert register_payload["operator_approved"] is True
     assert select_code == 0
     assert select_payload["selected_brain_id"] == "windows-coding"
+
+
+def test_brain_cli_rejects_unapproved_registration(tmp_path: Path, capsys) -> None:
+    code = main(
+        [
+            "register",
+            "--ledger",
+            str(tmp_path / "brains.jsonl"),
+            "--brain-id",
+            "unapproved",
+            "--model-id",
+            "model-a",
+            "--model-family",
+            "coder",
+            "--runtime-id",
+            "windows.ollama",
+            "--node-id",
+            "windows-node",
+            "--provider-scope",
+            "local",
+            "--domain-scores-json",
+            '{"coding": 0.9}',
+            "--reliability-score",
+            "0.9",
+            "--latency-ms",
+            "1000",
+            "--normalized-cost",
+            "0.05",
+            "--baseline-hash",
+            "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        ]
+    )
+    payload = json.loads(capsys.readouterr().out)
+
+    assert code == 2
+    assert payload["status"] == "blocked"
+    assert payload["blockers"] == ["operator approval required"]
 
 
 def test_brain_cli_fails_closed_with_empty_registry(tmp_path: Path, capsys) -> None:
