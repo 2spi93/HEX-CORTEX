@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from hex_cortex.memory.cortex_operational_audit import build_operational_audit
+from hex_cortex.memory.cortex_operational_audit_v2 import build_operational_audit
 from hex_cortex.memory.cortex_rpc_tools import build_cortex_rpc_tool_result
 from hex_cortex.memory.cortex_rpc_tools import call_cortex_rpc_tool as call_legacy_tool
 from hex_cortex.memory.cortex_rpc_tools import list_cortex_rpc_tools as list_legacy_tools
