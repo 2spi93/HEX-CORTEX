@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 
 from hex_cortex.memory.cortex_bundle import build_cortex_bundle
+from hex_cortex.memory.cortex_cognitive_genome import audit_cognitive_genome
 from hex_cortex.memory.cortex_operational_audit import _category_blockers
 from hex_cortex.memory.cortex_operational_audit import _iter_receipts
 from hex_cortex.memory.cortex_operational_audit import _next_action
@@ -19,6 +20,7 @@ def build_operational_audit(project_root: Path, **kwargs: object) -> dict[str, o
     receipts = list(_iter_receipts(root / ".hex-cortex"))
     security = audit_security_disposition(root, receipts)
     hermes_fleet = audit_hermes_fleet_evidence(receipts)
+    cognitive_genome = audit_cognitive_genome(root / "config" / "cognitive_genome_v1.json")
 
     facts_value = payload.get("runtime_facts")
     facts = dict(facts_value) if isinstance(facts_value, dict) else {}
@@ -35,6 +37,11 @@ def build_operational_audit(project_root: Path, **kwargs: object) -> dict[str, o
         remote_api=_dict(payload.get("remote_api")),
         security=security,
     )
+    category_blockers["cognitive_genome_ready"] = (
+        []
+        if cognitive_genome.get("genome_ready") is True
+        else list(cognitive_genome.get("blockers", ["cognitive_genome_not_ready"]))
+    )
     categories = {name: not blockers for name, blockers in category_blockers.items()}
     branch_ready = all(
         categories[name]
@@ -49,6 +56,7 @@ def build_operational_audit(project_root: Path, **kwargs: object) -> dict[str, o
             "self_correction_ready",
             "remote_api_ready",
             "security_ready",
+            "cognitive_genome_ready",
         )
     )
     operational_ready = branch_ready and categories["server_ready"]
@@ -63,6 +71,7 @@ def build_operational_audit(project_root: Path, **kwargs: object) -> dict[str, o
             "wiring": wiring,
             "security": security,
             "hermes_fleet": hermes_fleet,
+            "cognitive_genome": cognitive_genome,
             "next_action": _next_action(category_blockers),
         }
     )
