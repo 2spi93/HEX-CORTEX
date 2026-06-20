@@ -9,6 +9,8 @@ from hex_cortex.memory.cortex_bundle import build_cortex_bundle
 from hex_cortex.memory.cortex_bundle import build_cortex_bundle_read_plan
 from hex_cortex.memory.cortex_bus import list_cortex_units
 from hex_cortex.memory.cortex_bus import run_cortex_units
+from hex_cortex.memory.cortex_operational_audit import build_operational_audit
+from hex_cortex.memory.cortex_operational_audit import write_operational_audit_receipt
 from hex_cortex.memory.cortex_research_social_credentials import build_provider_connection_receipt
 from hex_cortex.memory.cortex_research_social_credentials import build_research_social_plan
 from hex_cortex.memory.cortex_runtime_model_orchestration import orchestrate_runtime_models
@@ -38,6 +40,26 @@ def build_parser() -> argparse.ArgumentParser:
     wiring_auto_parser = subparsers.add_parser("wiring-auto")
     wiring_auto_parser.add_argument("--project-root", default=".")
     wiring_auto_parser.add_argument("--overrides-json", default="{}")
+
+    operational_parser = subparsers.add_parser("operational-audit")
+    operational_parser.add_argument("--project-root", default=".")
+    operational_parser.add_argument("--network", action="store_true")
+    operational_parser.add_argument("--skip-research", action="store_true")
+    operational_parser.add_argument(
+        "--research-query",
+        default="HEX-CORTEX operational readiness",
+    )
+    operational_parser.add_argument(
+        "--comfyui-endpoint",
+        default="http://127.0.0.1:8188",
+    )
+    operational_parser.add_argument(
+        "--searxng-endpoint",
+        default="http://127.0.0.1:8888/search",
+    )
+    operational_parser.add_argument("--model-ref", default="facebook/dinov2-base")
+    operational_parser.add_argument("--overrides-json", default="{}")
+    operational_parser.add_argument("--write-receipt", default="")
 
     runtime_parser = subparsers.add_parser("runtime-auto")
     runtime_parser.add_argument("--system", default=None)
@@ -93,6 +115,27 @@ def main(argv: Sequence[str] | None = None) -> int:
         }
         _emit(payload)
         return 0 if payload["architecture_ready"] is True else 2
+    if args.command == "operational-audit":
+        overrides = _parse_boolean_object(args.overrides_json, command="operational-audit")
+        if overrides is None:
+            return 2
+        payload = build_operational_audit(
+            Path(args.project_root),
+            execute_network=args.network,
+            include_research=not args.skip_research,
+            research_query=args.research_query,
+            comfyui_endpoint=args.comfyui_endpoint,
+            searxng_endpoint=args.searxng_endpoint,
+            model_ref=args.model_ref,
+            runtime_fact_overrides=overrides,
+        )
+        if args.write_receipt:
+            payload["receipt_write"] = write_operational_audit_receipt(
+                Path(args.write_receipt),
+                payload,
+            )
+        _emit(payload)
+        return 0 if payload["branch_ready"] is True else 2
     if args.command == "runtime-auto":
         models = {
             "windows.ollama": args.ollama_model,
