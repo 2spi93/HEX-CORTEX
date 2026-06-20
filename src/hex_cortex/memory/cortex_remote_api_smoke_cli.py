@@ -85,7 +85,7 @@ def run_remote_api_smoke(
     }
     sanitized.update(
         {
-            "status": "completed" if exact_match else execution.get("status", "failed"),
+            "status": "completed" if exact_match else _failed_status(execution),
             "smoke_contract": "exact_token_v1",
             "smoke_contract_passed": exact_match,
             "expected_token_hash": hashlib.sha256(_EXPECTED_TOKEN.encode("utf-8")).hexdigest(),
@@ -115,6 +115,10 @@ def run_remote_api_smoke(
         "canonical_evidence_append": evidence_append,
     }
     return payload
+
+
+def _failed_status(execution: dict[str, object]) -> str:
+    return "blocked" if execution.get("status") == "blocked" else "failed"
 
 
 def _smoke_blockers(execution: dict[str, object]) -> list[str]:
