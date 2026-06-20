@@ -5,8 +5,8 @@ import json
 from collections.abc import Sequence
 from pathlib import Path
 
-from hex_cortex.memory.cortex_operational_audit import build_operational_audit
-from hex_cortex.memory.cortex_operational_audit import write_operational_audit_receipt
+from hex_cortex.memory.cortex_operational_audit_v2 import build_operational_audit
+from hex_cortex.memory.cortex_operational_audit_v2 import write_operational_audit_receipt
 
 
 def build_parser() -> argparse.ArgumentParser:
