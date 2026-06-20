@@ -2,6 +2,9 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from hex_cortex.memory.cortex_cognitive_genome import audit_cognitive_genome
+from hex_cortex.memory.cortex_cognitive_genome import build_homeostasis_decision
+from hex_cortex.memory.cortex_cognitive_genome import build_profile_council
 from hex_cortex.memory.cortex_operational_audit_v2 import build_operational_audit
 from hex_cortex.memory.cortex_rpc_tools import build_cortex_rpc_tool_result
 from hex_cortex.memory.cortex_rpc_tools import call_cortex_rpc_tool as call_legacy_tool
@@ -36,7 +39,7 @@ def list_cortex_operational_rpc_tools() -> list[dict[str, object]]:
             "title": "HEX-CORTEX Operational Audit",
             "description": (
                 "Build one canonical readiness snapshot across code, runtimes, models, research, "
-                "media, world model, security, and server evidence."
+                "media, world model, cognitive genome, security, and server evidence."
             ),
             "inputSchema": {
                 "type": "object",
@@ -51,6 +54,37 @@ def list_cortex_operational_rpc_tools() -> list[dict[str, object]]:
                         "type": "object",
                         "additionalProperties": {"type": "boolean"},
                     },
+                },
+                "additionalProperties": False,
+            },
+            "annotations": {"readOnlyHint": True, "destructiveHint": False},
+        }
+    )
+    rows.append(
+        {
+            "name": "hex_cortex_cognitive_genome",
+            "title": "HEX-CORTEX Cognitive Genome",
+            "description": (
+                "Audit the immutable genome or build a read-only profile council and cognitive "
+                "homeostasis decision."
+            ),
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "project_root": {"type": "string"},
+                    "action": {
+                        "type": "string",
+                        "enum": ["audit", "council", "homeostasis"],
+                    },
+                    "failure_class": {"type": "string"},
+                    "novelty": {"type": "number"},
+                    "uncertainty": {"type": "number"},
+                    "mutation_requested": {"type": "boolean"},
+                    "recurrence_count": {"type": "integer"},
+                    "deterministic_verification_available": {"type": "boolean"},
+                    "local_verification_failed": {"type": "boolean"},
+                    "cost_pressure": {"type": "number"},
+                    "regression_risk": {"type": "number"},
                 },
                 "additionalProperties": False,
             },
@@ -115,7 +149,67 @@ def call_cortex_operational_rpc_tool(
             return _blocked("operational_audit_arguments_invalid"), True
         return snapshot, False
 
+    if name == "hex_cortex_cognitive_genome":
+        try:
+            payload = _call_cognitive_genome(arguments)
+        except (TypeError, ValueError):
+            return _blocked("cognitive_genome_arguments_invalid"), True
+        return payload, bool(payload.get("blockers"))
+
     return call_legacy_tool(name, arguments)
+
+
+def _call_cognitive_genome(arguments: dict[str, object]) -> dict[str, object]:
+    action = arguments.get("action", "audit")
+    project_root = arguments.get("project_root", ".")
+    if not isinstance(project_root, str) or not project_root.strip():
+        raise ValueError("project_root invalid")
+    if action == "audit":
+        allowed = {"project_root", "action"}
+        if any(key not in allowed for key in arguments):
+            raise ValueError("audit arguments invalid")
+        return audit_cognitive_genome(Path(project_root) / "config" / "cognitive_genome_v1.json")
+    if action == "council":
+        allowed = {
+            "project_root",
+            "action",
+            "failure_class",
+            "novelty",
+            "uncertainty",
+            "mutation_requested",
+        }
+        if any(key not in allowed for key in arguments):
+            raise ValueError("council arguments invalid")
+        return build_profile_council(
+            failure_class=str(arguments.get("failure_class", "")),
+            novelty=float(arguments.get("novelty", 0.0)),
+            uncertainty=float(arguments.get("uncertainty", 0.0)),
+            mutation_requested=arguments.get("mutation_requested") is True,
+        )
+    if action == "homeostasis":
+        allowed = {
+            "project_root",
+            "action",
+            "uncertainty",
+            "recurrence_count",
+            "deterministic_verification_available",
+            "local_verification_failed",
+            "cost_pressure",
+            "regression_risk",
+        }
+        if any(key not in allowed for key in arguments):
+            raise ValueError("homeostasis arguments invalid")
+        return build_homeostasis_decision(
+            uncertainty=float(arguments.get("uncertainty", 0.0)),
+            recurrence_count=int(arguments.get("recurrence_count", 0)),
+            deterministic_verification_available=(
+                arguments.get("deterministic_verification_available") is True
+            ),
+            local_verification_failed=arguments.get("local_verification_failed") is True,
+            cost_pressure=float(arguments.get("cost_pressure", 0.0)),
+            regression_risk=float(arguments.get("regression_risk", 0.0)),
+        )
+    raise ValueError("cognitive genome action invalid")
 
 
 def _build_snapshot(
@@ -161,6 +255,7 @@ def _compact_snapshot(snapshot: dict[str, object]) -> dict[str, object]:
         "policy_v2_ready",
         "self_correction_ready",
         "remote_api_ready",
+        "cognitive_genome_ready",
         "server_ready",
         "security_ready",
         "branch_ready",
