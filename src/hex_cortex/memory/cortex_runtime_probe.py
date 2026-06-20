@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from hex_cortex.memory.claude_detector import is_claude_available
+
 
 def probe_cortex_runtime(
     project_root: Path,
@@ -21,7 +23,7 @@ def probe_cortex_runtime(
             and (memory_root / "cortex_rpc.py").is_file()
             and (memory_root / "cortex_rpc_tools.py").is_file()
         ),
-        "claude_project_configured": (root / ".mcp.json").is_file(),
+        "claude_project_configured": (root / ".mcp.json").is_file() and is_claude_available(),
         "codex_project_configured": (root / ".codex" / "config.toml").is_file(),
         "ollama_adapter_available": (memory_root / "cortex_ollama_link.py").is_file(),
         "llama_cpp_adapter_available": (memory_root / "cortex_openai_local.py").is_file(),
