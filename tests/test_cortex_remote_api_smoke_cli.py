@@ -74,7 +74,7 @@ def test_remote_smoke_rejects_non_exact_result(tmp_path: Path, monkeypatch) -> N
         transport=transport,
     )
 
-    assert payload["status"] == "completed"
+    assert payload["status"] == "failed"
     assert payload["smoke_contract_passed"] is False
     assert "smoke_contract_mismatch" in payload["blockers"]
     assert payload["canonical_evidence_append"] is None
