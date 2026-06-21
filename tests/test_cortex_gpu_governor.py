@@ -28,10 +28,19 @@ def test_small_admitted_on_idle_card() -> None:
     assert d["granted_tier"] == "small"
 
 
-def test_large_admitted_with_headroom() -> None:
-    d = decide_gpu_admission(_snap(vram_used_mb=1000.0), {"tier": "large"})
+def test_large_under_safe_ceiling_admitted_with_headroom() -> None:
+    # A large-tier model that fits under the node safety ceiling still admits.
+    d = decide_gpu_admission(_snap(vram_used_mb=1000.0), {"tier": "large", "estimated_vram_mb": 8500.0})
     assert d["action"] == "admit"
     assert d["granted_tier"] == "large"
+
+
+def test_large_over_safe_ceiling_downgrades_even_on_empty_card() -> None:
+    # Default large (9800) exceeds the 9000 MB node ceiling -> never loaded here.
+    d = decide_gpu_admission(_snap(vram_used_mb=470.0), {"tier": "large"})
+    assert d["action"] == "downgrade"
+    assert d["granted_tier"] == "small"
+    assert "exceeds_safe_single_model_ceiling_downgrade" in d["reasons"]
 
 
 def test_large_queued_when_a_big_model_already_loaded() -> None:
@@ -42,9 +51,10 @@ def test_large_queued_when_a_big_model_already_loaded() -> None:
 
 
 def test_large_downgraded_when_no_headroom_but_small_fits() -> None:
-    # 7B (4 GB) resident, want 14B: 9800 MB > 8000 MB free -> downgrade to small.
+    # A safe-sized large model (8500, under ceiling) but only 8000 MB free
+    # -> downgrade on headroom grounds.
     snap = _snap(vram_used_mb=4000.0, loaded_model_count=1)
-    d = decide_gpu_admission(snap, {"tier": "large"})
+    d = decide_gpu_admission(snap, {"tier": "large", "estimated_vram_mb": 8500.0})
     assert d["action"] == "downgrade"
     assert d["granted_tier"] == "small"
     assert "insufficient_headroom_for_large" in d["reasons"]
@@ -120,3 +130,5 @@ def test_default_policy_shape() -> None:
     pol = default_governor_policy()
     assert pol["tier_vram_mb"]["large"] > pol["tier_vram_mb"]["small"]
     assert 0.0 < pol["vram_high_fraction"] < pol["vram_critical_fraction"] <= 1.0
+    # The node safety ceiling sits below the 14B's footprint so it is refused.
+    assert pol["safe_single_model_mb"] < pol["tier_vram_mb"]["large"]

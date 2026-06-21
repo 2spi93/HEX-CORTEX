@@ -39,6 +39,13 @@ def default_governor_policy() -> dict[str, object]:
         "max_loaded_models": 2,
         "max_queue_depth": 8,
         "tier_vram_mb": {"small": 5000.0, "large": 9800.0},
+        # Hard ceiling on a single model's VRAM for THIS node. Empirically the
+        # 14B (~9.8 GB) hard-resets this RX 6700 XT on load — a power/hardware
+        # fault (Kernel-Power 41, no bugcheck, no dump) that no software monitor
+        # can catch after the fact. So we refuse it at admission regardless of
+        # free VRAM. The 7B (~5 GB) is verified safe. Raise only on a node with
+        # a proven-stable larger accelerator.
+        "safe_single_model_mb": 9000.0,
     }
 
 
@@ -60,6 +67,7 @@ def decide_gpu_admission(
 
     tier_vram = pol["tier_vram_mb"]
     small_mb = float(tier_vram["small"])
+    safe_ceiling_mb = float(pol["safe_single_model_mb"])
     critical = used_fraction >= float(pol["vram_critical_fraction"])
     high = used_fraction >= float(pol["vram_high_fraction"])
 
@@ -106,6 +114,12 @@ def decide_gpu_admission(
     if tier == "large":
         if snap["big_model_loaded"]:
             return decide("queue", None, ["one_big_model_at_a_time"])
+        # Hard node ceiling: a model this big destabilizes this card on load
+        # (instant power reset) — refuse it regardless of free VRAM.
+        if estimated_mb > safe_ceiling_mb:
+            if free >= small_mb and not critical:
+                return decide("downgrade", "small", ["exceeds_safe_single_model_ceiling_downgrade"])
+            return decide("defer", None, ["exceeds_safe_single_model_ceiling"])
         if high or estimated_mb > free:
             if free >= small_mb:
                 return decide("downgrade", "small", ["insufficient_headroom_for_large"])
