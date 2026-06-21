@@ -25,6 +25,8 @@ def build_registration_template(platform_name: str) -> dict[str, object]:
         "provider_scope": provider_scope,
         "domain_scores": {"coding": None, "research": None, "general": None},
         "reliability_score": None,
+        "reliability_ci95": 0.0,
+        "error_rate": 0.0,
         "latency_ms": None,
         "normalized_cost": 0.0,
         "baseline_hash": _MARKER,
@@ -99,6 +101,13 @@ def load_registration_config(path: Path) -> dict[str, object]:
         value = payload.get(field)
         if not isinstance(value, int | float) or not 0.0 <= float(value) <= 1.0:
             raise ValueError(f"brain config {field} must be a number from 0 to 1")
+    # Optional uncertainty signals from the benchmark; validated only if present
+    # so configs written before these fields existed still load.
+    for field in ("reliability_ci95", "error_rate"):
+        if field in payload:
+            value = payload.get(field)
+            if not isinstance(value, int | float) or not 0.0 <= float(value) <= 1.0:
+                raise ValueError(f"brain config {field} must be a number from 0 to 1")
     latency = payload.get("latency_ms")
     if not isinstance(latency, int | float) or not 0.0 <= float(latency) <= 3_600_000.0:
         raise ValueError("brain config latency_ms must be a non-negative number")

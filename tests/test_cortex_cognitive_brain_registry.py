@@ -213,6 +213,114 @@ def test_selector_fails_closed_when_no_brain_meets_threshold(tmp_path: Path) -> 
     assert payload["blockers"] == ["best_brain_below_acceptance_threshold"]
 
 
+def test_phenotype_stores_uncertainty_signals(tmp_path: Path) -> None:
+    ledger = tmp_path / "brains.jsonl"
+    record = append_brain_phenotype(
+        ledger,
+        brain_id="windows-coding",
+        model_id="model-a",
+        model_family="coder",
+        runtime_id="windows.ollama",
+        node_id="windows",
+        provider_scope="local",
+        domain_scores={"coding": 0.8, "research": 0.6, "general": 0.6},
+        reliability_score=0.85,
+        latency_ms=1000.0,
+        normalized_cost=0.05,
+        baseline_hash="a" * 64,
+        reliability_ci95=0.07,
+        error_rate=0.02,
+    )
+
+    assert record["reliability_ci95"] == 0.07
+    assert record["error_rate"] == 0.02
+
+
+def test_selector_prefers_stable_brain_over_uncertain_higher_scorer(tmp_path: Path) -> None:
+    ledger = tmp_path / "brains.jsonl"
+    # Unstable star: highest raw coding score but a wide CI and some call errors.
+    append_brain_phenotype(
+        ledger,
+        brain_id="unstable-star",
+        model_id="model-a",
+        model_family="coder",
+        runtime_id="windows.ollama",
+        node_id="windows",
+        provider_scope="local",
+        domain_scores={"coding": 0.90, "research": 0.5, "general": 0.5},
+        reliability_score=0.90,
+        latency_ms=900.0,
+        normalized_cost=0.05,
+        baseline_hash="a" * 64,
+        reliability_ci95=0.30,
+        error_rate=0.10,
+    )
+    # Steady performer: slightly lower raw score but tight CI and no errors.
+    append_brain_phenotype(
+        ledger,
+        brain_id="steady-performer",
+        model_id="model-b",
+        model_family="coder",
+        runtime_id="windows.ollama",
+        node_id="windows",
+        provider_scope="local",
+        domain_scores={"coding": 0.80, "research": 0.5, "general": 0.5},
+        reliability_score=0.88,
+        latency_ms=900.0,
+        normalized_cost=0.05,
+        baseline_hash="b" * 64,
+        reliability_ci95=0.02,
+        error_rate=0.0,
+    )
+
+    selection = select_cognitive_brain(
+        ledger,
+        task_domain="coding",
+        context_sensitivity="private",
+        maximum_latency_ms=5000.0,
+        cost_pressure=0.5,
+        remote_allowed=False,
+    )
+
+    assert selection["status"] == "ready"
+    # Without risk awareness the unstable star (0.90) would win on raw score.
+    assert selection["selected_brain_id"] == "steady-performer"
+    by_id = {row["brain_id"]: row for row in selection["candidates"]}
+    assert by_id["unstable-star"]["robust_competence"] < by_id["unstable-star"]["domain_competence"]
+
+
+def test_legacy_phenotype_without_uncertainty_scores_unchanged(tmp_path: Path) -> None:
+    ledger = tmp_path / "brains.jsonl"
+    append_brain_phenotype(
+        ledger,
+        brain_id="legacy",
+        model_id="model-a",
+        model_family="coder",
+        runtime_id="windows.ollama",
+        node_id="windows",
+        provider_scope="local",
+        domain_scores={"coding": 0.8, "research": 0.5, "general": 0.5},
+        reliability_score=0.9,
+        latency_ms=900.0,
+        normalized_cost=0.05,
+        baseline_hash="a" * 64,
+    )
+
+    selection = select_cognitive_brain(
+        ledger,
+        task_domain="coding",
+        context_sensitivity="private",
+        maximum_latency_ms=5000.0,
+        cost_pressure=0.5,
+        remote_allowed=False,
+    )
+    candidate = selection["candidates"][0]
+    # Neutral defaults: robust competence equals raw competence for legacy rows.
+    assert candidate["reliability_ci95"] == 0.0
+    assert candidate["error_rate"] == 0.0
+    assert candidate["robust_competence"] == candidate["domain_competence"]
+
+
 def test_registry_uses_latest_phenotype_per_brain(tmp_path: Path) -> None:
     ledger = tmp_path / "brains.jsonl"
     _append(

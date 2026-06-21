@@ -41,6 +41,8 @@ def build_parser() -> argparse.ArgumentParser:
     )
     register.add_argument("--domain-scores-json", required=True)
     register.add_argument("--reliability-score", type=float, required=True)
+    register.add_argument("--reliability-ci95", type=float, default=0.0)
+    register.add_argument("--error-rate", type=float, default=0.0)
     register.add_argument("--latency-ms", type=float, required=True)
     register.add_argument("--normalized-cost", type=float, required=True)
     register.add_argument("--baseline-hash", required=True)
@@ -111,6 +113,8 @@ def _dispatch(args: argparse.Namespace) -> dict[str, object]:
             parameter_class=str(config["parameter_class"]),
             quantization=str(config["quantization"]),
             available=config.get("available") is True,
+            reliability_ci95=float(config.get("reliability_ci95", 0.0)),
+            error_rate=float(config.get("error_rate", 0.0)),
         )
         payload["operator_approved"] = True
         payload["registration_source"] = "validated_config_file"
@@ -134,6 +138,8 @@ def _dispatch(args: argparse.Namespace) -> dict[str, object]:
             parameter_class=args.parameter_class,
             quantization=args.quantization,
             available=not args.unavailable,
+            reliability_ci95=args.reliability_ci95,
+            error_rate=args.error_rate,
         )
         payload["operator_approved"] = True
         return payload

@@ -28,6 +28,8 @@ def append_brain_phenotype(
     parameter_class: str = "unknown",
     quantization: str = "unknown",
     available: bool = True,
+    reliability_ci95: float = 0.0,
+    error_rate: float = 0.0,
 ) -> dict[str, object]:
     for label, value in {
         "brain_id": brain_id,
@@ -55,6 +57,8 @@ def append_brain_phenotype(
     for label, value in {
         "reliability_score": reliability_score,
         "normalized_cost": normalized_cost,
+        "reliability_ci95": reliability_ci95,
+        "error_rate": error_rate,
     }.items():
         if value < 0.0 or value > 1.0:
             raise ValueError(f"{label} out of range")
@@ -77,6 +81,8 @@ def append_brain_phenotype(
             domain: float(score) for domain, score in sorted(domain_scores.items())
         },
         "reliability_score": float(reliability_score),
+        "reliability_ci95": float(reliability_ci95),
+        "error_rate": float(error_rate),
         "latency_ms": float(latency_ms),
         "normalized_cost": float(normalized_cost),
         "baseline_hash": baseline_hash,
@@ -167,24 +173,37 @@ def select_cognitive_brain(
         reliability = float(value.get("reliability_score", 0.0))
         latency_ms = float(value.get("latency_ms", maximum_latency_ms * 10.0))
         normalized_cost = float(value.get("normalized_cost", 1.0))
+        # Risk-aware selection: discount a brain's measured competence and
+        # reliability by the 95% CI half-width of its benchmark, and penalize a
+        # measured call-error rate. A high but unstable (wide-CI) or flaky brain
+        # loses to a slightly lower but stable one. Both default to 0.0 when
+        # unmeasured, so the score is unchanged for legacy phenotypes.
+        reliability_ci95 = float(value.get("reliability_ci95", 0.0))
+        error_rate = float(value.get("error_rate", 0.0))
+        robust_competence = max(0.0, competence - 0.5 * reliability_ci95)
+        robust_reliability = max(0.0, reliability - reliability_ci95)
         latency_utility = max(0.0, min(1.0, 1.0 - latency_ms / maximum_latency_ms))
         cost_utility = 1.0 - normalized_cost
         privacy_utility = 1.0 if value.get("provider_scope") in {"local", "private_remote"} else 0.0
         weighted_cost = 0.05 + 0.15 * cost_pressure
         weighted_competence = 0.65 - 0.10 * cost_pressure
         total = (
-            weighted_competence * competence
-            + 0.20 * reliability
+            weighted_competence * robust_competence
+            + 0.20 * robust_reliability
             + 0.10 * latency_utility
             + weighted_cost * cost_utility
             + 0.05 * privacy_utility
+            - 0.10 * error_rate
         )
         candidates.append(
             {
                 "brain_id": brain_id,
                 "score": round(total, 6),
                 "domain_competence": competence,
+                "robust_competence": round(robust_competence, 6),
                 "reliability": reliability,
+                "reliability_ci95": reliability_ci95,
+                "error_rate": error_rate,
                 "latency_utility": round(latency_utility, 6),
                 "cost_utility": round(cost_utility, 6),
                 "privacy_utility": privacy_utility,
