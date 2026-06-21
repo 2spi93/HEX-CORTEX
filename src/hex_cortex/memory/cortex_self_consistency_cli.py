@@ -25,6 +25,11 @@ def build_parser() -> argparse.ArgumentParser:
     vote.add_argument("--samples", required=True, help="path to a JSON array of answer strings")
     vote.add_argument("--mode", choices=("text", "numeric"), default="text")
     vote.add_argument("--agreement-threshold", type=float, default=0.5)
+    vote.add_argument(
+        "--weights",
+        default=None,
+        help="optional path to a JSON array of per-sample weights (e.g. brain reliability)",
+    )
     vote.add_argument("--receipt", default=None)
 
     verify = commands.add_parser("verify", help="aggregate a JSON array of skeptic verdicts")
@@ -54,10 +59,14 @@ def _dispatch(args: argparse.Namespace) -> dict[str, object]:
     receipt = Path(args.receipt) if args.receipt else None
     if args.command == "vote":
         samples = _load_json_array(Path(args.samples))
+        weights = None
+        if args.weights:
+            weights = [float(item) for item in _load_json_array(Path(args.weights))]
         return aggregate_self_consistency(
             [str(item) for item in samples],
             mode=args.mode,
             agreement_threshold=args.agreement_threshold,
+            sample_weights=weights,
             receipt_path=receipt,
         )
     if args.command == "verify":

@@ -74,6 +74,48 @@ def test_confidence_grows_with_sample_size() -> None:
     assert 0.0 < small["confidence_wilson_lower"] < 0.5
 
 
+def test_weighted_vote_lets_reliability_overturn_a_count_majority() -> None:
+    # Three samples say "a" (low-reliability brains), two say "b" (high). By
+    # plain count "a" wins 3-2; weighted by reliability "b" should win.
+    samples = ["a", "a", "a", "b", "b"]
+    weights = [0.2, 0.2, 0.2, 0.9, 0.9]
+    weighted = aggregate_self_consistency(samples, sample_weights=weights)
+    plain = aggregate_self_consistency(samples)
+    assert plain["consensus_answer"] == "a"
+    assert weighted["consensus_answer"] == "b"
+    assert weighted["weighted"] is True
+
+
+def test_weighted_effective_sample_size_is_below_raw_count() -> None:
+    # Highly uneven weights -> Kish effective N well under the 5 raw samples,
+    # so the weighted confidence is appropriately humbler than a naive count.
+    result = aggregate_self_consistency(
+        ["x"] * 5,
+        sample_weights=[1.0, 0.05, 0.05, 0.05, 0.05],
+    )
+    assert result["agreement_ratio"] == 1.0
+    assert result["effective_sample_count"] < 5.0
+    assert result["effective_sample_count"] > 1.0
+
+
+def test_unweighted_path_unchanged_when_weights_omitted() -> None:
+    result = aggregate_self_consistency(["q", "q", "q"])
+    assert result["weighted"] is False
+    assert result["effective_sample_count"] == 3.0
+    assert result["total_weight"] == 3.0
+
+
+def test_weighted_voting_rejects_bad_weights() -> None:
+    with pytest.raises(ValueError):
+        aggregate_self_consistency(["a", "b"], sample_weights=[1.0])
+    with pytest.raises(ValueError):
+        aggregate_self_consistency(["a"], sample_weights=[-1.0])
+    with pytest.raises(ValueError):
+        aggregate_self_consistency(["a"], sample_weights=[0.0])
+    with pytest.raises(ValueError):
+        aggregate_self_consistency(["a"], sample_weights=[True])  # type: ignore[list-item]
+
+
 def test_invalid_inputs_rejected() -> None:
     with pytest.raises(ValueError):
         aggregate_self_consistency([])

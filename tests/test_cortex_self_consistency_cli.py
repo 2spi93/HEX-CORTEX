@@ -27,6 +27,16 @@ def test_vote_command_returns_nonzero_on_tie(tmp_path: Path, capsys) -> None:
     assert out["status"] == "no_consensus"
 
 
+def test_vote_command_applies_weights(tmp_path: Path, capsys) -> None:
+    samples = _write(tmp_path / "s.json", ["a", "a", "a", "b", "b"])
+    weights = _write(tmp_path / "w.json", [0.2, 0.2, 0.2, 0.9, 0.9])
+    code = main(["vote", "--samples", str(samples), "--weights", str(weights)])
+    out = json.loads(capsys.readouterr().out)
+    assert code == 0
+    assert out["weighted"] is True
+    assert out["consensus_answer"] == "b"
+
+
 def test_verify_command_survives(tmp_path: Path, capsys) -> None:
     verdicts = _write(tmp_path / "v.json", [{"refuted": False}, {"refuted": False}, {"refuted": True}])
     code = main(["verify", "--verdicts", str(verdicts)])

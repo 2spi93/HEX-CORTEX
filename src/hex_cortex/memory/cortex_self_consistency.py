@@ -44,6 +44,7 @@ def aggregate_self_consistency(
     *,
     mode: str = "text",
     agreement_threshold: float = 0.5,
+    sample_weights: list[float] | None = None,
     receipt_path: Path | None = None,
 ) -> dict[str, object]:
     """Majority-vote over repeated answer samples from a single brain.
@@ -52,6 +53,12 @@ def aggregate_self_consistency(
     a Wilson lower-bound confidence. ``answer_samples`` are the already-extracted
     final answers, one per sampled run. With ``mode="numeric"`` light numeric
     canonicalization is applied so "1,000" and "1000" cluster together.
+
+    When ``sample_weights`` is given (one weight per sample, e.g. the producing
+    brain's robust reliability) voting is weight-based rather than one-vote-each,
+    and the confidence uses the Kish *effective* sample size so that a few
+    heavily-weighted samples cannot masquerade as a large agreement. Omitting it
+    keeps the plain unweighted behaviour unchanged.
     """
     if not isinstance(answer_samples, list) or not answer_samples:
         raise ValueError("answer_samples must be a non-empty list")
@@ -63,26 +70,39 @@ def aggregate_self_consistency(
         raise ValueError("agreement_threshold out of range")
 
     total = len(answer_samples)
+    weighted = sample_weights is not None
+    weights = _validate_weights(sample_weights, total) if weighted else [1.0] * total
+
     # Cluster by canonical form, remembering the first original sample per
     # cluster so we can return a human-usable representative answer.
     counts: dict[str, int] = {}
+    cluster_weight: dict[str, float] = {}
     representatives: dict[str, str] = {}
     first_seen: dict[str, int] = {}
     for index, sample in enumerate(answer_samples):
         canonical = _canonicalize(sample, mode)
         if canonical not in counts:
             counts[canonical] = 0
+            cluster_weight[canonical] = 0.0
             representatives[canonical] = sample.strip()
             first_seen[canonical] = index
         counts[canonical] += 1
+        cluster_weight[canonical] += weights[index]
 
-    # Highest count wins; ties broken by earliest appearance for determinism.
-    ordered = sorted(counts.items(), key=lambda kv: (-kv[1], first_seen[kv[0]]))
-    winner_canonical, winner_count = ordered[0]
-    runner_up_count = ordered[1][1] if len(ordered) > 1 else 0
-    is_tie = winner_count == runner_up_count
-    agreement_ratio = winner_count / total
-    confidence = _wilson_lower_bound(winner_count, total)
+    # Heaviest cluster wins (by weight when weighted, else by count); ties
+    # broken by earliest appearance for determinism.
+    rank = cluster_weight if weighted else counts
+    ordered = sorted(counts, key=lambda c: (-rank[c], first_seen[c]))
+    winner_canonical = ordered[0]
+    winner_count = counts[winner_canonical]
+    winner_rank = rank[winner_canonical]
+    runner_up_rank = rank[ordered[1]] if len(ordered) > 1 else 0.0
+    is_tie = winner_rank == runner_up_rank
+
+    total_weight = sum(weights)
+    agreement_ratio = (winner_rank / total_weight) if weighted else winner_count / total
+    effective_n = _effective_sample_size(weights) if weighted else float(total)
+    confidence = _wilson_lower(agreement_ratio, effective_n)
 
     if is_tie:
         status, decision = "no_consensus", "consensus_tied"
@@ -92,17 +112,24 @@ def aggregate_self_consistency(
         status, decision = "no_consensus", "consensus_below_threshold"
 
     cluster_summary = [
-        {"cluster_hash": _hash_text(canonical), "count": count}
-        for canonical, count in ordered
+        {
+            "cluster_hash": _hash_text(canonical),
+            "count": counts[canonical],
+            "weight": round(cluster_weight[canonical], 6),
+        }
+        for canonical in ordered
     ]
     receipt = {
         "record_type": _VOTE_RECEIPT_TYPE,
         "event_id": f"selfconsist_{uuid4().hex}",
         "created_at": datetime.now(UTC).isoformat(),
         "mode": mode,
+        "weighted": weighted,
         "status": status,
         "decision": decision,
         "sample_count": total,
+        "effective_sample_count": round(effective_n, 6),
+        "total_weight": round(total_weight, 6),
         "cluster_count": len(counts),
         "winner_cluster_hash": _hash_text(winner_canonical),
         "winner_count": winner_count,
@@ -201,14 +228,42 @@ def _canonicalize(answer: str, mode: str) -> str:
     return text.casefold()
 
 
-def _wilson_lower_bound(successes: int, total: int, z: float = _Z_95) -> float:
-    if total <= 0:
+def _wilson_lower(phat: float, n: float, z: float = _Z_95) -> float:
+    """Lower bound of the Wilson score interval for a proportion ``phat``.
+
+    ``n`` may be a fractional (effective) sample size, so the same formula
+    serves both plain counts and reliability-weighted voting.
+    """
+    if n <= 0.0:
         return 0.0
-    phat = successes / total
-    denominator = 1.0 + z * z / total
-    center = phat + z * z / (2.0 * total)
-    margin = z * math.sqrt((phat * (1.0 - phat) + z * z / (4.0 * total)) / total)
+    denominator = 1.0 + z * z / n
+    center = phat + z * z / (2.0 * n)
+    margin = z * math.sqrt((phat * (1.0 - phat) + z * z / (4.0 * n)) / n)
     return max(0.0, (center - margin) / denominator)
+
+
+def _wilson_lower_bound(successes: int, total: int) -> float:
+    return _wilson_lower(successes / total if total else 0.0, float(total))
+
+
+def _validate_weights(weights: list[float] | None, total: int) -> list[float]:
+    if not isinstance(weights, list) or len(weights) != total:
+        raise ValueError("sample_weights must be a list with one weight per sample")
+    if not all(isinstance(w, int | float) and not isinstance(w, bool) for w in weights):
+        raise ValueError("sample_weights must all be numbers")
+    converted = [float(w) for w in weights]
+    if any(w < 0.0 for w in converted):
+        raise ValueError("sample_weights must be non-negative")
+    if sum(converted) <= 0.0:
+        raise ValueError("sample_weights must not sum to zero")
+    return converted
+
+
+def _effective_sample_size(weights: list[float]) -> float:
+    """Kish effective sample size: (sum w)^2 / sum(w^2)."""
+    total = sum(weights)
+    sum_sq = sum(w * w for w in weights)
+    return (total * total / sum_sq) if sum_sq > 0.0 else 0.0
 
 
 def _hash_text(value: str) -> str:
