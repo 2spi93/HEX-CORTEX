@@ -32,3 +32,7 @@ models/
 .cache/
 .hex-cortex/
 artifacts/
+
+# Detached benchmark output (operator-local, not source)
+bench_*_detached.txt
+bench_*_detached.err
