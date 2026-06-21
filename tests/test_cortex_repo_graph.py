@@ -6,6 +6,7 @@ from hex_cortex.memory.cortex_repo_graph import build_repo_graph
 from hex_cortex.memory.cortex_repo_graph import find_callers
 from hex_cortex.memory.cortex_repo_graph import find_symbol
 from hex_cortex.memory.cortex_repo_graph import find_tests_for_symbol
+from hex_cortex.memory.cortex_repo_graph import summarize_module_contract
 
 
 def _mini_repo(root: Path) -> None:
@@ -65,6 +66,26 @@ def test_find_tests_for_symbol(tmp_path: Path) -> None:
     graph = build_repo_graph(tmp_path)
     tests = find_tests_for_symbol(graph, "add")
     assert tests == ["tests/test_core.py"]
+
+
+def test_summarize_module_contract(tmp_path: Path) -> None:
+    _mini_repo(tmp_path)
+    contract = summarize_module_contract(tmp_path, "pkg/core.py")
+    assert contract["contract_type"] == "cortex_module_contract_v1"
+    fn_names = {f["name"] for f in contract["public_functions"]}
+    assert "add" in fn_names
+    add_sig = next(f for f in contract["public_functions"] if f["name"] == "add")
+    assert add_sig["signature"] == "add(a, b)"
+    class_names = {c["name"] for c in contract["public_classes"]}
+    assert "Calc" in class_names
+    calc = next(c for c in contract["public_classes"] if c["name"] == "Calc")
+    assert any(m["name"] == "total" for m in calc["public_methods"])
+
+
+def test_summarize_rejects_missing_module(tmp_path: Path) -> None:
+    _mini_repo(tmp_path)
+    with pytest.raises(ValueError):
+        summarize_module_contract(tmp_path, "pkg/nope.py")
 
 
 def test_build_rejects_non_directory(tmp_path: Path) -> None:

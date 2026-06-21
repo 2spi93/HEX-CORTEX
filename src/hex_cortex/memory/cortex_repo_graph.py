@@ -92,6 +92,39 @@ def find_callers(graph: dict[str, object], name: str) -> list[str]:
     return callers
 
 
+def summarize_module_contract(root: Path, module_rel_path: str) -> dict[str, object]:
+    """Public contract of one module: top-level function/class signatures + docs.
+
+    This is the ``summarize_module_contract`` agent-computer command — it gives a
+    model the public surface of a module without the full body. Read-only.
+    """
+    target = (root.resolve() / module_rel_path).resolve()
+    if not target.is_file():
+        raise ValueError("module path does not resolve to a file")
+    tree = ast.parse(target.read_text(encoding="utf-8"))
+    functions: list[dict[str, object]] = []
+    classes: list[dict[str, object]] = []
+    for node in ast.iter_child_nodes(tree):
+        if isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef) and not node.name.startswith("_"):
+            functions.append(_signature(node))
+        elif isinstance(node, ast.ClassDef) and not node.name.startswith("_"):
+            methods = [
+                _signature(child)
+                for child in ast.iter_child_nodes(node)
+                if isinstance(child, ast.FunctionDef | ast.AsyncFunctionDef)
+                and not child.name.startswith("_")
+            ]
+            classes.append(
+                {"name": node.name, "doc": _first_doc_line(node), "public_methods": methods}
+            )
+    return {
+        "contract_type": "cortex_module_contract_v1",
+        "module": module_rel_path,
+        "public_functions": functions,
+        "public_classes": classes,
+    }
+
+
 def find_tests_for_symbol(graph: dict[str, object], name: str) -> list[str]:
     """Test modules that reference ``name`` — candidate reproduction sites."""
     modules = graph.get("modules")
@@ -144,6 +177,22 @@ def _extract_references(tree: ast.AST) -> set[str]:
             elif isinstance(func, ast.Attribute):
                 references.add(func.attr)
     return references
+
+
+def _signature(node: ast.FunctionDef | ast.AsyncFunctionDef) -> dict[str, object]:
+    args = ast.unparse(node.args)
+    returns = f" -> {ast.unparse(node.returns)}" if node.returns is not None else ""
+    return {
+        "name": node.name,
+        "signature": f"{node.name}({args}){returns}",
+        "doc": _first_doc_line(node),
+        "lineno": node.lineno,
+    }
+
+
+def _first_doc_line(node: ast.AST) -> str | None:
+    doc = ast.get_docstring(node)
+    return doc.strip().splitlines()[0] if doc else None
 
 
 def _is_test_file(rel_path: str) -> bool:
