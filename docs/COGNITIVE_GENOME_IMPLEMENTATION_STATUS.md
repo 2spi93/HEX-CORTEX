@@ -46,7 +46,7 @@
 
 ## Current research phase
 
-The next empirical phase is execution with bounded operator approval. A cognitive residual should be recorded only after an outcome is observed and the failure class can be supported. Durable skill consolidation requires recurrence across contexts and model identities plus verified correction and causal intervention evidence.
+The next empirical phase is bounded execution with per-task operator approval. A cognitive residual should be recorded only after an outcome is observed and the failure class can be supported. Durable skill consolidation requires recurrence across contexts and model identities plus verified correction and causal intervention evidence.
 
 Each Windows, Kali or future server model should receive an evidence-backed competency baseline and brain phenotype. Multiple benchmark records for the same underlying model remain useful evidence, but they no longer count as independent escalation brains.
 
