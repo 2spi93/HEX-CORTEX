@@ -15,12 +15,14 @@ The runtime is intentionally smaller than a coding agent. It does exactly this:
    `EXECUTE_VERIFIED_LOCAL_LOOP`;
 5. calls local Ollama through `POST /api/chat` for at most five primary samples;
 6. aggregates the samples through weighted self-consistency;
-7. applies deterministic arithmetic verification when the plan requires it;
-8. returns `completed`, `needs_more_samples`, `needs_escalation`,
+7. optionally builds a bounded AST repository context and requests a structured
+   JSON code plan;
+8. applies deterministic arithmetic verification when the plan requires it;
+9. returns `completed`, `needs_more_samples`, `needs_escalation`,
    `needs_human_review`, `refused`, `failed`, or `blocked`;
-9. unloads the Ollama model after the final sample by sending `keep_alive=0`;
-10. persists hashes and decisions only, never prompts, responses, raw consensus,
-    secrets, patches, or shell output.
+10. unloads the Ollama model after the final sample by sending `keep_alive=0`;
+11. persists hashes and decisions only, never prompts, responses, raw consensus,
+    repository context, secrets, patches, or shell output.
 
 ## Explicitly forbidden in V1
 
@@ -48,9 +50,6 @@ python -m pip install -e ".[dev]"
 Create a fresh GPU snapshot using the existing GPU probe or guard. The snapshot
 must represent the current state immediately before execution.
 
-Create the instruction and task files. Keep repository context bounded and put it
-in a separate context file only when needed.
-
 Generate and persist the canonical plan:
 
 ```powershell
@@ -67,7 +66,7 @@ hexcortex-loop plan `
 Review `next-plan.json`. Execution is allowed only when `status` is `ready` and
 the selected primary brain and resource decision are expected.
 
-Execute the primary local phase:
+### Plain-text compatibility mode
 
 ```powershell
 hexcortex-loop execute-local `
@@ -75,15 +74,51 @@ hexcortex-loop execute-local `
   --gpu-snapshot .hex-cortex\gpu-snapshot.json `
   --instruction-file .hex-cortex\tasks\instruction.txt `
   --prompt-file .hex-cortex\tasks\task.txt `
-  --context-file .hex-cortex\tasks\context.txt `
   --model qwen2.5-coder:7b `
   --receipt .hex-cortex\receipts\verified-local-execution.jsonl `
   --operator-approved `
   --confirm EXECUTE_VERIFIED_LOCAL_LOOP
 ```
 
-The context-file argument may be omitted when no bounded repository context is
-needed.
+A manually prepared context file may be supplied with `--context-file`.
+
+### Grounded structured code-plan mode
+
+Use this mode for repository analysis and code planning:
+
+```powershell
+hexcortex-loop execute-local `
+  .hex-cortex\cognitive\next-plan.json `
+  --gpu-snapshot .hex-cortex\gpu-snapshot.json `
+  --instruction-file .hex-cortex\tasks\instruction.txt `
+  --prompt-file .hex-cortex\tasks\task.txt `
+  --repo-root . `
+  --auto-repo-context `
+  --structured-code-plan `
+  --repo-context-max-modules 10 `
+  --repo-context-max-chars 12000 `
+  --model qwen2.5-coder:7b `
+  --max-output-tokens 900 `
+  --timeout-seconds 300 `
+  --sample-temperature 0.2 `
+  --receipt .hex-cortex\receipts\verified-local-structured.jsonl `
+  --operator-approved `
+  --confirm EXECUTE_VERIFIED_LOCAL_LOOP
+```
+
+This mode:
+
+- ranks real Python modules from task terms, imports, definitions and references;
+- supplies only module paths, imports, public symbol names and line numbers;
+- never pastes source bodies;
+- sends an Ollama JSON schema through the `format` field;
+- validates every proposed file against the selected repository paths;
+- removes invented paths before consensus;
+- compares focus areas, validated files and proposed change targets rather than
+  byte-identical prose;
+- returns the weighted medoid plan for human review.
+
+`--structured-code-plan` requires `--auto-repo-context` and `--repo-root`.
 
 ## Expected result for the current Windows fleet
 
@@ -102,6 +137,10 @@ After the three primary samples, the V1 runtime must stop at
 `needs_human_review`. It must not pretend that another brain identifier backed by
 the same model is independent evidence.
 
+In structured mode, `consensus_status: consensus` means that at least two samples
+agree on the normalized decision structure. It does not remove the human-review
+requirement when no independent critic exists.
+
 ## Receipt boundary
 
 The JSONL receipt may include:
@@ -112,10 +151,13 @@ The JSONL receipt may include:
 - sample hashes and counts;
 - individual call receipt hashes;
 - fresh GPU admission decision;
+- bounded repository-context hash, character count and module count;
+- structured schema hash;
+- grounding ratio and invalid-path count;
 - consensus event hash and confidence;
 - verification action and reason;
 - deterministic verifier result;
 - next action.
 
-It must not include prompt text, response text, consensus text, secrets, source
-code, patches, or chain-of-thought.
+It must not include prompt text, response text, consensus text, repository-context
+text, secrets, source code, patches, or chain-of-thought.
