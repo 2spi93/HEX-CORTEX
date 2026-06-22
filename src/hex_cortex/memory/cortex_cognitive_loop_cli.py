@@ -48,6 +48,11 @@ def build_parser() -> argparse.ArgumentParser:
     execute.add_argument("--instruction-file", required=True)
     execute.add_argument("--prompt-file", required=True)
     execute.add_argument("--context-file")
+    execute.add_argument("--repo-root")
+    execute.add_argument("--auto-repo-context", action="store_true")
+    execute.add_argument("--structured-code-plan", action="store_true")
+    execute.add_argument("--repo-context-max-modules", type=int, default=10)
+    execute.add_argument("--repo-context-max-chars", type=int, default=12_000)
     execute.add_argument("--model", required=True)
     execute.add_argument("--local-endpoint", default="http://127.0.0.1:11434")
     execute.add_argument("--max-output-tokens", type=int, default=2048)
@@ -126,6 +131,11 @@ def _dispatch(args: argparse.Namespace) -> dict[str, object]:
             instruction=instruction,
             task_prompt=prompt,
             bounded_context=context,
+            repo_root=Path(args.repo_root) if args.repo_root else None,
+            auto_repo_context=args.auto_repo_context,
+            structured_code_plan=args.structured_code_plan,
+            repo_context_max_modules=args.repo_context_max_modules,
+            repo_context_max_chars=args.repo_context_max_chars,
             local_endpoint=args.local_endpoint,
             max_output_tokens=args.max_output_tokens,
             timeout_seconds=args.timeout_seconds,
