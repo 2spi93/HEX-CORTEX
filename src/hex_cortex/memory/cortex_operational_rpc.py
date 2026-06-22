@@ -9,11 +9,12 @@ from hex_cortex.memory.cortex_rpc import rpc_error
 from hex_cortex.memory.cortex_rpc import rpc_result
 
 SERVER_NAME = "hex-cortex"
-SERVER_VERSION = "1.1.0"
+SERVER_VERSION = "1.2.0"
 SERVER_INSTRUCTIONS = (
-    "HEX-CORTEX read-only operational diagnostics. Wiring uses a canonical runtime truth snapshot "
-    "and may probe localhost services. No adapter execution, shell command, secret access, remote "
-    "model call, or repository mutation is exposed."
+    "HEX-CORTEX read-only operational diagnostics and cognitive planning. Wiring uses a canonical "
+    "runtime truth snapshot; cognitive-loop and repository-intelligence tools plan or inspect only. "
+    "No adapter execution, shell command, secret access, remote model call, patch application, or "
+    "repository mutation is exposed."
 )
 
 
