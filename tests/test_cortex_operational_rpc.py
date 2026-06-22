@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+from pathlib import Path
+
+from hex_cortex.memory import cortex_operational_intelligence_tools as intelligence_tools
 from hex_cortex.memory import cortex_operational_rpc_tools as operational_tools
 from hex_cortex.memory.cortex_operational_rpc import handle_cortex_operational_rpc_message
 from hex_cortex.memory.cortex_operational_rpc_tools import call_cortex_operational_rpc_tool
@@ -11,11 +14,13 @@ from hex_cortex.memory.cortex_rpc import PROTOCOL_VERSION
 def test_operational_rpc_catalog_extends_legacy_tools() -> None:
     rows = list_cortex_operational_rpc_tools()
 
-    assert len(rows) == 12
+    assert len(rows) == 14
     assert {row["name"] for row in rows} >= {
         "hex_cortex_wiring",
         "hex_cortex_operational_audit",
         "hex_cortex_cognitive_genome",
+        "hex_cortex_cognitive_loop",
+        "hex_cortex_repo_intelligence",
     }
     assert all(row["annotations"]["readOnlyHint"] is True for row in rows)
     assert all(row["annotations"]["destructiveHint"] is False for row in rows)
@@ -94,6 +99,112 @@ def test_cognitive_genome_tool_builds_profile_council() -> None:
     assert payload["majority_vote_allowed"] is False
 
 
+def test_cognitive_loop_tool_is_read_only_plan(monkeypatch, tmp_path: Path) -> None:
+    monkeypatch.chdir(tmp_path)
+    captured: dict[str, object] = {}
+
+    def fake_plan(ledger: Path, snapshot: dict[str, object], **kwargs):
+        captured["ledger"] = ledger
+        captured["snapshot"] = snapshot
+        captured.update(kwargs)
+        return {
+            "status": "ready",
+            "strategy": "small_single",
+            "model_call_performed": False,
+            "blockers": [],
+        }
+
+    monkeypatch.setattr(intelligence_tools, "build_cognitive_loop_plan", fake_plan)
+    payload, is_error = call_cortex_operational_rpc_tool(
+        "hex_cortex_cognitive_loop",
+        {
+            "gpu_snapshot": {"vram_total_mb": 12288, "vram_used_mb": 1000},
+            "task_domain": "code_generation",
+            "context_sensitivity": "private",
+            "difficulty": "medium",
+        },
+    )
+
+    assert is_error is False
+    assert payload["status"] == "ready"
+    assert payload["model_call_performed"] is False
+    assert captured["snapshot"] == {"vram_total_mb": 12288, "vram_used_mb": 1000}
+    assert captured["task_domain"] == "code_generation"
+    assert str(captured["ledger"]).startswith(str(tmp_path))
+
+
+def test_cognitive_loop_tool_rejects_path_escape(monkeypatch, tmp_path: Path) -> None:
+    monkeypatch.chdir(tmp_path)
+
+    payload, is_error = call_cortex_operational_rpc_tool(
+        "hex_cortex_cognitive_loop",
+        {
+            "ledger_path": "../outside.jsonl",
+            "gpu_snapshot": {"vram_total_mb": 12288, "vram_used_mb": 1000},
+            "task_domain": "coding",
+            "context_sensitivity": "private",
+        },
+    )
+
+    assert is_error is True
+    assert payload["blockers"] == ["cognitive_loop_arguments_invalid"]
+
+
+def test_repo_intelligence_tool_queries_ast_without_source_bodies(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    monkeypatch.chdir(tmp_path)
+    package = tmp_path / "pkg"
+    tests = tmp_path / "tests"
+    package.mkdir()
+    tests.mkdir()
+    (package / "core.py").write_text(
+        'def add(a, b):\n    """Add values."""\n    return a + b\n',
+        encoding="utf-8",
+    )
+    (tests / "test_core.py").write_text(
+        "from pkg.core import add\n\ndef test_add():\n    assert add(1, 2) == 3\n",
+        encoding="utf-8",
+    )
+
+    symbol_payload, symbol_error = call_cortex_operational_rpc_tool(
+        "hex_cortex_repo_intelligence",
+        {"action": "find_symbol", "symbol": "add"},
+    )
+    tests_payload, tests_error = call_cortex_operational_rpc_tool(
+        "hex_cortex_repo_intelligence",
+        {"action": "find_tests", "symbol": "add"},
+    )
+    contract_payload, contract_error = call_cortex_operational_rpc_tool(
+        "hex_cortex_repo_intelligence",
+        {"action": "module_contract", "module": "pkg/core.py"},
+    )
+
+    assert symbol_error is False
+    assert symbol_payload["result_count"] == 1
+    assert symbol_payload["source_bodies_returned"] is False
+    assert tests_error is False
+    assert tests_payload["results"] == ["tests/test_core.py"]
+    assert contract_error is False
+    assert contract_payload["public_functions"][0]["signature"] == "add(a, b)"
+    assert "return a + b" not in str(contract_payload)
+
+
+def test_repo_intelligence_rejects_project_escape(monkeypatch, tmp_path: Path) -> None:
+    work = tmp_path / "work"
+    work.mkdir()
+    monkeypatch.chdir(work)
+
+    payload, is_error = call_cortex_operational_rpc_tool(
+        "hex_cortex_repo_intelligence",
+        {"project_root": "..", "action": "summary"},
+    )
+
+    assert is_error is True
+    assert payload["blockers"] == ["repo_intelligence_arguments_invalid"]
+
+
 def test_operational_rpc_initializes_and_lists_tools() -> None:
     session = CortexRpcSession()
     initialized = handle_cortex_operational_rpc_message(
@@ -114,8 +225,8 @@ def test_operational_rpc_initializes_and_lists_tools() -> None:
         session=session,
     )
 
-    assert initialized["result"]["serverInfo"]["version"] == "1.1.0"
-    assert len(listing["result"]["tools"]) == 12
+    assert initialized["result"]["serverInfo"]["version"] == "1.2.0"
+    assert len(listing["result"]["tools"]) == 14
 
 
 def _snapshot() -> dict[str, object]:
