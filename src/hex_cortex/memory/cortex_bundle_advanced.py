@@ -22,6 +22,9 @@ from hex_cortex.memory.cortex_surprise_registry import (
 from hex_cortex.memory.cortex_transition_registry import (
     build_cortex_transition_registry,
 )
+from hex_cortex.memory.cortex_verified_cognition_registry import (
+    build_verified_cognition_registry,
+)
 from hex_cortex.memory.cortex_xlink import build_cortex_xlink
 
 
@@ -39,4 +42,5 @@ def build_cortex_bundle_advanced():
         build_cognitive_genome_registry(),
         build_cognitive_memory_registry(),
         build_cognitive_brain_registry(),
+        build_verified_cognition_registry(),
     )
