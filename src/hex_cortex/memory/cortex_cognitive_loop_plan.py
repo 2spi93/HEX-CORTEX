@@ -45,7 +45,12 @@ def build_cognitive_loop_plan(
     receipt_path: Path | None = None,
 ) -> dict[str, object]:
     """Compose strategy + GPU admission + verified inference into one plan."""
-    exact = task_domain.strip().lower() in {"arithmetic_reasoning", "arithmetic", "math", "exact_numeric"}
+    exact = task_domain.strip().lower() in {
+        "arithmetic_reasoning",
+        "arithmetic",
+        "math",
+        "exact_numeric",
+    }
     large_available = _ledger_has_remote_capable_brain(ledger)
     strategy = select_compute_strategy(
         difficulty=difficulty,
@@ -74,15 +79,28 @@ def build_cognitive_loop_plan(
     )
 
     blockers: list[str] = []
+    warnings: list[str] = []
     if gpu_action in {"defer", "reject"}:
         blockers.append(f"gpu_{gpu_action}")
     if inference_plan["status"] != "ready":
         blockers.extend(str(b) for b in inference_plan.get("blockers", []) or ["no_primary_brain"])
 
+    needs_independent_critic = bool(
+        strategy.get("escalate_to_second_model") or strategy.get("use_adversarial_critique")
+    )
+    independent_critic_available = bool(inference_plan.get("escalation_brain_id"))
+    verification_gap = needs_independent_critic and not independent_critic_available
+    if verification_gap:
+        warnings.append("independent_model_unavailable_human_review_required")
+
+    require_human_validation = bool(strategy["require_human_validation"] or verification_gap)
+
     if blockers:
         status, next_action = "blocked", "retry_after_cooldown_or_escalate"
     elif gpu_action == "queue":
         status, next_action = "queued", "wait_for_gpu_slot_then_execute"
+    elif verification_gap:
+        status, next_action = "ready", "execute_primary_then_human_review"
     else:
         status, next_action = "ready", "execute_cognitive_loop_plan"
 
@@ -95,24 +113,30 @@ def build_cognitive_loop_plan(
         "context_sensitivity": context_sensitivity,
         "difficulty": difficulty,
         "risk": risk,
+        "target_confidence": target_confidence,
         "granted_tier": gpu_decision["granted_tier"],
         "strategy": strategy["strategy"],
         "use_deterministic_tool": strategy["use_deterministic_tool"],
         "use_self_consistency": strategy["use_self_consistency"],
+        "use_adversarial_critique": strategy["use_adversarial_critique"],
         "samples": strategy["samples"],
         "primary_brain_id": inference_plan.get("primary_brain_id"),
         "escalation_brain_id": inference_plan.get("escalation_brain_id"),
-        "require_human_validation": strategy["require_human_validation"],
+        "independent_critic_available": independent_critic_available,
+        "verification_gap": verification_gap,
+        "require_human_validation": require_human_validation,
         "exact_arithmetic_domain": exact,
         "components": {
             "strategy": strategy,
             "gpu_decision": gpu_decision,
             "inference_plan_hash": inference_plan.get("plan_hash"),
+            "escalation_diversity": inference_plan.get("escalation_diversity"),
         },
         "model_call_performed": False,
         "raw_prompt_persisted": False,
         "raw_response_persisted": False,
         "blockers": blockers,
+        "warnings": warnings,
         "next_action": next_action,
     }
     record["plan_hash"] = _stable_hash(record)
