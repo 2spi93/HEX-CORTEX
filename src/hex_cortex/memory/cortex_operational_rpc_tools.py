@@ -6,6 +6,12 @@ from hex_cortex.memory.cortex_cognitive_genome import audit_cognitive_genome
 from hex_cortex.memory.cortex_cognitive_genome import build_homeostasis_decision
 from hex_cortex.memory.cortex_cognitive_genome import build_profile_council
 from hex_cortex.memory.cortex_operational_audit_v2 import build_operational_audit
+from hex_cortex.memory.cortex_operational_intelligence_tools import (
+    call_operational_intelligence_tool,
+)
+from hex_cortex.memory.cortex_operational_intelligence_tools import (
+    list_operational_intelligence_tools,
+)
 from hex_cortex.memory.cortex_rpc_tools import build_cortex_rpc_tool_result
 from hex_cortex.memory.cortex_rpc_tools import call_cortex_rpc_tool as call_legacy_tool
 from hex_cortex.memory.cortex_rpc_tools import list_cortex_rpc_tools as list_legacy_tools
@@ -91,6 +97,7 @@ def list_cortex_operational_rpc_tools() -> list[dict[str, object]]:
             "annotations": {"readOnlyHint": True, "destructiveHint": False},
         }
     )
+    rows.extend(list_operational_intelligence_tools())
     return rows
 
 
@@ -98,6 +105,10 @@ def call_cortex_operational_rpc_tool(
     name: str,
     arguments: dict[str, object],
 ) -> tuple[dict[str, object], bool]:
+    intelligence_result = call_operational_intelligence_tool(name, arguments)
+    if intelligence_result is not None:
+        return intelligence_result
+
     if name == "hex_cortex_wiring":
         error = _validate_arguments(
             arguments,
