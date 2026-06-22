@@ -36,3 +36,5 @@ artifacts/
 # Detached benchmark output (operator-local, not source)
 bench_*_detached.txt
 bench_*_detached.err
+bench_*_validate.txt
+bench_*_validate.txt.err
