@@ -23,6 +23,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from uuid import uuid4
 
+from hex_cortex.memory.cortex_cognitive_brain_registry import project_brain_registry
 from hex_cortex.memory.cortex_cognitive_brain_registry import select_cognitive_brain
 
 _PLAN_TYPE = "cortex_verified_inference_plan_v1"
@@ -72,6 +73,7 @@ def build_verified_inference_plan(
             context_sensitivity=context_sensitivity,
             primary_brain_id=None,
             escalation_brain_id=None,
+            escalation_diversity="not_applicable",
             initial_samples=initial_samples,
             max_samples=max_samples,
             agreement_threshold=agreement_threshold,
@@ -81,13 +83,23 @@ def build_verified_inference_plan(
             next_action="escalate_or_refuse_task",
         )
     else:
-        escalation_id = _pick_escalation_brain(candidate_list, primary_id=str(primary_id))
+        registry = project_brain_registry(ledger)
+        brains_value = registry.get("brains")
+        brain_table = brains_value if isinstance(brains_value, dict) else {}
+        escalation_id = _pick_escalation_brain(
+            candidate_list,
+            primary_id=str(primary_id),
+            brain_table=brain_table,
+        )
         plan = _plan_record(
             status="ready",
             task_domain=task_domain,
             context_sensitivity=context_sensitivity,
             primary_brain_id=str(primary_id),
             escalation_brain_id=escalation_id,
+            escalation_diversity=(
+                "distinct_model_hash" if escalation_id is not None else "no_independent_model_available"
+            ),
             initial_samples=initial_samples,
             max_samples=max_samples,
             agreement_threshold=agreement_threshold,
@@ -102,17 +114,43 @@ def build_verified_inference_plan(
     return plan
 
 
-def _pick_escalation_brain(candidates: list[dict[str, object]], *, primary_id: str) -> str | None:
-    """Most capable distinct candidate — the brain to escalate to.
+def _pick_escalation_brain(
+    candidates: list[dict[str, object]],
+    *,
+    primary_id: str,
+    brain_table: dict[str, object],
+) -> str | None:
+    """Pick a capable brain backed by a different underlying model identity.
 
-    Escalation should reach for raw capability (highest domain competence),
-    even if that brain lost the primary slot on cost or latency. This is the
-    coder-7B -> generalist-14B style fallback.
+    A distinct ``brain_id`` is not enough: multiple benchmark phenotypes may
+    point to the same Ollama model. Such aliases are useful for measurement
+    history but do not provide independent reasoning or criticism. Escalation
+    therefore excludes candidates with the primary model's persisted hash.
     """
-    others = [c for c in candidates if str(c.get("brain_id")) != primary_id]
+    primary_record = brain_table.get(primary_id)
+    primary = primary_record if isinstance(primary_record, dict) else {}
+    primary_model_hash = primary.get("model_id_hash")
+    others: list[dict[str, object]] = []
+    for candidate in candidates:
+        brain_id = str(candidate.get("brain_id"))
+        if brain_id == primary_id:
+            continue
+        record_value = brain_table.get(brain_id)
+        record = record_value if isinstance(record_value, dict) else {}
+        model_hash = record.get("model_id_hash")
+        if primary_model_hash and model_hash == primary_model_hash:
+            continue
+        others.append(candidate)
     if not others:
         return None
-    best = max(others, key=lambda c: float(c.get("domain_competence", 0.0)))
+    best = max(
+        others,
+        key=lambda candidate: (
+            float(candidate.get("robust_competence", candidate.get("domain_competence", 0.0))),
+            float(candidate.get("reliability", 0.0)),
+            str(candidate.get("brain_id")),
+        ),
+    )
     return str(best.get("brain_id"))
 
 
@@ -123,6 +161,7 @@ def _plan_record(
     context_sensitivity: str,
     primary_brain_id: str | None,
     escalation_brain_id: str | None,
+    escalation_diversity: str,
     initial_samples: int,
     max_samples: int,
     agreement_threshold: float,
@@ -140,6 +179,7 @@ def _plan_record(
         "context_sensitivity": context_sensitivity,
         "primary_brain_id": primary_brain_id,
         "escalation_brain_id": escalation_brain_id,
+        "escalation_diversity": escalation_diversity,
         "sampling_plan": {
             "initial_samples": initial_samples,
             "max_samples": max_samples,
