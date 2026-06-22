@@ -12,6 +12,7 @@ _REQUIRED = (
     "hexcortex-memory",
     "hexcortex-brains",
     "hexcortex-doctor",
+    "hexcortex-loop",
 )
 
 
@@ -71,6 +72,9 @@ def test_doctor_reports_ready_for_aligned_checkout(tmp_path: Path) -> None:
     assert payload["installed_console_scripts"]["hexcortex-genome"].endswith(
         "hexcortex-genome"
     )
+    assert payload["installed_console_scripts"]["hexcortex-loop"].endswith(
+        "hexcortex-loop"
+    )
 
 
 def test_doctor_blocks_branch_and_console_script_mismatch(tmp_path: Path) -> None:
@@ -105,7 +109,9 @@ def test_doctor_blocks_branch_and_console_script_mismatch(tmp_path: Path) -> Non
     assert payload["status"] == "blocked"
     assert "branch_mismatch:main:screen-lab-policy-v2" in payload["blockers"]
     assert "console_script_not_declared:hexcortex-genome" in payload["blockers"]
+    assert "console_script_not_declared:hexcortex-loop" in payload["blockers"]
     assert "console_script_not_installed:hexcortex-genome" in payload["blockers"]
+    assert "console_script_not_installed:hexcortex-loop" in payload["blockers"]
     assert "working_tree_not_clean" in payload["warnings"]
     assert "local_head_differs_from_expected_remote" in payload["warnings"]
 
