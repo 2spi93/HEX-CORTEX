@@ -80,6 +80,22 @@ _STAGE_UNITS = {
         "brain.registry.project",
         "brain.select",
     },
+    "verified_cognitive_loop": {
+        "compute.strategy",
+        "gpu.admission",
+        "verification.consensus",
+        "verification.adversarial",
+        "verification.next",
+        "inference.plan",
+        "cognitive.loop.plan",
+    },
+    "coding_intelligence": {
+        "repo.graph.build",
+        "repo.module.contract",
+        "patch.tournament",
+        "competence.rule.candidate",
+        "pot.grade",
+    },
 }
 
 _RUNTIME_FACTS = {
@@ -153,7 +169,9 @@ def audit_cortex_wiring(
         "missing_route_units": missing_route_units,
         "runtime_facts": facts,
         "runtime_blockers": runtime_blockers,
-        "next_action": "operate_cortex" if operational_ready else "configure_remaining_runtime_adapters",
+        "next_action": (
+            "operate_cortex" if operational_ready else "configure_remaining_runtime_adapters"
+        ),
     }
 
 
