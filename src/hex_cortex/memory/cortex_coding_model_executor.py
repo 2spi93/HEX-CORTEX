@@ -25,6 +25,8 @@ def execute_coding_model_task(
     remote_api_key_ref: str = "env:OPENAI_API_KEY",
     max_output_tokens: int = 4096,
     timeout_seconds: float = 120.0,
+    temperature: float = 0.0,
+    ollama_keep_alive: str = "5m",
     operator_approved: bool = False,
     transport: JsonTransport | None = None,
 ) -> dict[str, object]:
@@ -37,6 +39,8 @@ def execute_coding_model_task(
         context_sensitivity=context_sensitivity,
         max_output_tokens=max_output_tokens,
         timeout_seconds=timeout_seconds,
+        temperature=temperature,
+        ollama_keep_alive=ollama_keep_alive,
         operator_approved=operator_approved,
     )
     if blockers:
@@ -52,11 +56,29 @@ def execute_coding_model_task(
                 {"role": "system", "content": instruction},
                 {"role": "user", "content": _build_user_content(task_prompt, bounded_context)},
             ],
-            "temperature": 0,
+            "temperature": temperature,
             "stream": False,
             "max_tokens": max_output_tokens,
         }
         protocol = "openai_compatible_chat_completions"
+    elif provider_id == "local_ollama":
+        endpoint = _validated_local_endpoint(local_endpoint) + "/api/chat"
+        headers = {"Content-Type": "application/json"}
+        payload = {
+            "model": model,
+            "messages": [
+                {"role": "system", "content": instruction},
+                {"role": "user", "content": _build_user_content(task_prompt, bounded_context)},
+            ],
+            "stream": False,
+            "think": False,
+            "keep_alive": ollama_keep_alive,
+            "options": {
+                "temperature": temperature,
+                "num_predict": max_output_tokens,
+            },
+        }
+        protocol = "ollama_chat"
     else:
         if context_sensitivity == "secret":
             return _blocked(["secret_context_remote_forbidden"])
@@ -105,11 +127,15 @@ def execute_coding_model_task(
         "model_call_performed": True,
         "network_call_performed": True,
         "operator_approved": operator_approved,
+        "temperature": temperature,
+        "ollama_keep_alive": ollama_keep_alive if provider_id == "local_ollama" else None,
         "error_type": error_type,
         "blockers": [] if completed else ["model_execution_failed"],
         "next_action": "review_model_result" if completed else "repair_model_provider",
     }
-    receipt["receipt_hash"] = _stable_hash({key: value for key, value in receipt.items() if key != "volatile_result_text"})
+    receipt["receipt_hash"] = _stable_hash(
+        {key: value for key, value in receipt.items() if key != "volatile_result_text"}
+    )
     return receipt
 
 
@@ -123,10 +149,12 @@ def _validate_inputs(
     context_sensitivity: str,
     max_output_tokens: int,
     timeout_seconds: float,
+    temperature: float,
+    ollama_keep_alive: str,
     operator_approved: bool,
 ) -> list[str]:
     blockers: list[str] = []
-    if provider_id not in {"local_open_weight", "remote_api"}:
+    if provider_id not in {"local_open_weight", "local_ollama", "remote_api"}:
         blockers.append("provider_id_invalid")
     if not model.strip():
         blockers.append("model_missing")
@@ -146,6 +174,12 @@ def _validate_inputs(
         blockers.append("max_output_tokens_out_of_range")
     if not 1.0 <= timeout_seconds <= 1800.0:
         blockers.append("timeout_seconds_out_of_range")
+    if isinstance(temperature, bool) or not isinstance(temperature, int | float):
+        blockers.append("temperature_invalid")
+    elif not 0.0 <= float(temperature) <= 2.0:
+        blockers.append("temperature_out_of_range")
+    if not isinstance(ollama_keep_alive, str) or not ollama_keep_alive.strip():
+        blockers.append("ollama_keep_alive_invalid")
     if not operator_approved:
         blockers.append("operator_approval_required")
     return blockers
@@ -181,6 +215,12 @@ def _extract_result_text(protocol: str, response: dict[str, object]) -> str:
         if not isinstance(first, dict):
             return ""
         message = first.get("message")
+        if not isinstance(message, dict):
+            return ""
+        content = message.get("content")
+        return content if isinstance(content, str) else ""
+    if protocol == "ollama_chat":
+        message = response.get("message")
         if not isinstance(message, dict):
             return ""
         content = message.get("content")
@@ -234,7 +274,9 @@ def _blocked(blockers: list[str]) -> dict[str, object]:
         "blockers": sorted(set(blockers)),
         "next_action": "repair_model_execution_inputs",
     }
-    payload["receipt_hash"] = _stable_hash({key: value for key, value in payload.items() if key != "volatile_result_text"})
+    payload["receipt_hash"] = _stable_hash(
+        {key: value for key, value in payload.items() if key != "volatile_result_text"}
+    )
     return payload
 
 
