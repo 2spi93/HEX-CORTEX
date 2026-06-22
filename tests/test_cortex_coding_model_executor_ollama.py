@@ -32,6 +32,38 @@ def test_native_ollama_chat_uses_bounded_non_streaming_payload() -> None:
     assert calls[0][3]["options"] == {"temperature": 0.2, "num_predict": 512}
 
 
+def test_native_ollama_passes_json_schema_to_format() -> None:
+    calls = []
+    schema = {
+        "type": "object",
+        "properties": {"summary": {"type": "string"}},
+        "required": ["summary"],
+    }
+
+    def transport(method, url, headers, payload, timeout):
+        del method, url, headers, timeout
+        calls.append(payload)
+        return {
+            "message": {"role": "assistant", "content": '{"summary":"grounded"}'},
+            "done": True,
+        }
+
+    receipt = execute_coding_model_task(
+        provider_id="local_ollama",
+        model="qwen2.5-coder:7b",
+        instruction="Return JSON.",
+        task_prompt="Inspect this function.",
+        local_endpoint="http://127.0.0.1:11434",
+        response_format=schema,
+        operator_approved=True,
+        transport=transport,
+    )
+
+    assert receipt["status"] == "completed"
+    assert calls[0]["format"] == schema
+    assert receipt["response_format_hash"] is not None
+
+
 def test_native_ollama_failure_is_diagnostic_and_attempts_unload() -> None:
     calls = []
 
