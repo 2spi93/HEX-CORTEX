@@ -144,7 +144,7 @@ def build_bounded_repo_context(
 
 
 def _module_score(rel: str, info: dict[str, object], task_tokens: set[str]) -> float:
-    path_tokens = _tokens(rel.replace("/", " ").replace("_", " "))
+    path_tokens = _tokens(rel.replace("/", " "))
     definitions = {
         token
         for item in info.get("defines", [])
@@ -167,9 +167,10 @@ def _module_score(rel: str, info: dict[str, object], task_tokens: set[str]) -> f
 
 
 def _tokens(text: str) -> set[str]:
+    expanded = re.sub(r"(?<=[a-z0-9])(?=[A-Z])", " ", text).replace("_", " ")
     return {
         token.lower()
-        for token in re.findall(r"[A-Za-z_][A-Za-z0-9_]{2,}", text)
+        for token in re.findall(r"[A-Za-z][A-Za-z0-9]{2,}", expanded)
         if token.lower() not in _STOPWORDS
     }
 
