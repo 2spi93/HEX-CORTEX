@@ -4,6 +4,7 @@ import hashlib
 import json
 import os
 from collections.abc import Callable
+from urllib.error import HTTPError
 from urllib.parse import urlparse
 from urllib.request import Request, urlopen
 
@@ -11,6 +12,19 @@ JsonTransport = Callable[[str, str, dict[str, str], dict[str, object], float], d
 
 _LOCAL_HOSTS = {"127.0.0.1", "localhost", "::1"}
 _OPENAI_RESPONSES_ENDPOINT = "https://api.openai.com/v1/responses"
+
+
+class ModelTransportError(RuntimeError):
+    def __init__(
+        self,
+        message: str,
+        *,
+        status_code: int | None = None,
+        message_hash: str | None = None,
+    ) -> None:
+        super().__init__(message)
+        self.status_code = status_code
+        self.message_hash = message_hash or hashlib.sha256(message.encode("utf-8")).hexdigest()
 
 
 def execute_coding_model_task(
@@ -47,8 +61,10 @@ def execute_coding_model_task(
         return _blocked(blockers)
 
     caller = transport or _http_json
+    local_base: str | None = None
     if provider_id == "local_open_weight":
-        endpoint = _validated_local_endpoint(local_endpoint) + "/v1/chat/completions"
+        local_base = _validated_local_endpoint(local_endpoint)
+        endpoint = local_base + "/v1/chat/completions"
         headers = {"Content-Type": "application/json"}
         payload = {
             "model": model,
@@ -62,7 +78,8 @@ def execute_coding_model_task(
         }
         protocol = "openai_compatible_chat_completions"
     elif provider_id == "local_ollama":
-        endpoint = _validated_local_endpoint(local_endpoint) + "/api/chat"
+        local_base = _validated_local_endpoint(local_endpoint)
+        endpoint = local_base + "/api/chat"
         headers = {"Content-Type": "application/json"}
         payload = {
             "model": model,
@@ -71,7 +88,6 @@ def execute_coding_model_task(
                 {"role": "user", "content": _build_user_content(task_prompt, bounded_context)},
             ],
             "stream": False,
-            "think": False,
             "keep_alive": ollama_keep_alive,
             "options": {
                 "temperature": temperature,
@@ -99,13 +115,46 @@ def execute_coding_model_task(
         protocol = "openai_responses"
 
     error_type: str | None = None
+    error_status_code: int | None = None
+    error_message_hash: str | None = None
+    volatile_error_message = ""
+    cleanup_attempted = False
+    cleanup_succeeded = False
+    cleanup_error_type: str | None = None
     response: dict[str, object] = {}
     try:
         response = caller("POST", endpoint, headers, payload, timeout_seconds)
+    except ModelTransportError as exc:
+        error_type = type(exc).__name__
+        error_status_code = exc.status_code
+        error_message_hash = exc.message_hash
+        volatile_error_message = str(exc)
     except Exception as exc:  # noqa: BLE001 - fail-closed receipt records only type.
         error_type = type(exc).__name__
+        volatile_error_message = str(exc)
+        error_message_hash = hashlib.sha256(volatile_error_message.encode("utf-8")).hexdigest()
+
+    if error_type is not None and provider_id == "local_ollama" and local_base is not None:
+        cleanup_attempted = True
+        try:
+            caller(
+                "POST",
+                local_base + "/api/generate",
+                {"Content-Type": "application/json"},
+                {"model": model, "prompt": "", "stream": False, "keep_alive": 0},
+                min(timeout_seconds, 30.0),
+            )
+            cleanup_succeeded = True
+        except Exception as exc:  # noqa: BLE001 - cleanup is best-effort and hashed.
+            cleanup_error_type = type(exc).__name__
+
     result_text = _extract_result_text(protocol, response) if error_type is None else ""
     completed = error_type is None and bool(result_text)
+    if error_type is None and not completed:
+        error_type = "EmptyModelResponse"
+        volatile_error_message = "model response contained no assistant content"
+        error_message_hash = hashlib.sha256(volatile_error_message.encode("utf-8")).hexdigest()
+
     receipt = {
         "receipt_type": "coding_model_execution_v1",
         "status": "completed" if completed else "failed",
@@ -120,6 +169,7 @@ def execute_coding_model_task(
         "result_hash": hashlib.sha256(result_text.encode("utf-8")).hexdigest() if result_text else None,
         "result_chars": len(result_text),
         "volatile_result_text": result_text,
+        "volatile_error_message": volatile_error_message,
         "result_persisted": False,
         "prompt_persisted": False,
         "raw_response_persisted": False,
@@ -130,11 +180,20 @@ def execute_coding_model_task(
         "temperature": temperature,
         "ollama_keep_alive": ollama_keep_alive if provider_id == "local_ollama" else None,
         "error_type": error_type,
+        "error_status_code": error_status_code,
+        "error_message_hash": error_message_hash,
+        "cleanup_attempted": cleanup_attempted,
+        "cleanup_succeeded": cleanup_succeeded,
+        "cleanup_error_type": cleanup_error_type,
         "blockers": [] if completed else ["model_execution_failed"],
         "next_action": "review_model_result" if completed else "repair_model_provider",
     }
     receipt["receipt_hash"] = _stable_hash(
-        {key: value for key, value in receipt.items() if key != "volatile_result_text"}
+        {
+            key: value
+            for key, value in receipt.items()
+            if key not in {"volatile_result_text", "volatile_error_message"}
+        }
     )
     return receipt
 
@@ -253,10 +312,25 @@ def _http_json(
 ) -> dict[str, object]:
     body = json.dumps(payload).encode("utf-8")
     request = Request(url, data=body, method=method, headers=headers)
-    with urlopen(request, timeout=timeout_seconds) as response:  # noqa: S310 - endpoint is validated/fixed.
-        result = json.loads(response.read().decode("utf-8"))
+    try:
+        with urlopen(request, timeout=timeout_seconds) as response:  # noqa: S310 - endpoint is validated/fixed.
+            result = json.loads(response.read().decode("utf-8"))
+    except HTTPError as exc:
+        raw = exc.read().decode("utf-8", errors="replace")
+        message = raw
+        try:
+            parsed = json.loads(raw)
+            if isinstance(parsed, dict) and isinstance(parsed.get("error"), str):
+                message = str(parsed["error"])
+        except json.JSONDecodeError:
+            pass
+        raise ModelTransportError(
+            message or f"HTTP {exc.code}",
+            status_code=exc.code,
+            message_hash=hashlib.sha256(raw.encode("utf-8")).hexdigest(),
+        ) from exc
     if not isinstance(result, dict):
-        raise ValueError("model response must be a JSON object")
+        raise ModelTransportError("model response must be a JSON object")
     return result
 
 
@@ -265,6 +339,7 @@ def _blocked(blockers: list[str]) -> dict[str, object]:
         "receipt_type": "coding_model_execution_v1",
         "status": "blocked",
         "volatile_result_text": "",
+        "volatile_error_message": "",
         "result_persisted": False,
         "prompt_persisted": False,
         "raw_response_persisted": False,
@@ -275,7 +350,11 @@ def _blocked(blockers: list[str]) -> dict[str, object]:
         "next_action": "repair_model_execution_inputs",
     }
     payload["receipt_hash"] = _stable_hash(
-        {key: value for key, value in payload.items() if key != "volatile_result_text"}
+        {
+            key: value
+            for key, value in payload.items()
+            if key not in {"volatile_result_text", "volatile_error_message"}
+        }
     )
     return payload
 
