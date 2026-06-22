@@ -9,7 +9,10 @@ from hex_cortex.memory.cortex_cognitive_brain_registry import project_brain_regi
 from hex_cortex.memory.cortex_coding_model_executor import execute_coding_model_task
 from hex_cortex.memory.cortex_gpu_governor import decide_gpu_admission
 from hex_cortex.memory.cortex_pot_evaluator import grade_arithmetic
+from hex_cortex.memory.cortex_repo_context import build_bounded_repo_context
 from hex_cortex.memory.cortex_self_consistency import aggregate_self_consistency
+from hex_cortex.memory.cortex_structured_code_plan import aggregate_structured_code_plans
+from hex_cortex.memory.cortex_structured_code_plan import code_plan_json_schema
 from hex_cortex.memory.cortex_verification_policy import decide_verification_action
 
 JsonTransport = Callable[[str, str, dict[str, str], dict[str, object], float], dict[str, object]]
@@ -28,6 +31,11 @@ def execute_verified_local_loop(
     instruction: str,
     task_prompt: str,
     bounded_context: str = "",
+    repo_root: Path | None = None,
+    auto_repo_context: bool = False,
+    structured_code_plan: bool = False,
+    repo_context_max_modules: int = 10,
+    repo_context_max_chars: int = 12_000,
     local_endpoint: str = "http://127.0.0.1:11434",
     max_output_tokens: int = 2048,
     timeout_seconds: float = 120.0,
@@ -51,12 +59,57 @@ def execute_verified_local_loop(
         ledger=ledger,
         model=model,
         gpu_snapshot=gpu_snapshot,
+        repo_root=repo_root,
+        auto_repo_context=auto_repo_context,
+        structured_code_plan=structured_code_plan,
         expected_numeric=expected_numeric,
         operator_approved=operator_approved,
         confirmation=confirmation,
     )
     if blockers:
         return _blocked(blockers, plan_hash=plan.get("plan_hash"))
+
+    context_meta: dict[str, object] = {
+        "repo_context_hash": None,
+        "repo_context_module_count": 0,
+        "repo_context_chars": 0,
+        "structured_code_plan": structured_code_plan,
+        "structured_schema_hash": None,
+    }
+    allowed_paths: set[str] = set()
+    effective_context = bounded_context
+    response_format: dict[str, object] | None = None
+    effective_instruction = instruction
+
+    if auto_repo_context and repo_root is not None:
+        repo_context = build_bounded_repo_context(
+            repo_root,
+            task_prompt,
+            max_modules=repo_context_max_modules,
+            max_chars=repo_context_max_chars,
+        )
+        context_text = str(repo_context["context_text"])
+        effective_context = (
+            f"{bounded_context}\n\n{context_text}" if bounded_context else context_text
+        )
+        allowed_paths = {str(path) for path in repo_context["allowed_paths"]}
+        context_meta.update(
+            {
+                "repo_context_hash": repo_context.get("context_hash"),
+                "repo_context_module_count": repo_context.get("module_count", 0),
+                "repo_context_chars": repo_context.get("context_chars", 0),
+            }
+        )
+
+    if structured_code_plan:
+        response_format = code_plan_json_schema()
+        context_meta["structured_schema_hash"] = _stable_hash(response_format)
+        effective_instruction = (
+            f"{instruction.strip()}\n\n"
+            "Return only one JSON object matching the supplied schema. "
+            "Use only repository paths present in bounded_context. "
+            "When evidence is insufficient, use unknowns instead of inventing files."
+        )
 
     requested_tier = str(plan.get("granted_tier", "small"))
     fresh_gpu = decide_gpu_admission(
@@ -82,15 +135,16 @@ def execute_verified_local_loop(
         call = execute_coding_model_task(
             provider_id="local_ollama",
             model=model,
-            instruction=instruction,
+            instruction=effective_instruction,
             task_prompt=task_prompt,
-            bounded_context=bounded_context,
+            bounded_context=effective_context,
             context_sensitivity=str(plan["context_sensitivity"]),
             local_endpoint=local_endpoint,
             max_output_tokens=max_output_tokens,
             timeout_seconds=timeout_seconds,
             temperature=0.0 if sample_count == 1 else sample_temperature,
             ollama_keep_alive=keep_alive,
+            response_format=response_format,
             operator_approved=True,
             transport=transport,
         )
@@ -120,19 +174,28 @@ def execute_verified_local_loop(
             next_action="repair_local_model_runtime",
             receipt_path=receipt_path,
             failure_call=failure_call,
+            context_meta=context_meta,
         )
 
-    mode = "numeric" if plan.get("exact_arithmetic_domain") is True else "text"
     weights = None
     if _weighted_vote_requested(plan):
         weight = _primary_brain_weight(ledger, str(plan["primary_brain_id"]))
         weights = [weight] * sample_count
-    consensus = aggregate_self_consistency(
-        volatile_samples,
-        mode=mode,
-        agreement_threshold=0.5,
-        sample_weights=weights,
-    )
+
+    if structured_code_plan:
+        consensus = aggregate_structured_code_plans(
+            volatile_samples,
+            allowed_paths=allowed_paths,
+            sample_weights=weights,
+        )
+    else:
+        mode = "numeric" if plan.get("exact_arithmetic_domain") is True else "text"
+        consensus = aggregate_self_consistency(
+            volatile_samples,
+            mode=mode,
+            agreement_threshold=0.5,
+            sample_weights=weights,
+        )
 
     deterministic_grade = None
     if plan.get("use_deterministic_tool") is True:
@@ -156,6 +219,7 @@ def execute_verified_local_loop(
                 blockers=["deterministic_verifier_refuted_consensus"],
                 next_action="revise_reasoning_before_any_execution",
                 receipt_path=receipt_path,
+                context_meta=context_meta,
             )
 
     if plan.get("verification_gap") is True:
@@ -204,6 +268,7 @@ def execute_verified_local_loop(
         blockers=blockers,
         next_action=next_action,
         receipt_path=receipt_path,
+        context_meta=context_meta,
     )
 
 
@@ -213,6 +278,9 @@ def _validate_execution_request(
     ledger: Path,
     model: str,
     gpu_snapshot: dict[str, object],
+    repo_root: Path | None,
+    auto_repo_context: bool,
+    structured_code_plan: bool,
     expected_numeric: float | None,
     operator_approved: bool,
     confirmation: str,
@@ -241,6 +309,14 @@ def _validate_execution_request(
         blockers.append("model_missing")
     if plan.get("use_deterministic_tool") is True and expected_numeric is None:
         blockers.append("expected_numeric_required_for_deterministic_verifier")
+    if auto_repo_context and repo_root is None:
+        blockers.append("repo_root_required_for_auto_context")
+    if repo_root is not None and not repo_root.resolve().is_dir():
+        blockers.append("repo_root_invalid")
+    if structured_code_plan and not auto_repo_context:
+        blockers.append("structured_code_plan_requires_auto_repo_context")
+    if structured_code_plan and plan.get("exact_arithmetic_domain") is True:
+        blockers.append("structured_code_plan_incompatible_with_arithmetic_mode")
     if not ledger.resolve().is_file():
         blockers.append("brain_ledger_missing")
     elif model.strip() and plan.get("primary_brain_id"):
@@ -301,8 +377,10 @@ def _execution_receipt(
     next_action: str,
     receipt_path: Path | None,
     failure_call: dict[str, object] | None = None,
+    context_meta: dict[str, object] | None = None,
 ) -> dict[str, object]:
     failed = failure_call or {}
+    metadata = context_meta or {}
     persisted = {
         "receipt_type": "verified_local_loop_execution_v1",
         "status": status,
@@ -319,6 +397,13 @@ def _execution_receipt(
         "ollama_cleanup_attempted": failed.get("cleanup_attempted", False),
         "ollama_cleanup_succeeded": failed.get("cleanup_succeeded", False),
         "ollama_cleanup_error_type": failed.get("cleanup_error_type"),
+        "repo_context_hash": metadata.get("repo_context_hash"),
+        "repo_context_module_count": metadata.get("repo_context_module_count", 0),
+        "repo_context_chars": metadata.get("repo_context_chars", 0),
+        "structured_code_plan": metadata.get("structured_code_plan", False),
+        "structured_schema_hash": metadata.get("structured_schema_hash"),
+        "grounding_ratio": consensus.get("grounding_ratio") if consensus else None,
+        "invalid_path_count": len(consensus.get("invalid_paths", [])) if consensus else 0,
         "fresh_gpu_action": fresh_gpu.get("action"),
         "fresh_gpu_granted_tier": fresh_gpu.get("granted_tier"),
         "consensus_event_hash": consensus.get("event_hash") if consensus else None,
@@ -337,6 +422,7 @@ def _execution_receipt(
         "automatic_escalation_performed": False,
         "raw_prompt_persisted": False,
         "raw_response_persisted": False,
+        "raw_repo_context_persisted": False,
         "raw_consensus_answer_persisted": False,
         "raw_error_message_persisted": False,
         "blockers": blockers,
