@@ -96,9 +96,16 @@ def summarize_module_contract(root: Path, module_rel_path: str) -> dict[str, obj
     """Public contract of one module: top-level function/class signatures + docs.
 
     This is the ``summarize_module_contract`` agent-computer command — it gives a
-    model the public surface of a module without the full body. Read-only.
+    model the public surface of a module without the full body. Read-only. The
+    requested module must remain inside ``root``; traversal outside the project
+    is rejected before any file is read.
     """
-    target = (root.resolve() / module_rel_path).resolve()
+    resolved_root = root.resolve()
+    target = (resolved_root / module_rel_path).resolve()
+    try:
+        target.relative_to(resolved_root)
+    except ValueError as exc:
+        raise ValueError("module path escapes repository root") from exc
     if not target.is_file():
         raise ValueError("module path does not resolve to a file")
     tree = ast.parse(target.read_text(encoding="utf-8"))
