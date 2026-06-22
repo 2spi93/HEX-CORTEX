@@ -18,6 +18,7 @@ _REQUIRED_COMMANDS = (
     "hexcortex-memory",
     "hexcortex-brains",
     "hexcortex-doctor",
+    "hexcortex-loop",
 )
 _OPTIONAL_MODULES = ("PIL", "torch")
 
