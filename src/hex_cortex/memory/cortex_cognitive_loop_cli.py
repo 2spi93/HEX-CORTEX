@@ -8,6 +8,7 @@ from pathlib import Path
 from hex_cortex.memory.cortex_cognitive_loop_plan import build_cognitive_loop_plan
 from hex_cortex.memory.cortex_self_consistency import aggregate_self_consistency
 from hex_cortex.memory.cortex_verification_policy import decide_verification_action
+from hex_cortex.memory.cortex_verified_execution_runtime import execute_verified_local_loop
 
 _DEFAULT_LEDGER = ".hex-cortex/cognitive/brain-registry.jsonl"
 
@@ -25,7 +26,11 @@ def build_parser() -> argparse.ArgumentParser:
         choices=("public", "private", "secret"),
         required=True,
     )
-    plan.add_argument("--difficulty", choices=("low", "medium", "high", "critical"), default="medium")
+    plan.add_argument(
+        "--difficulty",
+        choices=("low", "medium", "high", "critical"),
+        default="medium",
+    )
     plan.add_argument("--risk", choices=("low", "medium", "high", "critical"), default="low")
     plan.add_argument("--prior-confidence", type=float)
     plan.add_argument("--maximum-latency-ms", type=float, default=5000.0)
@@ -34,6 +39,25 @@ def build_parser() -> argparse.ArgumentParser:
     plan.add_argument("--remote-allowed", action="store_true")
     plan.add_argument("--benchmark", action="store_true")
     plan.add_argument("--receipt")
+    plan.add_argument("--output")
+
+    execute = commands.add_parser("execute-local")
+    execute.add_argument("plan_json")
+    execute.add_argument("--ledger", default=_DEFAULT_LEDGER)
+    execute.add_argument("--gpu-snapshot", required=True)
+    execute.add_argument("--instruction-file", required=True)
+    execute.add_argument("--prompt-file", required=True)
+    execute.add_argument("--context-file")
+    execute.add_argument("--model", required=True)
+    execute.add_argument("--local-endpoint", default="http://127.0.0.1:11434")
+    execute.add_argument("--max-output-tokens", type=int, default=2048)
+    execute.add_argument("--timeout-seconds", type=float, default=120.0)
+    execute.add_argument("--sample-temperature", type=float, default=0.2)
+    execute.add_argument("--ollama-keep-alive", default="2m")
+    execute.add_argument("--expected-numeric", type=float)
+    execute.add_argument("--receipt")
+    execute.add_argument("--operator-approved", action="store_true")
+    execute.add_argument("--confirm", default="")
 
     consensus = commands.add_parser("consensus")
     consensus.add_argument("--samples", required=True)
@@ -62,14 +86,14 @@ def main(argv: Sequence[str] | None = None) -> int:
         print(json.dumps(payload, sort_keys=True, indent=2))
         return 2
     print(json.dumps(payload, sort_keys=True, indent=2))
-    return 0 if payload.get("status") != "blocked" else 2
+    return 0 if payload.get("status") not in {"blocked", "failed", "refused"} else 2
 
 
 def _dispatch(args: argparse.Namespace) -> dict[str, object]:
     if args.command == "plan":
         snapshot = _read_object(Path(args.gpu_snapshot))
         receipt = Path(args.receipt) if args.receipt else None
-        return build_cognitive_loop_plan(
+        payload = build_cognitive_loop_plan(
             Path(args.ledger),
             snapshot,
             task_domain=args.task_domain,
@@ -82,6 +106,34 @@ def _dispatch(args: argparse.Namespace) -> dict[str, object]:
             remote_allowed=args.remote_allowed,
             target_confidence=args.target_confidence,
             is_benchmark=args.benchmark,
+            receipt_path=receipt,
+        )
+        if args.output:
+            _write_json(Path(args.output), payload)
+        return payload
+    if args.command == "execute-local":
+        plan = _read_object(Path(args.plan_json))
+        snapshot = _read_object(Path(args.gpu_snapshot))
+        instruction = _read_text(Path(args.instruction_file))
+        prompt = _read_text(Path(args.prompt_file))
+        context = "" if args.context_file is None else _read_text(Path(args.context_file))
+        receipt = Path(args.receipt) if args.receipt else None
+        return execute_verified_local_loop(
+            plan,
+            ledger=Path(args.ledger),
+            gpu_snapshot=snapshot,
+            model=args.model,
+            instruction=instruction,
+            task_prompt=prompt,
+            bounded_context=context,
+            local_endpoint=args.local_endpoint,
+            max_output_tokens=args.max_output_tokens,
+            timeout_seconds=args.timeout_seconds,
+            sample_temperature=args.sample_temperature,
+            ollama_keep_alive=args.ollama_keep_alive,
+            expected_numeric=args.expected_numeric,
+            operator_approved=args.operator_approved,
+            confirmation=args.confirm,
             receipt_path=receipt,
         )
     if args.command == "consensus":
@@ -120,6 +172,16 @@ def _read_list(path: Path, *, expected: type | None = None) -> list[object]:
     if expected is not None and not all(isinstance(item, expected) for item in payload):
         raise ValueError("JSON list contains invalid item types")
     return payload
+
+
+def _read_text(path: Path) -> str:
+    return path.resolve().read_text(encoding="utf-8")
+
+
+def _write_json(path: Path, payload: dict[str, object]) -> None:
+    target = path.resolve()
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_text(json.dumps(payload, sort_keys=True, indent=2) + "\n", encoding="utf-8")
 
 
 if __name__ == "__main__":
