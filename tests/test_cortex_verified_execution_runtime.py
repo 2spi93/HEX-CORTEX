@@ -3,6 +3,7 @@ from pathlib import Path
 
 from hex_cortex.memory.cortex_cognitive_brain_registry import append_brain_phenotype
 from hex_cortex.memory.cortex_cognitive_loop_plan import build_cognitive_loop_plan
+from hex_cortex.memory.cortex_coding_model_executor import ModelTransportError
 from hex_cortex.memory.cortex_verified_execution_runtime import execute_verified_local_loop
 
 
@@ -98,6 +99,51 @@ def test_primary_sampling_stops_at_human_review_without_independent_critic(
     assert "volatile_consensus_answer" not in persisted
     assert "Use the parser" not in json.dumps(persisted)
     assert persisted["raw_consensus_answer_persisted"] is False
+
+
+def test_failed_call_surfaces_diagnostics_but_not_raw_error_in_receipt(
+    tmp_path: Path,
+) -> None:
+    ledger = _ledger(tmp_path)
+    receipt_path = tmp_path / "execution.jsonl"
+    calls = []
+
+    def transport(method, url, headers, payload, timeout):
+        del method, headers, timeout
+        calls.append((url, payload))
+        if url.endswith("/api/chat"):
+            raise ModelTransportError(
+                "runner crashed after loading model",
+                status_code=500,
+                message_hash="b" * 64,
+            )
+        return {"done": True}
+
+    result = execute_verified_local_loop(
+        _plan(ledger),
+        ledger=ledger,
+        gpu_snapshot=_snapshot(),
+        model="qwen2.5-coder:7b",
+        instruction="Plan.",
+        task_prompt="Task.",
+        operator_approved=True,
+        confirmation="EXECUTE_VERIFIED_LOCAL_LOOP",
+        transport=transport,
+        receipt_path=receipt_path,
+    )
+
+    assert result["status"] == "failed"
+    assert result["model_error_type"] == "ModelTransportError"
+    assert result["model_error_status_code"] == 500
+    assert result["model_error_message_hash"] == "b" * 64
+    assert result["ollama_cleanup_attempted"] is True
+    assert result["ollama_cleanup_succeeded"] is True
+    assert result["volatile_error_message"] == "runner crashed after loading model"
+
+    persisted = json.loads(receipt_path.read_text(encoding="utf-8").splitlines()[0])
+    assert "volatile_error_message" not in persisted
+    assert "runner crashed" not in json.dumps(persisted)
+    assert persisted["raw_error_message_persisted"] is False
 
 
 def test_execution_requires_exact_phrase_and_performs_no_call(tmp_path: Path) -> None:
