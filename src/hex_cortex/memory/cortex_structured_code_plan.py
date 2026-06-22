@@ -177,6 +177,7 @@ def aggregate_structured_code_plans(
     )
     status = "consensus" if enough_support else "no_consensus"
     decision = "structured_consensus_reached" if enough_support else "structured_consensus_weak"
+    signature = _plan_signature(parsed[medoid])
     event = {
         "record_type": "cortex_structured_code_plan_consensus_v1",
         "event_id": f"structplan_{uuid4().hex}",
@@ -191,7 +192,7 @@ def aggregate_structured_code_plans(
         "effective_sample_count": round(effective_n, 6),
         "confidence_wilson_lower": round(confidence, 6),
         "winner_count": len(support_indices),
-        "winner_cluster_hash": _stable_hash(_plan_signature(parsed[medoid])),
+        "winner_cluster_hash": _stable_hash(_serializable_signature(signature)),
         "consensus_answer": json.dumps(winner, sort_keys=True, separators=(",", ":")),
         "consensus_plan": winner,
         "grounding_ratio": parsed[medoid].get("grounding_ratio", 0.0),
@@ -230,6 +231,10 @@ def _plan_signature(parsed: dict[str, object]) -> dict[str, set[str]]:
         if isinstance(item, dict)
     }
     return {"areas": areas, "files": files, "changes": changes}
+
+
+def _serializable_signature(signature: dict[str, set[str]]) -> dict[str, list[str]]:
+    return {key: sorted(values) for key, values in signature.items()}
 
 
 def _empty_consensus(sample_count: int, parsed: list[dict[str, object]]) -> dict[str, object]:
