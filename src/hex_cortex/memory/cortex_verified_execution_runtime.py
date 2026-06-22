@@ -16,6 +16,7 @@ JsonTransport = Callable[[str, str, dict[str, str], dict[str, object], float], d
 
 _EXECUTION_PHRASE = "EXECUTE_VERIFIED_LOCAL_LOOP"
 _MAX_PRIMARY_SAMPLES = 5
+_MAX_VERIFICATION_SAMPLES = 16
 
 
 def execute_verified_local_loop(
@@ -154,7 +155,18 @@ def execute_verified_local_loop(
                 receipt_path=receipt_path,
             )
 
-    if plan.get("use_self_consistency") is not True:
+    if plan.get("verification_gap") is True:
+        status = "needs_human_review"
+        verification = {
+            "policy_type": "cortex_verification_policy_v1",
+            "action": "human_review",
+            "reason": "independent_model_unavailable_for_required_critique",
+            "model_call_performed": False,
+            "fail_closed": True,
+        }
+        blockers = ["independent_critic_unavailable"]
+        next_action = "operator_review_primary_consensus"
+    elif plan.get("use_self_consistency") is not True:
         status = "needs_human_review"
         verification = {
             "policy_type": "cortex_verification_policy_v1",
@@ -169,7 +181,7 @@ def execute_verified_local_loop(
         verification = decide_verification_action(
             consensus,
             target_confidence=float(plan.get("target_confidence", 0.7)),
-            max_samples=_MAX_PRIMARY_SAMPLES,
+            max_samples=_MAX_VERIFICATION_SAMPLES,
             stronger_brain_available=bool(plan.get("escalation_brain_id")),
         )
         status, blockers, next_action = _resolve_next_stage(plan, verification)
