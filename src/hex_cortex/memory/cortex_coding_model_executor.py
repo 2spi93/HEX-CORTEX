@@ -41,6 +41,7 @@ def execute_coding_model_task(
     timeout_seconds: float = 120.0,
     temperature: float = 0.0,
     ollama_keep_alive: str = "5m",
+    response_format: str | dict[str, object] | None = None,
     operator_approved: bool = False,
     transport: JsonTransport | None = None,
 ) -> dict[str, object]:
@@ -55,6 +56,7 @@ def execute_coding_model_task(
         timeout_seconds=timeout_seconds,
         temperature=temperature,
         ollama_keep_alive=ollama_keep_alive,
+        response_format=response_format,
         operator_approved=operator_approved,
     )
     if blockers:
@@ -94,10 +96,14 @@ def execute_coding_model_task(
                 "num_predict": max_output_tokens,
             },
         }
+        if response_format is not None:
+            payload["format"] = response_format
         protocol = "ollama_chat"
     else:
         if context_sensitivity == "secret":
             return _blocked(["secret_context_remote_forbidden"])
+        if response_format is not None:
+            return _blocked(["structured_response_remote_not_enabled"])
         api_key = _resolve_env_secret(remote_api_key_ref)
         if api_key is None:
             return _blocked(["remote_api_key_unavailable"])
@@ -166,6 +172,7 @@ def execute_coding_model_task(
         "task_prompt_hash": hashlib.sha256(task_prompt.encode("utf-8")).hexdigest(),
         "bounded_context_hash": hashlib.sha256(bounded_context.encode("utf-8")).hexdigest(),
         "bounded_context_chars": len(bounded_context),
+        "response_format_hash": _stable_hash(response_format) if response_format is not None else None,
         "result_hash": hashlib.sha256(result_text.encode("utf-8")).hexdigest() if result_text else None,
         "result_chars": len(result_text),
         "volatile_result_text": result_text,
@@ -210,6 +217,7 @@ def _validate_inputs(
     timeout_seconds: float,
     temperature: float,
     ollama_keep_alive: str,
+    response_format: str | dict[str, object] | None,
     operator_approved: bool,
 ) -> list[str]:
     blockers: list[str] = []
@@ -239,6 +247,13 @@ def _validate_inputs(
         blockers.append("temperature_out_of_range")
     if not isinstance(ollama_keep_alive, str) or not ollama_keep_alive.strip():
         blockers.append("ollama_keep_alive_invalid")
+    if response_format is not None and not isinstance(response_format, str | dict):
+        blockers.append("response_format_invalid")
+    elif response_format is not None:
+        try:
+            json.dumps(response_format)
+        except (TypeError, ValueError):
+            blockers.append("response_format_not_json_serializable")
     if not operator_approved:
         blockers.append("operator_approval_required")
     return blockers
