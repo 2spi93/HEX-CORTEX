@@ -75,6 +75,7 @@ def execute_verified_local_loop(
     volatile_samples: list[str] = []
     call_receipt_hashes: list[str] = []
     failed_call_index: int | None = None
+    failure_call: dict[str, object] | None = None
 
     for index in range(sample_count):
         keep_alive = "0" if index == sample_count - 1 else ollama_keep_alive
@@ -97,6 +98,7 @@ def execute_verified_local_loop(
         text = call.get("volatile_result_text")
         if call.get("status") != "completed" or not isinstance(text, str) or not text.strip():
             failed_call_index = index
+            failure_call = call
             break
         volatile_samples.append(text)
         sample_hashes.append(hashlib.sha256(text.encode("utf-8")).hexdigest())
@@ -117,6 +119,7 @@ def execute_verified_local_loop(
             blockers=[f"primary_model_call_failed_at_index:{failed_call_index}"],
             next_action="repair_local_model_runtime",
             receipt_path=receipt_path,
+            failure_call=failure_call,
         )
 
     mode = "numeric" if plan.get("exact_arithmetic_domain") is True else "text"
@@ -297,7 +300,9 @@ def _execution_receipt(
     blockers: list[str],
     next_action: str,
     receipt_path: Path | None,
+    failure_call: dict[str, object] | None = None,
 ) -> dict[str, object]:
+    failed = failure_call or {}
     persisted = {
         "receipt_type": "verified_local_loop_execution_v1",
         "status": status,
@@ -308,6 +313,12 @@ def _execution_receipt(
         "sample_count_completed": len(sample_hashes),
         "sample_hashes": sample_hashes,
         "model_call_receipt_hashes": call_receipt_hashes,
+        "model_error_type": failed.get("error_type"),
+        "model_error_status_code": failed.get("error_status_code"),
+        "model_error_message_hash": failed.get("error_message_hash"),
+        "ollama_cleanup_attempted": failed.get("cleanup_attempted", False),
+        "ollama_cleanup_succeeded": failed.get("cleanup_succeeded", False),
+        "ollama_cleanup_error_type": failed.get("cleanup_error_type"),
         "fresh_gpu_action": fresh_gpu.get("action"),
         "fresh_gpu_granted_tier": fresh_gpu.get("granted_tier"),
         "consensus_event_hash": consensus.get("event_hash") if consensus else None,
@@ -327,6 +338,7 @@ def _execution_receipt(
         "raw_prompt_persisted": False,
         "raw_response_persisted": False,
         "raw_consensus_answer_persisted": False,
+        "raw_error_message_persisted": False,
         "blockers": blockers,
         "next_action": next_action,
     }
@@ -335,6 +347,7 @@ def _execution_receipt(
         _append_jsonl(receipt_path, persisted)
     result = dict(persisted)
     result["volatile_consensus_answer"] = volatile_consensus_answer
+    result["volatile_error_message"] = str(failed.get("volatile_error_message", ""))
     result["consensus"] = consensus
     result["verification"] = verification
     result["deterministic_grade"] = deterministic_grade
