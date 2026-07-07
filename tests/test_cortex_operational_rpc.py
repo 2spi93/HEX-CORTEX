@@ -14,8 +14,9 @@ from hex_cortex.memory.cortex_rpc import PROTOCOL_VERSION
 def test_operational_rpc_catalog_extends_legacy_tools() -> None:
     rows = list_cortex_operational_rpc_tools()
 
-    assert len(rows) == 16
+    assert len(rows) == 17
     assert {row["name"] for row in rows} >= {
+        "hex_cortex_measured_intelligence",
         "hex_cortex_wiring",
         "hex_cortex_operational_audit",
         "hex_cortex_cognitive_genome",
@@ -228,7 +229,7 @@ def test_operational_rpc_initializes_and_lists_tools() -> None:
     )
 
     assert initialized["result"]["serverInfo"]["version"] == "1.2.0"
-    assert len(listing["result"]["tools"]) == 16
+    assert len(listing["result"]["tools"]) == 17
 
 
 def _snapshot() -> dict[str, object]:

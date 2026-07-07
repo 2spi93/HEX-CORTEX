@@ -136,6 +136,58 @@ def test_stdio_serves_operator_guide_end_to_end() -> None:
     assert "refused" in issues["issues"][0]["symptom"].lower()
 
 
+def test_stdio_serves_measured_intelligence_end_to_end() -> None:
+    responses = _serve(
+        [
+            _rpc("initialize", 1, {"protocolVersion": "2025-03-26", "capabilities": {}}),
+            _rpc("notifications/initialized"),
+            _rpc(
+                "tools/call",
+                2,
+                {
+                    "name": "hex_cortex_measured_intelligence",
+                    "arguments": {"action": "benchmark_suite"},
+                },
+            ),
+            _rpc(
+                "tools/call",
+                3,
+                {
+                    "name": "hex_cortex_measured_intelligence",
+                    "arguments": {
+                        "action": "route",
+                        "domain": "coding",
+                        "candidates": ["model-a", "model-b"],
+                        "benchmark_priors": {"model-a": 0.9, "model-b": 0.2},
+                    },
+                },
+            ),
+            _rpc(
+                "tools/call",
+                4,
+                {
+                    "name": "hex_cortex_measured_intelligence",
+                    "arguments": {
+                        "action": "reflex_plan",
+                        "task_text": "Fix the failing pytest in the spine module",
+                    },
+                },
+            ),
+        ]
+    )
+
+    suite = json.loads(responses[1]["result"]["content"][0]["text"])
+    assert suite["suite_type"] == "cortex_benchmark_suite_v1"
+    assert suite["task_count"] >= 12
+
+    routing = json.loads(responses[2]["result"]["content"][0]["text"])
+    assert routing["selected_model"] == "model-a"
+
+    reflex = json.loads(responses[3]["result"]["content"][0]["text"])
+    assert reflex["dry_run"] is True
+    assert reflex["model_call_performed"] is False
+
+
 def test_stdio_rejects_tool_calls_before_initialize() -> None:
     responses = _serve([_rpc("tools/list", 1)])
 

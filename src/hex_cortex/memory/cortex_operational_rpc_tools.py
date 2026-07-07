@@ -15,9 +15,17 @@ from hex_cortex.memory.cortex_operational_intelligence_tools import (
 from hex_cortex.memory.cortex_model_armor import build_model_armor_plan
 from hex_cortex.memory.cortex_model_armor import list_coding_protocols
 from hex_cortex.memory.cortex_model_armor import propose_protocol_skill_candidates
+from hex_cortex.memory.cortex_bandit_router import empty_routing_stats
+from hex_cortex.memory.cortex_bandit_router import rank_models
+from hex_cortex.memory.cortex_bandit_router import update_routing_outcome
+from hex_cortex.memory.cortex_confidence_calibration import build_calibration_map
+from hex_cortex.memory.cortex_confidence_calibration import calibrate_confidence
+from hex_cortex.memory.cortex_model_benchmark import build_benchmark_suite
+from hex_cortex.memory.cortex_model_benchmark import score_benchmark_responses
 from hex_cortex.memory.cortex_operator_guide import build_operator_guide
 from hex_cortex.memory.cortex_operator_guide import build_troubleshooting_guide
 from hex_cortex.memory.cortex_operator_guide import list_guide_topics
+from hex_cortex.memory.cortex_reflex_brain import classify_task
 from hex_cortex.memory.cortex_rpc_tools import build_cortex_rpc_tool_result
 from hex_cortex.memory.cortex_rpc_tools import call_cortex_rpc_tool as call_legacy_tool
 from hex_cortex.memory.cortex_rpc_tools import list_cortex_rpc_tools as list_legacy_tools
@@ -169,6 +177,56 @@ def list_cortex_operational_rpc_tools() -> list[dict[str, object]]:
             "annotations": {"readOnlyHint": True, "destructiveHint": False},
         }
     )
+    rows.append(
+        {
+            "name": "hex_cortex_measured_intelligence",
+            "title": "HEX-CORTEX Measured Intelligence",
+            "description": (
+                "Measured-intelligence kit: deterministic model benchmark suite and scoring, "
+                "bandit routing that learns from outcome receipts, confidence calibration that "
+                "detects bluffing models, and the reflex-brain dry-run classification plan. "
+                "Stateless and read-only: callers supply stats/observations; nothing executes."
+            ),
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "action": {
+                        "type": "string",
+                        "enum": [
+                            "benchmark_suite",
+                            "benchmark_score",
+                            "route",
+                            "routing_update",
+                            "calibration_map",
+                            "calibrate",
+                            "reflex_plan",
+                        ],
+                    },
+                    "model_id": {"type": "string"},
+                    "responses": {
+                        "type": "object",
+                        "additionalProperties": {"type": "string"},
+                    },
+                    "stats": {"type": "object"},
+                    "domain": {"type": "string"},
+                    "candidates": {"type": "array", "items": {"type": "string"}},
+                    "benchmark_priors": {
+                        "type": "object",
+                        "additionalProperties": {"type": "number"},
+                    },
+                    "exploration_weight": {"type": "number"},
+                    "success": {"type": "boolean"},
+                    "observations": {"type": "array", "items": {"type": "object"}},
+                    "bucket_count": {"type": "integer"},
+                    "claimed_confidence": {"type": "number"},
+                    "calibration_map": {"type": "object"},
+                    "task_text": {"type": "string"},
+                },
+                "additionalProperties": False,
+            },
+            "annotations": {"readOnlyHint": True, "destructiveHint": False},
+        }
+    )
     rows.extend(list_operational_intelligence_tools())
     return rows
 
@@ -253,7 +311,90 @@ def call_cortex_operational_rpc_tool(
             return _blocked("operator_guide_arguments_invalid"), True
         return payload, False
 
+    if name == "hex_cortex_measured_intelligence":
+        try:
+            payload = _call_measured_intelligence(arguments)
+        except (TypeError, ValueError, KeyError):
+            return _blocked("measured_intelligence_arguments_invalid"), True
+        return payload, False
+
     return call_legacy_tool(name, arguments)
+
+
+def _call_measured_intelligence(arguments: dict[str, object]) -> dict[str, object]:
+    action = arguments.get("action")
+    if action == "benchmark_suite":
+        if any(key != "action" for key in arguments):
+            raise ValueError("benchmark_suite arguments invalid")
+        return build_benchmark_suite()
+    if action == "benchmark_score":
+        if any(key not in {"action", "model_id", "responses"} for key in arguments):
+            raise ValueError("benchmark_score arguments invalid")
+        responses = arguments.get("responses")
+        if not isinstance(responses, dict):
+            raise ValueError("responses must be an object")
+        return score_benchmark_responses(
+            model_id=str(arguments.get("model_id", "")),
+            responses={str(key): str(value) for key, value in responses.items()},
+        )
+    if action == "route":
+        allowed = {"action", "stats", "domain", "candidates", "benchmark_priors", "exploration_weight"}
+        if any(key not in allowed for key in arguments):
+            raise ValueError("route arguments invalid")
+        stats = arguments.get("stats") or empty_routing_stats()
+        candidates = arguments.get("candidates")
+        if not isinstance(stats, dict) or not isinstance(candidates, list):
+            raise ValueError("route arguments invalid")
+        priors = arguments.get("benchmark_priors")
+        if priors is not None and not isinstance(priors, dict):
+            raise ValueError("benchmark_priors must be an object")
+        return rank_models(
+            stats,
+            domain=str(arguments.get("domain", "")),
+            candidates=[str(candidate) for candidate in candidates],
+            benchmark_priors=(
+                {str(key): float(value) for key, value in priors.items()} if priors else None
+            ),
+            exploration_weight=float(arguments.get("exploration_weight", 1.0)),
+        )
+    if action == "routing_update":
+        allowed = {"action", "stats", "model_id", "domain", "success"}
+        if any(key not in allowed for key in arguments):
+            raise ValueError("routing_update arguments invalid")
+        stats = arguments.get("stats") or empty_routing_stats()
+        if not isinstance(stats, dict) or not isinstance(arguments.get("success"), bool):
+            raise ValueError("routing_update arguments invalid")
+        return update_routing_outcome(
+            stats,
+            model_id=str(arguments.get("model_id", "")),
+            domain=str(arguments.get("domain", "")),
+            success=arguments["success"] is True,
+        )
+    if action == "calibration_map":
+        if any(key not in {"action", "observations", "bucket_count"} for key in arguments):
+            raise ValueError("calibration_map arguments invalid")
+        observations = arguments.get("observations", [])
+        if not isinstance(observations, list):
+            raise ValueError("observations must be an array")
+        return build_calibration_map(
+            [dict(row) for row in observations],
+            bucket_count=int(arguments.get("bucket_count", 5)),
+        )
+    if action == "calibrate":
+        if any(key not in {"action", "claimed_confidence", "calibration_map"} for key in arguments):
+            raise ValueError("calibrate arguments invalid")
+        calibration_map = arguments.get("calibration_map")
+        if not isinstance(calibration_map, dict):
+            raise ValueError("calibration_map must be an object")
+        return calibrate_confidence(float(arguments.get("claimed_confidence", -1.0)), calibration_map)
+    if action == "reflex_plan":
+        if any(key not in {"action", "task_text", "model_id"} for key in arguments):
+            raise ValueError("reflex_plan arguments invalid")
+        return classify_task(
+            str(arguments.get("task_text", "")),
+            model=str(arguments.get("model_id", "qwen2.5:1.5b")),
+        )
+    raise ValueError("measured intelligence action invalid")
 
 
 def _call_operator_guide(arguments: dict[str, object]) -> dict[str, object]:
