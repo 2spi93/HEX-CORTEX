@@ -14,6 +14,7 @@ from hex_cortex.memory.cortex_benchmark_runtime import (
     load_routing_priors,
     main,
     run_model_benchmark,
+    unload_model,
 )
 
 ANSWERS = {
@@ -101,6 +102,46 @@ def test_runtime_refuses_remote_endpoints() -> None:
         collect_benchmark_responses(
             "m", endpoint="http://10.0.0.5:11434", transport=fake_transport
         )
+
+
+def test_unload_model_requests_zero_keep_alive() -> None:
+    captured: list[dict[str, object]] = []
+
+    def capture_transport(url: str, body: bytes | None, timeout: float) -> str:
+        captured.append(json.loads(body.decode("utf-8")))
+        return "{}"
+
+    assert unload_model("small-model", transport=capture_transport) is True
+    assert captured == [{"model": "small-model", "messages": [], "keep_alive": 0}]
+
+    def broken_transport(url: str, body: bytes | None, timeout: float) -> str:
+        raise OSError("runtime gone")
+
+    assert unload_model("small-model", transport=broken_transport) is False
+
+
+def test_cli_unloads_each_model_to_avoid_vram_stacking(
+    tmp_path: Path, monkeypatch, capsys
+) -> None:
+    unloads: list[str] = []
+
+    def tracking_transport(url: str, body: bytes | None, timeout: float) -> str:
+        if body is not None:
+            payload = json.loads(body.decode("utf-8"))
+            if payload.get("keep_alive") == 0:
+                unloads.append(str(payload["model"]))
+                return "{}"
+        return fake_transport(url, body, timeout)
+
+    monkeypatch.setattr(
+        "hex_cortex.memory.cortex_benchmark_runtime.default_local_transport",
+        tracking_transport,
+    )
+
+    exit_code = main(["--registry", str(tmp_path / "f.jsonl")])
+
+    assert exit_code == 0
+    assert unloads == ["big-model", "small-model"]
 
 
 def test_cli_main_writes_registry_and_ranks(tmp_path: Path, monkeypatch, capsys) -> None:

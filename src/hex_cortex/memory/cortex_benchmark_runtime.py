@@ -108,6 +108,30 @@ def collect_benchmark_responses(
     return responses
 
 
+def unload_model(
+    model: str,
+    *,
+    endpoint: str = "http://127.0.0.1:11434",
+    transport: Transport,
+    timeout_seconds: float = 30.0,
+) -> bool:
+    """Ask the local runtime to release the model's VRAM immediately.
+
+    Benchmarking several models back to back stacks them in VRAM (the runtime
+    keeps each resident for minutes) and can OOM the machine; unloading after
+    each fingerprint keeps the peak at one model.
+    """
+
+    url = f"{endpoint.rstrip('/')}/api/chat"
+    _require_localhost(url)
+    body = json.dumps({"model": model, "messages": [], "keep_alive": 0}).encode("utf-8")
+    try:
+        transport(url, body, timeout_seconds)
+    except Exception:  # noqa: BLE001 - unloading is best-effort hygiene
+        return False
+    return True
+
+
 def run_model_benchmark(
     model: str,
     *,
@@ -165,6 +189,11 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--registry", type=Path, default=Path("receipts/model_fingerprints.jsonl"))
     parser.add_argument("--timeout", type=float, default=60.0)
     parser.add_argument("--domain", default="coding", help="domain used for the routing demo ranking")
+    parser.add_argument(
+        "--keep-loaded",
+        action="store_true",
+        help="skip unloading each model after its run (risks VRAM stacking)",
+    )
     parser.add_argument("--pretty", action="store_true")
     return parser
 
@@ -186,6 +215,8 @@ def main(argv: list[str] | None = None) -> int:
         )
         append_fingerprint(report, args.registry)
         reports.append(report)
+        if not args.keep_loaded:
+            unload_model(model, endpoint=args.endpoint, transport=transport)
 
     priors = load_routing_priors(args.registry, domain=args.domain)
     routing = rank_models(
