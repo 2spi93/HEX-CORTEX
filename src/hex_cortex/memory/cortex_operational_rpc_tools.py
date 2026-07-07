@@ -16,6 +16,7 @@ from hex_cortex.memory.cortex_model_armor import build_model_armor_plan
 from hex_cortex.memory.cortex_model_armor import list_coding_protocols
 from hex_cortex.memory.cortex_model_armor import propose_protocol_skill_candidates
 from hex_cortex.memory.cortex_bandit_router import empty_routing_stats
+from hex_cortex.memory.cortex_benchmark_runtime import load_routing_priors
 from hex_cortex.memory.cortex_bandit_router import rank_models
 from hex_cortex.memory.cortex_bandit_router import update_routing_outcome
 from hex_cortex.memory.cortex_confidence_calibration import build_calibration_map
@@ -209,6 +210,7 @@ def list_cortex_operational_rpc_tools() -> list[dict[str, object]]:
                     },
                     "stats": {"type": "object"},
                     "domain": {"type": "string"},
+                    "project_root": {"type": "string"},
                     "candidates": {"type": "array", "items": {"type": "string"}},
                     "benchmark_priors": {
                         "type": "object",
@@ -338,23 +340,47 @@ def _call_measured_intelligence(arguments: dict[str, object]) -> dict[str, objec
             responses={str(key): str(value) for key, value in responses.items()},
         )
     if action == "route":
-        allowed = {"action", "stats", "domain", "candidates", "benchmark_priors", "exploration_weight"}
+        allowed = {
+            "action",
+            "stats",
+            "domain",
+            "candidates",
+            "benchmark_priors",
+            "exploration_weight",
+            "project_root",
+        }
         if any(key not in allowed for key in arguments):
             raise ValueError("route arguments invalid")
         stats = arguments.get("stats") or empty_routing_stats()
-        candidates = arguments.get("candidates")
-        if not isinstance(stats, dict) or not isinstance(candidates, list):
+        if not isinstance(stats, dict):
             raise ValueError("route arguments invalid")
+        domain = str(arguments.get("domain", ""))
         priors = arguments.get("benchmark_priors")
         if priors is not None and not isinstance(priors, dict):
             raise ValueError("benchmark_priors must be an object")
+        prior_map = (
+            {str(key): float(value) for key, value in priors.items()} if priors else None
+        )
+        if prior_map is None and "project_root" in arguments:
+            # Measured fingerprints become routing priors without the caller
+            # having to copy them by hand.
+            project_root = arguments.get("project_root")
+            if not isinstance(project_root, str) or not project_root.strip():
+                raise ValueError("project_root invalid")
+            registry = (Path(project_root) / "receipts" / "model_fingerprints.jsonl").resolve()
+            if not registry.is_relative_to(Path(project_root).resolve()):
+                raise ValueError("registry escapes project root")
+            prior_map = load_routing_priors(registry, domain=domain) or None
+        candidates = arguments.get("candidates")
+        if candidates is None and prior_map:
+            candidates = sorted(prior_map)
+        if not isinstance(candidates, list):
+            raise ValueError("route arguments invalid")
         return rank_models(
             stats,
-            domain=str(arguments.get("domain", "")),
+            domain=domain,
             candidates=[str(candidate) for candidate in candidates],
-            benchmark_priors=(
-                {str(key): float(value) for key, value in priors.items()} if priors else None
-            ),
+            benchmark_priors=prior_map,
             exploration_weight=float(arguments.get("exploration_weight", 1.0)),
         )
     if action == "routing_update":

@@ -208,6 +208,35 @@ def test_repo_intelligence_rejects_project_escape(monkeypatch, tmp_path: Path) -
     assert payload["blockers"] == ["repo_intelligence_arguments_invalid"]
 
 
+def test_route_loads_priors_from_fingerprint_registry(tmp_path: Path) -> None:
+    registry = tmp_path / "receipts" / "model_fingerprints.jsonl"
+    registry.parent.mkdir(parents=True)
+    registry.write_text(
+        '{"model_id": "coder-7b", "domain_scores": {"coding": 0.9}}\n'
+        '{"model_id": "general-14b", "domain_scores": {"coding": 0.2}}\n',
+        encoding="utf-8",
+    )
+
+    payload, is_error = call_cortex_operational_rpc_tool(
+        "hex_cortex_measured_intelligence",
+        {"action": "route", "domain": "coding", "project_root": str(tmp_path)},
+    )
+
+    assert is_error is False
+    assert payload["selected_model"] == "coder-7b"
+    assert {row["model_id"] for row in payload["ranking"]} == {"coder-7b", "general-14b"}
+
+
+def test_route_without_priors_or_candidates_is_blocked(tmp_path: Path) -> None:
+    payload, is_error = call_cortex_operational_rpc_tool(
+        "hex_cortex_measured_intelligence",
+        {"action": "route", "domain": "coding", "project_root": str(tmp_path)},
+    )
+
+    assert is_error is True
+    assert payload["blockers"] == ["measured_intelligence_arguments_invalid"]
+
+
 def test_operational_rpc_initializes_and_lists_tools() -> None:
     session = CortexRpcSession()
     initialized = handle_cortex_operational_rpc_message(
