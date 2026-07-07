@@ -86,7 +86,7 @@ class EvaluationMetric(BaseModel):
     """One evaluation metric for an improvement hypothesis."""
 
     name: str
-    value: float
+    value: float = Field(allow_inf_nan=False)
     passed: bool
     weight: float = Field(default=1.0, ge=0.0, le=10.0)
 

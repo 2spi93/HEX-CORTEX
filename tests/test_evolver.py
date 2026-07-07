@@ -116,3 +116,13 @@ def test_selector_quarantines_critical_risk_candidate() -> None:
 
     assert decision.decision == PromotionDecisionType.QUARANTINE
     assert decision.reason == "critical_risk_requires_manual_review"
+
+
+def test_evaluation_metric_rejects_non_finite_values() -> None:
+    with pytest.raises(ValueError):
+        EvaluationMetric(name="loss", value=float("nan"), passed=True)
+    with pytest.raises(ValueError):
+        EvaluationMetric(name="loss", value=float("inf"), passed=True)
+
+    metric = EvaluationMetric(name="loss", value=0.42, passed=True)
+    assert metric.value == pytest.approx(0.42)
