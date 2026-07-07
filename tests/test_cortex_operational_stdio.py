@@ -48,6 +48,44 @@ def test_stdio_full_session_lists_tools_and_answers_ping() -> None:
     assert responses[2]["result"] == {}
 
 
+def test_stdio_serves_model_armor_plan_end_to_end() -> None:
+    responses = _serve(
+        [
+            _rpc("initialize", 1, {"protocolVersion": "2025-03-26", "capabilities": {}}),
+            _rpc("notifications/initialized"),
+            _rpc(
+                "tools/call",
+                2,
+                {
+                    "name": "hex_cortex_model_armor",
+                    "arguments": {
+                        "action": "plan",
+                        "parameter_scale": "tiny",
+                        "context_window_tokens": 8000,
+                    },
+                },
+            ),
+            _rpc(
+                "tools/call",
+                3,
+                {"name": "hex_cortex_model_armor", "arguments": {"action": "protocols"}},
+            ),
+        ]
+    )
+
+    plan_result = responses[1]["result"]
+    assert plan_result["isError"] is False
+    plan = json.loads(plan_result["content"][0]["text"])
+    assert plan["armor_type"] == "cortex_model_armor_plan_v1"
+    assert plan["discipline"] == "maximal"
+    assert plan["safety_contract"]["base_model_guardrails_untouched"] is True
+
+    protocols_result = responses[2]["result"]
+    assert protocols_result["isError"] is False
+    protocols = json.loads(protocols_result["content"][0]["text"])["protocols"]
+    assert any(row["protocol_id"] == "protocol_smallest_cause_fix" for row in protocols)
+
+
 def test_stdio_rejects_tool_calls_before_initialize() -> None:
     responses = _serve([_rpc("tools/list", 1)])
 

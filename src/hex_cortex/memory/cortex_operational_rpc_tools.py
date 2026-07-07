@@ -12,6 +12,9 @@ from hex_cortex.memory.cortex_operational_intelligence_tools import (
 from hex_cortex.memory.cortex_operational_intelligence_tools import (
     list_operational_intelligence_tools,
 )
+from hex_cortex.memory.cortex_model_armor import build_model_armor_plan
+from hex_cortex.memory.cortex_model_armor import list_coding_protocols
+from hex_cortex.memory.cortex_model_armor import propose_protocol_skill_candidates
 from hex_cortex.memory.cortex_rpc_tools import build_cortex_rpc_tool_result
 from hex_cortex.memory.cortex_rpc_tools import call_cortex_rpc_tool as call_legacy_tool
 from hex_cortex.memory.cortex_rpc_tools import list_cortex_rpc_tools as list_legacy_tools
@@ -97,6 +100,42 @@ def list_cortex_operational_rpc_tools() -> list[dict[str, object]]:
             "annotations": {"readOnlyHint": True, "destructiveHint": False},
         }
     )
+    rows.append(
+        {
+            "name": "hex_cortex_model_armor",
+            "title": "HEX-CORTEX Model Armor",
+            "description": (
+                "Build the cognitive armor plan for any base model profile: prompt scaffold, "
+                "step budgets, mandatory coding protocols, verification, reflection and "
+                "escalation contracts, scaled inversely to model capability. Read-only plan; "
+                "runs nothing and never weakens base-model guardrails."
+            ),
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "action": {
+                        "type": "string",
+                        "enum": ["plan", "protocols", "skill_candidates"],
+                    },
+                    "parameter_scale": {
+                        "type": "string",
+                        "enum": ["tiny", "small", "medium", "large"],
+                    },
+                    "context_window_tokens": {"type": "integer"},
+                    "supports_tool_calls": {"type": "boolean"},
+                    "supports_json_schema": {"type": "boolean"},
+                    "task_risk": {
+                        "type": "string",
+                        "enum": ["low", "medium", "high", "critical"],
+                    },
+                    "python_available": {"type": "boolean"},
+                    "large_model_available": {"type": "boolean"},
+                },
+                "additionalProperties": False,
+            },
+            "annotations": {"readOnlyHint": True, "destructiveHint": False},
+        }
+    )
     rows.extend(list_operational_intelligence_tools())
     return rows
 
@@ -167,7 +206,49 @@ def call_cortex_operational_rpc_tool(
             return _blocked("cognitive_genome_arguments_invalid"), True
         return payload, bool(payload.get("blockers"))
 
+    if name == "hex_cortex_model_armor":
+        try:
+            payload = _call_model_armor(arguments)
+        except (TypeError, ValueError):
+            return _blocked("model_armor_arguments_invalid"), True
+        return payload, False
+
     return call_legacy_tool(name, arguments)
+
+
+def _call_model_armor(arguments: dict[str, object]) -> dict[str, object]:
+    action = arguments.get("action", "plan")
+    if action == "protocols":
+        if any(key != "action" for key in arguments):
+            raise ValueError("protocols arguments invalid")
+        return {"protocols": list_coding_protocols()}
+    if action == "skill_candidates":
+        if any(key != "action" for key in arguments):
+            raise ValueError("skill_candidates arguments invalid")
+        return {"skill_candidates": propose_protocol_skill_candidates()}
+    if action != "plan":
+        raise ValueError("model armor action invalid")
+    allowed = {
+        "action",
+        "parameter_scale",
+        "context_window_tokens",
+        "supports_tool_calls",
+        "supports_json_schema",
+        "task_risk",
+        "python_available",
+        "large_model_available",
+    }
+    if any(key not in allowed for key in arguments):
+        raise ValueError("plan arguments invalid")
+    return build_model_armor_plan(
+        parameter_scale=str(arguments.get("parameter_scale", "small")),
+        context_window_tokens=int(arguments.get("context_window_tokens", 8_000)),
+        supports_tool_calls=arguments.get("supports_tool_calls") is True,
+        supports_json_schema=arguments.get("supports_json_schema") is True,
+        task_risk=str(arguments.get("task_risk", "medium")),
+        python_available=arguments.get("python_available", True) is True,
+        large_model_available=arguments.get("large_model_available") is True,
+    )
 
 
 def _call_cognitive_genome(arguments: dict[str, object]) -> dict[str, object]:
