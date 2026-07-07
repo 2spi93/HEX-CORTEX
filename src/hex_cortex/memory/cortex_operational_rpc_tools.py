@@ -15,6 +15,9 @@ from hex_cortex.memory.cortex_operational_intelligence_tools import (
 from hex_cortex.memory.cortex_model_armor import build_model_armor_plan
 from hex_cortex.memory.cortex_model_armor import list_coding_protocols
 from hex_cortex.memory.cortex_model_armor import propose_protocol_skill_candidates
+from hex_cortex.memory.cortex_operator_guide import build_operator_guide
+from hex_cortex.memory.cortex_operator_guide import build_troubleshooting_guide
+from hex_cortex.memory.cortex_operator_guide import list_guide_topics
 from hex_cortex.memory.cortex_rpc_tools import build_cortex_rpc_tool_result
 from hex_cortex.memory.cortex_rpc_tools import call_cortex_rpc_tool as call_legacy_tool
 from hex_cortex.memory.cortex_rpc_tools import list_cortex_rpc_tools as list_legacy_tools
@@ -136,6 +139,36 @@ def list_cortex_operational_rpc_tools() -> list[dict[str, object]]:
             "annotations": {"readOnlyHint": True, "destructiveHint": False},
         }
     )
+    rows.append(
+        {
+            "name": "hex_cortex_operator_guide",
+            "title": "HEX-CORTEX Operator Guide",
+            "description": (
+                "Step-by-step configuration guidance for the operator: local model setup, "
+                "fine-tuning, MCP connection, inference server, voice, vision, video "
+                "world-model training, GPU admission. Detail scales to experience level; "
+                "a troubleshooting action maps symptoms to causes and fixes. Advisory only: "
+                "runs nothing, mutates nothing."
+            ),
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "action": {
+                        "type": "string",
+                        "enum": ["topics", "guide", "troubleshoot"],
+                    },
+                    "topic": {"type": "string"},
+                    "experience_level": {
+                        "type": "string",
+                        "enum": ["beginner", "intermediate", "expert"],
+                    },
+                    "symptom": {"type": "string"},
+                },
+                "additionalProperties": False,
+            },
+            "annotations": {"readOnlyHint": True, "destructiveHint": False},
+        }
+    )
     rows.extend(list_operational_intelligence_tools())
     return rows
 
@@ -213,7 +246,42 @@ def call_cortex_operational_rpc_tool(
             return _blocked("model_armor_arguments_invalid"), True
         return payload, False
 
+    if name == "hex_cortex_operator_guide":
+        try:
+            payload = _call_operator_guide(arguments)
+        except (TypeError, ValueError):
+            return _blocked("operator_guide_arguments_invalid"), True
+        return payload, False
+
     return call_legacy_tool(name, arguments)
+
+
+def _call_operator_guide(arguments: dict[str, object]) -> dict[str, object]:
+    action = arguments.get("action", "topics")
+    if action == "topics":
+        if any(key != "action" for key in arguments):
+            raise ValueError("topics arguments invalid")
+        return {"topics": list_guide_topics()}
+    topic = arguments.get("topic")
+    if not isinstance(topic, str) or not topic.strip():
+        raise ValueError("topic required")
+    if action == "guide":
+        allowed = {"action", "topic", "experience_level"}
+        if any(key not in allowed for key in arguments):
+            raise ValueError("guide arguments invalid")
+        return build_operator_guide(
+            topic=topic,
+            experience_level=str(arguments.get("experience_level", "beginner")),
+        )
+    if action == "troubleshoot":
+        allowed = {"action", "topic", "symptom"}
+        if any(key not in allowed for key in arguments):
+            raise ValueError("troubleshoot arguments invalid")
+        symptom = arguments.get("symptom")
+        if symptom is not None and not isinstance(symptom, str):
+            raise ValueError("symptom must be a string")
+        return build_troubleshooting_guide(topic=topic, symptom=symptom)
+    raise ValueError("operator guide action invalid")
 
 
 def _call_model_armor(arguments: dict[str, object]) -> dict[str, object]:

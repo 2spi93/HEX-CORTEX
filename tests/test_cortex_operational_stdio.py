@@ -86,6 +86,56 @@ def test_stdio_serves_model_armor_plan_end_to_end() -> None:
     assert any(row["protocol_id"] == "protocol_smallest_cause_fix" for row in protocols)
 
 
+def test_stdio_serves_operator_guide_end_to_end() -> None:
+    responses = _serve(
+        [
+            _rpc("initialize", 1, {"protocolVersion": "2025-03-26", "capabilities": {}}),
+            _rpc("notifications/initialized"),
+            _rpc(
+                "tools/call",
+                2,
+                {"name": "hex_cortex_operator_guide", "arguments": {"action": "topics"}},
+            ),
+            _rpc(
+                "tools/call",
+                3,
+                {
+                    "name": "hex_cortex_operator_guide",
+                    "arguments": {
+                        "action": "guide",
+                        "topic": "mcp_connection",
+                        "experience_level": "beginner",
+                    },
+                },
+            ),
+            _rpc(
+                "tools/call",
+                4,
+                {
+                    "name": "hex_cortex_operator_guide",
+                    "arguments": {
+                        "action": "troubleshoot",
+                        "topic": "server_setup",
+                        "symptom": "connection refused",
+                    },
+                },
+            ),
+        ]
+    )
+
+    topics = json.loads(responses[1]["result"]["content"][0]["text"])["topics"]
+    assert any(row["topic"] == "voice_setup" for row in topics)
+
+    guide = json.loads(responses[2]["result"]["content"][0]["text"])
+    assert guide["guide_type"] == "cortex_operator_guide_v1"
+    assert guide["advisory_only"] is True
+    assert guide["steps"][0]["step_id"] == "declare_server"
+
+    issues = json.loads(responses[3]["result"]["content"][0]["text"])
+    assert issues["symptom_matched"] is True
+    assert "refused" in issues["issues"][0]["symptom"].lower()
+
+
 def test_stdio_rejects_tool_calls_before_initialize() -> None:
     responses = _serve([_rpc("tools/list", 1)])
 
