@@ -1,5 +1,9 @@
 # HEX-CORTEX Harness Core V2 — architecture and rollout
 
+**Scope change 2026-10-09:** the founder removed all distant infrastructure
+from the roadmap. Read [local operator manual](LOCAL_HARNESS_V2_OPERATOR.md).
+The old optional deployment proposals below are historical, not planned.
+
 ## Contractual architecture
 
 ```text
@@ -7,7 +11,7 @@ Operators / Codex / Claude Code / CLI / IDE
                  |
           Surface adapters
            /     |      \
-          MCP   Local    A2A (future)
+          MCP   Local    A2A (local)
            \     |      /
            HARNESS CONTROL PLANE
      Budget / Router / Planner / Critic
@@ -23,7 +27,7 @@ Operators / Codex / Claude Code / CLI / IDE
                  |
              HANDS PLANE
      worktree / sandbox / browser / tools
-      remote worker only with approval
+      local worktree and consent only
 ```
 
 **Harness owns process policy, NOT model weights.** No tool or model receives implicit rights to mutate repositories, deploy services, publish content, access production accounts or cross projects.
@@ -37,7 +41,7 @@ Operators / Codex / Claude Code / CLI / IDE
 | Brain | bounded task/context | model output and measured usage | own credentials or state mutation |
 | Hands | explicit allowlisted operation | result + receipt + artifacts | execute unlisted or cross-root actions |
 | MCP adapter | versioned requests, tool schemas | read-only results (initially) | expose mutation without policy |
-| A2A adapter (future) | signed, bounded task envelope | result reference and evidence | exchange raw project memory |
+| A2A local adapter | signed, bounded task envelope | result reference and evidence | exchange raw project memory |
 
 The existing `CognitiveClock`, `CellRegistry`, `CanonicalSpine`, gateway and local adapters remain reusable. Do not rewrite them merely to match new terminology.
 
