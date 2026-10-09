@@ -72,7 +72,7 @@ class LocalSkillCatalog:
             raise ValueError("frontmatter name differs from directory")
         resources: list[dict[str, object]] = []
         total_bytes = 0
-        files = sorted(path for path in directory.rglob("*") if path.is_file())
+        files = sorted(path for path in directory.rglob("*") if path.is_file() or path.is_symlink())
         if len(files) > _MAX_FILES:
             raise ValueError("skill contains too many resources")
         for path in files:
