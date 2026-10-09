@@ -11,7 +11,7 @@ from hex_cortex.memory.cortex_environment_doctor import build_environment_doctor
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="hexcortex-doctor")
     parser.add_argument("--project-root", default=".")
-    parser.add_argument("--expected-branch", default="screen-lab-policy-v2")
+    parser.add_argument("--expected-branch", default="main")
     parser.add_argument("--collect-tests", action="store_true")
     parser.add_argument("--pretty", action="store_true")
     return parser
