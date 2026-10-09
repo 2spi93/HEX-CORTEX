@@ -136,7 +136,8 @@ def parse_candidate(text: str, case: RepairCase) -> dict[str, str]:
 
 def _build_functions(files: Mapping[str, str]) -> dict[str, ast.FunctionDef]:
     functions: dict[str, ast.FunctionDef] = {}
-    imports: dict[str, str] = {}
+    names_by_path: dict[str, set[str]] = {}
+    imports_by_path: dict[str, dict[str, str]] = {}
     modules: dict[str, str] = {
         path.removesuffix(".py").replace("/", "."): path for path in files
     }
@@ -146,6 +147,7 @@ def _build_functions(files: Mapping[str, str]) -> dict[str, ast.FunctionDef]:
         except (SyntaxError, ValueError) as exc:
             raise ValueError("replacement contains invalid Python syntax") from exc
         local_names: set[str] = set()
+        imported_names: dict[str, str] = {}
         for node in tree.body:
             if isinstance(node, ast.ImportFrom):
                 if node.level != 0 or node.module not in modules:
@@ -153,7 +155,9 @@ def _build_functions(files: Mapping[str, str]) -> dict[str, ast.FunctionDef]:
                 for alias in node.names:
                     if alias.asname is not None or alias.name.startswith("_"):
                         raise ValueError("import aliases/private symbols forbidden")
-                    imports[alias.name] = node.module
+                    if alias.name in imported_names:
+                        raise ValueError("ambiguous imports")
+                    imported_names[alias.name] = node.module
             elif isinstance(node, ast.FunctionDef):
                 args = node.args
                 if (
@@ -174,13 +178,31 @@ def _build_functions(files: Mapping[str, str]) -> dict[str, ast.FunctionDef]:
                 functions[node.name] = node
             else:
                 raise ValueError("top-level statements other than functions/imports forbidden")
-    for name, module in imports.items():
-        target_path = modules[module]
-        target_tree = ast.parse(files[target_path])
-        if not any(isinstance(node, ast.FunctionDef) and node.name == name for node in target_tree.body):
-            raise ValueError("imported function not found")
-    return functions
+        if local_names.intersection(imported_names):
+            raise ValueError("local definitions may not shadow imports")
+        names_by_path[path] = local_names
+        imports_by_path[path] = imported_names
 
+    # Enforce Python's per-module lexical import scope, rather than treating
+    # definitions from unrelated source files as implicitly global.
+    for path, imported_names in imports_by_path.items():
+        for name, module in imported_names.items():
+            target_path = modules[module]
+            if name not in names_by_path[target_path]:
+                raise ValueError("imported function not found")
+        tree = ast.parse(files[path], filename=path)
+        for declaration in tree.body:
+            if not isinstance(declaration, ast.FunctionDef):
+                continue
+            for expression in ast.walk(declaration.body[0]):
+                if not isinstance(expression, ast.Call) or not isinstance(expression.func, ast.Name):
+                    continue
+                called = expression.func.id
+                if called in {"min", "max", "abs"}:
+                    continue
+                if called not in names_by_path[path] and called not in imported_names:
+                    raise ValueError("function called without local definition or explicit import")
+    return functions
 
 def _eval_expr(
     node: ast.AST, scope: Mapping[str, object], functions: Mapping[str, ast.FunctionDef],

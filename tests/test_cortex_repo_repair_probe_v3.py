@@ -163,3 +163,36 @@ def test_prompts_contain_only_mutable_snapshot_and_instructions() -> None:
         assert all(f"FILE: {path}" in prompt for path in case.files)
         assert "No markdown or prose" in prompt
         assert "expected" not in prompt.lower()
+
+
+def test_multifile_correction_requires_real_python_import() -> None:
+    without_import = {
+        "risk/limits.py": (
+            "def position_room(limit, used):\n    return max(0, limit - used)\n"
+        ),
+        "desk/order.py": (
+            "def can_open(limit, used, request):\n"
+            "    return request <= position_room(limit, used)\n"
+        ),
+    }
+    outcome = score_repair(
+        CASES[2], json.dumps({"files": without_import})
+    )
+    assert outcome["passed"] is False
+    assert outcome["error_code"] == "candidate_rejected"
+
+
+def test_multifile_import_must_match_declared_provider() -> None:
+    wrong_module = {
+        "risk/limits.py": (
+            "def position_room(limit, used):\n    return max(0, limit - used)\n"
+        ),
+        "desk/order.py": (
+            "from metrics.win_rate import position_room\n"
+            "def can_open(limit, used, request):\n"
+            "    return request <= position_room(limit, used)\n"
+        ),
+    }
+    outcome = score_repair(CASES[2], json.dumps({"files": wrong_module}))
+    assert outcome["error_code"] == "candidate_rejected"
+
