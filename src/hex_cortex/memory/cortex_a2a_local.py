@@ -14,6 +14,7 @@ from pathlib import Path
 from uuid import uuid4
 
 from hex_cortex.memory.cortex_local_harness_v2 import Task, build_readonly_harness
+from hex_cortex.memory.cortex_local_cognitive_cycle import run_clocked_local_task
 
 
 def _error(request_id: object, code: int, message: str) -> dict[str, object]:
@@ -78,7 +79,7 @@ class LocalA2A:
                 task_id = str(uuid4())
                 # The only supported task is a diagnostic inventory; no
                 # interpretation of the input text as executable commands.
-                execution = self.harness.execute(
+                execution = run_clocked_local_task(
                     Task(task_id, "repo_read", "A2A read-only checkout inventory", "repo_manifest"),
                     approved=self.allow_read_repo,
                 )
