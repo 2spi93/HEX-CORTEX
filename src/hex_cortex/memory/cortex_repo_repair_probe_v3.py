@@ -14,7 +14,7 @@ import hashlib
 import json
 import math
 import random
-from collections.abc import Callable, Mapping
+from collections.abc import Mapping
 from dataclasses import dataclass
 
 _SUITE_VERSION = "repo-repair-v3.0"
