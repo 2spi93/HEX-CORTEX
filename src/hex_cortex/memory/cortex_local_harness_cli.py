@@ -75,7 +75,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                 models=args.model, brain=brain, approved=args.approve_model,
             )
         else:
-            result = harness.execute(
+            result = run_clocked_local_task(
                 Task(
                     args.task_id, "repo_read", args.instruction, "repo_manifest"
                 ),
