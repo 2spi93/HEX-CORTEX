@@ -73,7 +73,7 @@ def export_active_skills(input_jsonl: Path, output_root: Path) -> list[Path]:
     names = [slugify(skill.name) for skill in skills]
     if len(names) != len(set(names)):
         raise ValueError("skill names collide after portable normalization")
-    rendered = [(name, render_agent_skill(skill)) for name, skill in zip(names, skills)]
+    rendered = [(name, render_agent_skill(skill)) for name, skill in zip(names, skills, strict=True)]
     output_root = output_root.resolve()
     output_root.mkdir(parents=True, exist_ok=True)
     paths = []
