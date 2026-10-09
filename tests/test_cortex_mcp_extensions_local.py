@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pytest
+
 from hex_cortex.memory.cortex_mcp_modern import handle_modern_request
 from hex_cortex.memory.cortex_mcp_skills import LocalSkillCatalog
 
@@ -152,3 +154,32 @@ def test_existing_resource_bytes_match_manifest(tmp_path: Path) -> None:
 
     assert hashlib.sha256(body).hexdigest() == entry["resources"][0]["digest"][7:]
     assert len(body) == entry["resources"][0]["size"]
+
+
+@pytest.mark.parametrize("line_ending", [b"\n", b"\r\n"])
+def test_skill_digest_preserves_lf_and_crlf_octets(
+    tmp_path: Path, monkeypatch, line_ending: bytes
+) -> None:
+    """Reproduce Windows CRLF regardless of the host running pytest."""
+    import hashlib
+
+    folder = _skill_dir(tmp_path)
+    skill_file = folder / "repo-audit" / "SKILL.md"
+    original = b"---\nname: repo-audit\ndescription: Inspect a repository safely\n---\n# Instructions\n"
+    raw = original.replace(b"\n", line_ending)
+    skill_file.write_bytes(raw)
+
+    catalog = LocalSkillCatalog(folder)
+    manifest = catalog.all()[0]
+    content = catalog.read(manifest["uri"])["contents"][0]["text"]
+    assert content.encode("utf-8") == raw
+    assert manifest["resources"][0]["digest"] == "sha256:" + hashlib.sha256(raw).hexdigest()
+    assert manifest["resources"][0]["size"] == len(raw)
+
+    monkeypatch.setenv("HEX_CORTEX_SKILLS_DIRECTORY", str(folder))
+    response = handle_modern_request(
+        _request("resources/read", uri=manifest["uri"])
+    )
+    assert "error" not in response
+    assert response["result"]["contents"][0]["text"].encode("utf-8") == raw
+
