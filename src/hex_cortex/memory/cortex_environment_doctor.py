@@ -26,7 +26,7 @@ _OPTIONAL_MODULES = ("PIL", "torch")
 def build_environment_doctor(
     project_root: Path,
     *,
-    expected_branch: str = "screen-lab-policy-v2",
+    expected_branch: str = "main",
     collect_tests: bool = False,
     runner: CommandRunner | None = None,
     locator: CommandLocator | None = None,
