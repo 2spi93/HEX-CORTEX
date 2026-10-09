@@ -40,6 +40,7 @@ hexcortex-brains = "hex_cortex.memory.cortex_cognitive_brain_cli:main"
 hexcortex-doctor = "hex_cortex.memory.cortex_environment_doctor_cli:main"
 hexcortex-loop = "hex_cortex.memory.cortex_cognitive_loop_cli:main"
 hexcortex-benchmark = "hex_cortex.memory.cortex_benchmark_runtime:main"
+hexcortex-skills = "hex_cortex.evolver.agent_skill_portability:main"
 
 [project.optional-dependencies]
 dev = [

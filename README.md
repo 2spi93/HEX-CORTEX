@@ -1,5 +1,35 @@
 # HEX-CORTEX
 
+> **Repository recovery notice (2026-10-09).** This README contains historical v0.1
+> foundation descriptions. The current source and CLI entry points have evolved
+> substantially beyond that baseline. Read
+> [Recovery Audit](docs/RECOVERY_AUDIT_2026_10.md) and
+> [Harness V2 Architecture](docs/HARNESS_V2_ARCHITECTURE.md) first.
+>
+> The recovery work is on branch `recovery-harness-v2-2026-10`.
+> No live server deployment or operational runtime certification is implied.
+
+## Current operational entry points
+
+```text
+hexcortex            inspect units, wiring and runtime probes
+hexcortex-mcp        dual-era read-only MCP stdio (legacy + 2026-07-28)
+hexcortex-doctor     audit local checkout; default expected branch main
+hexcortex-benchmark  run bounded localhost Ollama smoke benchmarks
+hexcortex-skills     export active SkillRecord JSONL to portable SKILL.md
+hexcortex-code       gated coding and worktree actions
+hexcortex-agent      model routing and bounded agent plans
+```
+
+`hexcortex-skills .hex-cortex/skills.jsonl exported-skills/` exports
+instructions; it does not install, trust, activate or execute skills.
+Use `hexcortex-doctor --expected-branch recovery-harness-v2-2026-10`
+while working on the recovery branch.
+
+**Readiness terminology:** code present, tested, configured, operational
+and deployed are separate states. See the audit for detailed limitations.
+
+
 **Cellular World Model Intelligence**
 
 HEX-CORTEX is an experimental AI architecture designed around small specialized cells, sparse activation, a global cognitive workspace, local-first memory retrieval, memory compression, procedural skill memory, replay consolidation, sleep replay batches, conservative pruning, a persistent canonical spine, persistent local memory, memory index hydration, skill index hydration, controlled self-improvement, a bounded cognitive clock, a health-aware cell registry, a local cortex pipeline, and a JEPA-inspired world-model layer.

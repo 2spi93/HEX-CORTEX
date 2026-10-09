@@ -74,7 +74,7 @@ Use this ladder:
 6. Skill install only after human approval.
 7. Autonomous scheduled runs only after separate approval and kill switch.
 
-The repository is currently near step 3/4, not full autonomy.
+The historical autonomy ladder is a permission framework, not a claim about the current codebase. Some model and coding runtimes now exist, but every live action requires its own environmental and approval verification. Refer to docs/RECOVERY_AUDIT_2026_10.md and docs/HARNESS_V2_ARCHITECTURE.md; never infer operational readiness from the existence of a CLI or contract.
 
 ## Jarvis-inspired ideas to adapt
 
