@@ -122,8 +122,10 @@ class LocalSkillCatalog:
         path = (self.root / path_part).resolve()
         if not path.is_relative_to(self.root) or not path.is_file():
             raise ValueError("invalid skill path")
-        text = path.read_text(encoding="utf-8")
-        payload = text.encode("utf-8")
+        # Read exactly the bytes used by _skill() when creating the digest.
+        # TextIO normalizes CRLF to LF on Windows and would break integrity.
+        payload = path.read_bytes()
+        text = payload.decode("utf-8")
         expected = next(item for item in entry["resources"] if item["uri"] == uri)
         if (
             "sha256:" + hashlib.sha256(payload).hexdigest() != expected["digest"]
