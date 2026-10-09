@@ -6,8 +6,9 @@
 > [Recovery Audit](docs/RECOVERY_AUDIT_2026_10.md) and
 > [Harness V2 Architecture](docs/HARNESS_V2_ARCHITECTURE.md) first.
 >
-> The recovery work is on branch `recovery-harness-v2-2026-10`.
-> No live server deployment or operational runtime certification is implied.
+> Recovery was merged to main; the next local-only Harness V2 implementation is
+> documented in [Local Operator Manual](docs/LOCAL_HARNESS_V2_OPERATOR.md).
+> No remote infrastructure is in scope, and a passing CI is not live-model certification.
 
 ## Current operational entry points
 
@@ -17,14 +18,17 @@ hexcortex-mcp        dual-era read-only MCP stdio (legacy + 2026-07-28)
 hexcortex-doctor     audit local checkout; default expected branch main
 hexcortex-benchmark  run bounded localhost Ollama smoke benchmarks
 hexcortex-skills     export active SkillRecord JSONL to portable SKILL.md
+hexcortex-harness    bounded local tool/brain execution with consent and receipts
+hexcortex-benchmark-v2  machine-bound heldout Ollama fingerprints
+hexcortex-a2a-local   local A2A-compatible JSONL subset
 hexcortex-code       gated coding and worktree actions
 hexcortex-agent      model routing and bounded agent plans
 ```
 
 `hexcortex-skills .hex-cortex/skills.jsonl exported-skills/` exports
 instructions; it does not install, trust, activate or execute skills.
-Use `hexcortex-doctor --expected-branch recovery-harness-v2-2026-10`
-while working on the recovery branch.
+Use `hexcortex-doctor --expected-branch main` on main; override this when
+validating an isolated feature branch.
 
 **Readiness terminology:** code present, tested, configured, operational
 and deployed are separate states. See the audit for detailed limitations.

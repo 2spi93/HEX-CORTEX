@@ -19,6 +19,14 @@ ruff check .
 
 When a test fails, do not paper over it. Read the failure, fix the smallest relevant cause, then rerun targeted tests and the full suite.
 
+## Local-only policy (2026-10-09)
+
+All new HEX-CORTEX runtime work targets an explicitly controlled local PC.
+Do not design deployment workflows, host provisioning, remote workers or
+cross-project shared services as part of the active roadmap. The allowed
+model transport is localhost Ollama with explicit operator consent. Consult
+[local Harness V2 manual](docs/LOCAL_HARNESS_V2_OPERATOR.md) first.
+
 ## Operating mode
 
 Default mode is cold and local:
