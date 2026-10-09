@@ -156,7 +156,7 @@ def test_existing_resource_bytes_match_manifest(tmp_path: Path) -> None:
     assert len(body) == entry["resources"][0]["size"]
 
 
-@pytest.mark.parametrize("line_ending", [b"\\n", b"\\r\\n"])
+@pytest.mark.parametrize("line_ending", [b"\n", b"\r\n"])
 def test_skill_digest_preserves_lf_and_crlf_octets(
     tmp_path: Path, monkeypatch, line_ending: bytes
 ) -> None:
