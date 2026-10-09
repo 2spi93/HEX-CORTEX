@@ -71,12 +71,12 @@ def main(argv: Sequence[str] | None = None) -> int:
                 max_predict_tokens=args.max_tokens,
             )
             result = run_clocked_local_task(
-                Task(args.task_id, args.domain, args.instruction),
+                harness, Task(args.task_id, args.domain, args.instruction),
                 models=args.model, brain=brain, approved=args.approve_model,
             )
         else:
             result = run_clocked_local_task(
-                Task(
+                harness, Task(
                     args.task_id, "repo_read", args.instruction, "repo_manifest"
                 ),
                 approved=args.approve_read,
