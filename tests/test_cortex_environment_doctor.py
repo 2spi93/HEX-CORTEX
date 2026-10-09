@@ -39,12 +39,12 @@ def _ready_runner(
 ) -> tuple[int, str, str]:
     del cwd, timeout_seconds
     values = {
-        ("git", "branch", "--show-current"): "screen-lab-policy-v2\n",
+        ("git", "branch", "--show-current"): "main\n",
         ("git", "rev-parse", "HEAD"): "a" * 40 + "\n",
         (
             "git",
             "rev-parse",
-            "refs/remotes/origin/screen-lab-policy-v2",
+            "refs/remotes/origin/main",
         ): "a" * 40 + "\n",
         ("git", "status", "--short"): "",
     }
@@ -66,7 +66,7 @@ def test_doctor_reports_ready_for_aligned_checkout(tmp_path: Path) -> None:
     )
 
     assert payload["status"] == "ready"
-    assert payload["current_branch"] == "screen-lab-policy-v2"
+    assert payload["current_branch"] == "main"
     assert payload["blockers"] == []
     assert payload["test_collection"]["collected_count"] == 999
     assert payload["installed_console_scripts"]["hexcortex-genome"].endswith(
@@ -87,13 +87,13 @@ def test_doctor_blocks_branch_and_console_script_mismatch(tmp_path: Path) -> Non
     ) -> tuple[int, str, str]:
         del cwd, timeout_seconds
         if tuple(command) == ("git", "branch", "--show-current"):
-            return 0, "main\n", ""
+            return 0, "feature/experimental\n", ""
         if tuple(command) == ("git", "rev-parse", "HEAD"):
             return 0, "a" * 40 + "\n", ""
         if tuple(command) == (
             "git",
             "rev-parse",
-            "refs/remotes/origin/screen-lab-policy-v2",
+            "refs/remotes/origin/main",
         ):
             return 0, "b" * 40 + "\n", ""
         if tuple(command) == ("git", "status", "--short"):
@@ -107,7 +107,7 @@ def test_doctor_blocks_branch_and_console_script_mismatch(tmp_path: Path) -> Non
     )
 
     assert payload["status"] == "blocked"
-    assert "branch_mismatch:main:screen-lab-policy-v2" in payload["blockers"]
+    assert "branch_mismatch:feature/experimental:main" in payload["blockers"]
     assert "console_script_not_declared:hexcortex-genome" in payload["blockers"]
     assert "console_script_not_declared:hexcortex-loop" in payload["blockers"]
     assert "console_script_not_installed:hexcortex-genome" in payload["blockers"]
