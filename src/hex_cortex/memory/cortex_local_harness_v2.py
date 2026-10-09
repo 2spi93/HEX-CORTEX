@@ -15,6 +15,8 @@ from enum import StrEnum
 from pathlib import Path
 
 from hex_cortex.memory.cortex_bandit_router import empty_routing_stats, rank_models
+from hex_cortex.spine.canonical_spine import CanonicalSpine
+from hex_cortex.spine.jsonl_store import CanonicalSpineJsonlStore
 
 
 class Capability(StrEnum):
@@ -79,6 +81,7 @@ class LocalHarness:
     receipts: list[dict[str, object]] = field(default_factory=list)
     stats: dict[str, object] = field(default_factory=empty_routing_stats)
     priors: dict[str, float] = field(default_factory=dict)
+    spine: CanonicalSpine = field(default_factory=CanonicalSpine)
     _model_calls: int = 0
     _tool_calls: int = 0
 
@@ -87,6 +90,20 @@ class LocalHarness:
         digest = hashlib.sha256(serialized.encode("utf-8")).hexdigest()
         result = {"receipt_type": "local_harness_v2", **payload, "sha256": digest}
         self.receipts.append(result)
+        self.spine.append(
+            event_type="harness.receipt",
+            task_id=str(payload["task_id"]),
+            source="LocalHarness",
+            payload={
+                "sha256": digest,
+                "status": payload["status"],
+                "reason": payload["reason"],
+                "model_used": payload.get("model_used"),
+                "tool_used": payload.get("tool_used"),
+                "project_id": self.session.project_id,
+            },
+            correlation_keys={"session_id": self.session.session_id},
+        )
         return result
 
     def execute(
@@ -190,7 +207,30 @@ class LocalHarness:
             if row["status"] == "complete" and row["task_id"] in seen:
                 return False
             seen.add(str(row["task_id"]))
-        return True
+        if not self.spine.verify_integrity().ok:
+            return False
+        spine_receipts = [
+            event for event in self.spine.events if event.event_type == "harness.receipt"
+        ]
+        return (
+            len(spine_receipts) == len(self.receipts)
+            and all(
+                event.payload.get("sha256") == receipt["sha256"]
+                for event, receipt in zip(spine_receipts, self.receipts, strict=True)
+            )
+        )
+
+    def save_spine(self, path: Path, *, approved: bool = False) -> int:
+        """Opt-in persisted canonical events, never overwriting existing files."""
+        if not approved:
+            raise PermissionError("explicit local receipt persistence approval required")
+        root = self.session.project_root.resolve()
+        target = (root / path).resolve()
+        if not target.is_relative_to(root) or target.is_symlink() or target.exists():
+            raise ValueError("spine path must be a new file inside the project root")
+        if not self.verify_replay():
+            raise ValueError("canonical receipt integrity failed")
+        return CanonicalSpineJsonlStore(target).save(self.spine)
 
 
 def read_repo_manifest(session: Session, task: Task) -> Mapping[str, object]:
