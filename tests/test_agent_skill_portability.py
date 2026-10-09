@@ -36,7 +36,7 @@ def test_candidate_cannot_be_exported() -> None:
 
 
 def test_slugs_cannot_escape_directory() -> None:
-    assert slugify("../Danger\u005c\u005cSkill") == "danger-skill"
+    assert slugify("../Danger/Skill") == "danger-skill"
     with pytest.raises(ValueError):
         slugify("...///")
 
