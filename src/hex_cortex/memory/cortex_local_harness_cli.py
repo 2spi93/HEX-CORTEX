@@ -15,6 +15,7 @@ from hex_cortex.memory.cortex_local_harness_v2 import (
     build_readonly_harness,
 )
 from hex_cortex.memory.cortex_local_ollama_brain import LocalOllamaBrain
+from hex_cortex.memory.cortex_local_cognitive_cycle import run_clocked_local_task
 from hex_cortex.memory.cortex_benchmark_v2 import load_experimental_priors
 
 
@@ -69,7 +70,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                 endpoint=args.endpoint, timeout_seconds=args.timeout,
                 max_predict_tokens=args.max_tokens,
             )
-            result = harness.execute(
+            result = run_clocked_local_task(
                 Task(args.task_id, args.domain, args.instruction),
                 models=args.model, brain=brain, approved=args.approve_model,
             )
