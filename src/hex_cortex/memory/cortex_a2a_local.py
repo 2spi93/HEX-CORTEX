@@ -80,7 +80,7 @@ class LocalA2A:
                 # The only supported task is a diagnostic inventory; no
                 # interpretation of the input text as executable commands.
                 execution = run_clocked_local_task(
-                    Task(task_id, "repo_read", "A2A read-only checkout inventory", "repo_manifest"),
+                    self.harness, Task(task_id, "repo_read", "A2A read-only checkout inventory", "repo_manifest"),
                     approved=self.allow_read_repo,
                 )
                 if execution["status"] == "complete":
