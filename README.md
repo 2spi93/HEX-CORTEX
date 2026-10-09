@@ -20,6 +20,7 @@ hexcortex-benchmark  run bounded localhost Ollama smoke benchmarks
 hexcortex-skills     export active SkillRecord JSONL to portable SKILL.md
 hexcortex-harness    bounded local tool/brain execution with consent and receipts
 hexcortex-benchmark-v2  machine-bound heldout Ollama fingerprints
+hexcortex-repo-eval  local no-exec multi-file repair probe (experimental)
 hexcortex-a2a-local   local A2A-compatible JSONL subset
 hexcortex-code       gated coding and worktree actions
 hexcortex-agent      model routing and bounded agent plans
@@ -29,6 +30,12 @@ hexcortex-agent      model routing and bounded agent plans
 instructions; it does not install, trust, activate or execute skills.
 Use `hexcortex-doctor --expected-branch main` on main; override this when
 validating an isolated feature branch.
+
+**Repository coding evaluation:** the V3 offline evaluator analyzes four
+synthetic Python repair snapshots (including two-file fixes) through an
+allowlisted AST interpreter; generated source is never executed and no
+checkout is altered. [Operator manual](docs/REPO_REPAIR_PROBE_V3.md).
+Scores are research-only and are not trusted routing priors.
 
 **Readiness terminology:** code present, tested, configured, operational
 and deployed are separate states. See the audit for detailed limitations.
