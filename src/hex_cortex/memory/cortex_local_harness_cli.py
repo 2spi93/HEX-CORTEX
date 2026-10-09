@@ -35,6 +35,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--hardware", default=platform.node() or "unknown-local-host")
     parser.add_argument("--model-digest", action="append", default=[])
     parser.add_argument("--allow-unmeasured", action="store_true")
+    parser.add_argument("--spine-output", type=Path)
+    parser.add_argument("--approve-save-receipt", action="store_true")
     args = parser.parse_args(argv)
 
     try:
@@ -81,6 +83,14 @@ def main(argv: Sequence[str] | None = None) -> int:
     except ValueError as exc:
         print(json.dumps({"status": "blocked", "reason": str(exc)}))
         return 2
+    if args.spine_output is not None:
+        try:
+            result["canonical_spine_event_count"] = harness.save_spine(
+                args.spine_output, approved=args.approve_save_receipt,
+            )
+        except (PermissionError, ValueError, OSError) as exc:
+            print(json.dumps({"status": "blocked", "reason": str(exc)}))
+            return 2
     print(json.dumps(result, sort_keys=True))
     return 0 if result["status"] == "complete" else 2
 
