@@ -5,6 +5,8 @@ import sys
 from typing import TextIO
 
 from hex_cortex.memory.cortex_operational_rpc import handle_cortex_operational_rpc_message
+from hex_cortex.memory.cortex_mcp_modern import handle_modern_request
+from hex_cortex.memory.cortex_mcp_modern import is_modern_request
 from hex_cortex.memory.cortex_rpc import CortexRpcSession
 from hex_cortex.memory.cortex_rpc import rpc_error
 
@@ -25,6 +27,8 @@ def serve_cortex_operational_stdio(
         else:
             if not isinstance(message, dict):
                 response = rpc_error(None, -32600, "Invalid Request")
+            elif is_modern_request(message):
+                response = handle_modern_request(message)
             else:
                 response = handle_cortex_operational_rpc_message(
                     message,
