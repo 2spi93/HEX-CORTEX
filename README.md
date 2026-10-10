@@ -23,6 +23,16 @@ See [Cloud-first / no-benchmark V5](docs/CLOUD_FIRST_NO_BENCHMARK_V5.md).
 A green CI or offline readiness check does not certify real cloud API access
 or end-to-end autonomous coding.
 
+## ChemistryCell with bounded stoichiometric simulations (V15)
+
+The [V15 ChemistryCell dossier](docs/CHEMISTRY_STOICHIOMETRY_SIMULATION_V15.md)
+introduces exact atom-balance, rounded IUPAC molar masses and idealized
+mole-inventory simulations with explicit limiting reagents and independent
+element/mass conservation checks. The operator command
+`hexcortex-chemistry` needs explicit approval. This is NOT molecular
+dynamics, experimental yield prediction or authority to perform chemistry
+in a laboratory.
+
 ## Classical PhysicsCell with exact SI dimensions (V14)
 
 The [PhysicsCell V14 manual](docs/PHYSICS_SI_CELL_V14.md) documents
