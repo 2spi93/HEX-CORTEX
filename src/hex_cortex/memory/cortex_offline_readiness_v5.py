@@ -14,6 +14,7 @@ from pathlib import Path
 
 from hex_cortex.core.cell_registry import CellRegistry
 from hex_cortex.core.cortex_exact_math_v13 import calculate_exact
+from hex_cortex.core.cortex_physics_cell_v14 import calculate_physics
 from hex_cortex.core.cortex_homeostasis_v13 import HealthObservation, homeostatic_review
 from hex_cortex.core.cognitive_circuit_v1 import CognitiveCircuit
 from hex_cortex.core.cognitive_replay_pipeline_v11 import run_circuit_replay_memory
@@ -220,6 +221,31 @@ def offline_readiness() -> dict[str, object]:
         feedback["advisory_state"] == "quarantined"
         and feedback["registry_mutated"] is False
         and feedback["physical_actuation_allowed"] is False
+    )
+    physical = calculate_physics(
+        "force",
+        {
+            "mass": {"value": "3", "unit": "kg"},
+            "acceleration": {"value": "2/3", "unit": "m/s^2"},
+        },
+        approved=True,
+    )
+    unsafe_units = calculate_physics(
+        "force",
+        {
+            "mass": {"value": "3", "unit": "m"},
+            "acceleration": {"value": "2", "unit": "m/s^2"},
+        },
+        approved=True,
+    )
+    checks["physics_si_exact_laws_and_unit_safety"] = (
+        physical["status"] == "verified_classical_formula"
+        and physical["numerator"] == 2
+        and physical["unit"] == "N"
+        and physical["si_dimensions"] == [1, 1, -2, 0, 0, 0, 0]
+        and unsafe_units["status"] == "blocked"
+        and unsafe_units["calculation_performed"] is False
+        and physical["hardware_actuation_allowed"] is False
     )
     # Constructors only; neither provider is contacted or authenticated.
     checks["cloud_adapter_interfaces"] = (
