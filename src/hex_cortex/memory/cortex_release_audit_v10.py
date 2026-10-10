@@ -26,6 +26,7 @@ _COMPONENT_FILES = {
     "cognitive_replay_pipeline": "src/hex_cortex/core/cognitive_replay_pipeline_v11.py",
     "universal_capability_contracts": "src/hex_cortex/core/universal_capabilities_v12.py",
     "exact_mathematical_cell": "src/hex_cortex/core/cortex_exact_math_v13.py",
+    "classical_physics_cell": "src/hex_cortex/core/cortex_physics_cell_v14.py",
     "homeostatic_feedback": "src/hex_cortex/core/cortex_homeostasis_v13.py",
     "cloud_adapters": "src/hex_cortex/memory/cortex_cloud_brain_v5.py",
     "permissions": "src/hex_cortex/memory/cortex_local_harness_v2.py",
@@ -48,6 +49,7 @@ _DOCUMENTS = (
     "docs/COMPETITIVE_ARCHITECTURE_POSITION_2026_10.md",
     "docs/UNIVERSAL_CORTEX_NORTH_STAR_V12.md",
     "docs/BIOMIMETIC_ENGINEERING_V13.md",
+    "docs/PHYSICS_SI_CELL_V14.md",
 )
 
 

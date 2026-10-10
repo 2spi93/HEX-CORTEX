@@ -23,6 +23,14 @@ See [Cloud-first / no-benchmark V5](docs/CLOUD_FIRST_NO_BENCHMARK_V5.md).
 A green CI or offline readiness check does not certify real cloud API access
 or end-to-end autonomous coding.
 
+## Classical PhysicsCell with exact SI dimensions (V14)
+
+The [PhysicsCell V14 manual](docs/PHYSICS_SI_CELL_V14.md) documents
+operational rational calculations for force, kinetic energy, momentum,
+speed, power and density, with dimensional checking and a no-model
+PowerShell command `hexcortex-physics`. It is limited classical
+formula evaluation, **not** a real-world simulator or actuator controller.
+
 ## Bio-inspired resilience + first real MathCell (V13)
 
 The [V13 scientific engineering dossier](docs/BIOMIMETIC_ENGINEERING_V13.md)
