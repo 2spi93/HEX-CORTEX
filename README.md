@@ -23,6 +23,15 @@ See [Cloud-first / no-benchmark V5](docs/CLOUD_FIRST_NO_BENCHMARK_V5.md).
 A green CI or offline readiness check does not certify real cloud API access
 or end-to-end autonomous coding.
 
+## Bio-inspired resilience + first real MathCell (V13)
+
+The [V13 scientific engineering dossier](docs/BIOMIMETIC_ENGINEERING_V13.md)
+introduces an actual deterministic exact-rational MathCell integrated with
+CognitiveCircuit, plus a read-only homeostatic health advisor inspired by
+negative feedback and immune recovery. Both modules are bounded, offline
+and independently regression-tested; neither claims trained AGI, physical
+device control or universal scientific expertise.
+
 ## Universal Cognitive Exoskeleton — project mission (V12)
 
 HEX-CORTEX is **not a coding-only agent**. The owner's original North Star

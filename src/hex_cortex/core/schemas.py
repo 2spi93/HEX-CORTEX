@@ -26,6 +26,12 @@ class CellRole(StrEnum):
 
     INTENT = "intent"
     LOGIC = "logic"
+    MATH = "math"
+    PHYSICS = "physics"
+    CHEMISTRY = "chemistry"
+    BIOLOGY = "biology"
+    ENGINEERING = "engineering"
+    ROBOTICS = "robotics"
     MEMORY = "memory"
     CRITIC = "critic"
     WORLD_MODEL = "world_model"
