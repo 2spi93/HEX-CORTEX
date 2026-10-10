@@ -18,6 +18,7 @@ from hex_cortex.core.cortex_physics_cell_v14 import calculate_physics
 from hex_cortex.core.cortex_chemistry_cell_v15 import run_chemistry
 from datetime import date
 import hashlib
+from hex_cortex.core.cortex_scientific_evidence_circuit_v18 import run_scientific_evidence_circuit
 from hex_cortex.core.cortex_scientific_local_sources_v17 import (
     LocalScientificEvidenceVerifier,
     expected_scientific_source_bytes,
@@ -355,6 +356,27 @@ def offline_readiness() -> dict[str, object]:
             ),
             witnesses, operator_approved=True,
             verify_source=verifier.verify_source,
+        )
+        routed, scientific_circuit = run_scientific_evidence_circuit(
+            CoreTask(
+                task_id="source-backed-science-v18",
+                content=json.dumps({
+                    "claim_id": "offline_bytes_fixture",
+                    "domain": "physics",
+                    "result_unit": "m/s",
+                }),
+                domain_hints=["physics"],
+                risk=0.1, novelty=0.1, uncertainty=0.1,
+            ),
+            records=witnesses, verify_source=verifier.verify_source,
+            approved=True,
+        )
+        checks["scientific_sources_routed_to_verified_cognitive_spine"] = (
+            routed["status"] == "verified"
+            and routed["verified_cell_count"] == 1
+            and scientific_circuit.spine.verify_integrity().ok
+            and routed["model_used"] is False
+            and routed["checkout_modified"] is False
         )
         (source_root / "local.beta.json").write_bytes(b"corrupt")
         source_tamper_denied = not verifier.verify_source(witnesses[1])
