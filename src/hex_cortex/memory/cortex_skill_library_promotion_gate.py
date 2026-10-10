@@ -7,6 +7,11 @@ from uuid import uuid4
 
 from pydantic import BaseModel, Field
 
+from hex_cortex.memory.cortex_durable_jsonl_v7 import (
+    atomic_jsonl_snapshot,
+    exclusive_jsonl_writer,
+)
+
 from hex_cortex.memory.cortex_skill_candidate import (
     CORTEX_SKILL_CANDIDATE_FILENAME,
     CortexSkillCandidateJsonlStore,
@@ -58,10 +63,8 @@ class CortexSkillLibraryPromotionGateJsonlStore:
         return records
 
     def save(self, records: list[CortexSkillLibraryPromotionGateRecord]) -> int:
-        self.path.parent.mkdir(parents=True, exist_ok=True)
-        with self.path.open("w", encoding="utf-8") as handle:
-            for record in records:
-                handle.write(f"{record.model_dump_json()}\n")
+        with exclusive_jsonl_writer(self.path):
+            atomic_jsonl_snapshot(self.path, (record.model_dump_json() for record in records))
         return len(records)
 
 
