@@ -15,6 +15,7 @@ from pathlib import Path
 from hex_cortex.core.cell_registry import CellRegistry
 from hex_cortex.core.cortex_exact_math_v13 import calculate_exact
 from hex_cortex.core.cortex_physics_cell_v14 import calculate_physics
+from hex_cortex.core.cortex_chemistry_cell_v15 import run_chemistry
 from hex_cortex.core.cortex_homeostasis_v13 import HealthObservation, homeostatic_review
 from hex_cortex.core.cognitive_circuit_v1 import CognitiveCircuit
 from hex_cortex.core.cognitive_replay_pipeline_v11 import run_circuit_replay_memory
@@ -246,6 +247,23 @@ def offline_readiness() -> dict[str, object]:
         and unsafe_units["status"] == "blocked"
         and unsafe_units["calculation_performed"] is False
         and physical["hardware_actuation_allowed"] is False
+    )
+    # V15: a true bounded stoichiometric mole simulation, with exact
+    # atom inventories and fixed rounded-weight mass conservation.
+    chemistry = run_chemistry(
+        ["H2", "O2"], ["H2O"],
+        amounts_mol={"H2": "3", "O2": "1"}, approved=True,
+    )
+    chemistry_sim = chemistry.get("simulation") or {}
+    invalid_reaction = run_chemistry(["O2"], ["CO2"], approved=True)
+    checks["chemistry_exact_atoms_and_mass_conservation"] = (
+        chemistry["status"] == "verified_idealized_stoichiometry"
+        and chemistry_sim.get("products_mol") == {"H2O": "2"}
+        and chemistry_sim.get("unreacted_mol") == {"H2": "1", "O2": "0"}
+        and chemistry_sim.get("element_inventory_conserved") is True
+        and chemistry_sim.get("mass_conserved_under_fixed_rounded_weights") is True
+        and chemistry["laboratory_action_performed"] is False
+        and invalid_reaction["status"] == "blocked"
     )
     # Constructors only; neither provider is contacted or authenticated.
     checks["cloud_adapter_interfaces"] = (
