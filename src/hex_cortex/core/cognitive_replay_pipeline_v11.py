@@ -9,8 +9,8 @@ from __future__ import annotations
 
 import hashlib
 import json
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Callable
 
 from hex_cortex.core.cognitive_circuit_v1 import CognitiveCircuit
 from hex_cortex.core.schemas import CellResult, Task
