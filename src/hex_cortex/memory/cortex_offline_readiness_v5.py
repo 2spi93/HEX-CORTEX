@@ -19,6 +19,12 @@ from hex_cortex.core.cortex_chemistry_cell_v15 import run_chemistry
 from datetime import date
 import hashlib
 from hex_cortex.core.cortex_scientific_evidence_circuit_v18 import run_scientific_evidence_circuit
+from hex_cortex.core.cortex_scientific_corpus_v19 import (
+    CorpusOperation,
+    evaluate_corpus_record,
+    new_corpus_event,
+    record_fingerprint,
+)
 from hex_cortex.core.cortex_scientific_local_sources_v17 import (
     LocalScientificEvidenceVerifier,
     expected_scientific_source_bytes,
@@ -377,6 +383,54 @@ def offline_readiness() -> dict[str, object]:
             and scientific_circuit.spine.verify_integrity().ok
             and routed["model_used"] is False
             and routed["checkout_modified"] is False
+        )
+        # V19 governance: real source bytes remain valid after revocation,
+        # but their independently pinned admissions must be current.
+        admitted = []
+        for witness in witnesses:
+            admitted.append(new_corpus_event(
+                admitted,
+                operation=CorpusOperation.ADMIT,
+                source_id=witness.source_id, revision=1,
+                record_sha256=record_fingerprint(witness),
+            ))
+        ledger = source_root / "corpus-ledger.json"
+        ledger.write_text(
+            json.dumps([row.model_dump(mode="json") for row in admitted]),
+            encoding="utf-8",
+        )
+        first_pin = admitted[-1].event_hash
+        admitted_before_revocation = all(
+            evaluate_corpus_record(
+                record, ledger_path=ledger, expected_head=first_pin,
+                base_verifier=verifier.verify_source, approved=True,
+            )
+            for record in witnesses
+        )
+        revoked = new_corpus_event(
+            admitted, operation=CorpusOperation.REVOKE,
+            source_id=witnesses[1].source_id, revision=1,
+            record_sha256=record_fingerprint(witnesses[1]),
+        )
+        ledger.write_text(
+            json.dumps([row.model_dump(mode="json")
+                        for row in [*admitted, revoked]]),
+            encoding="utf-8",
+        )
+        checks["scientific_corpus_revocation_blocks_valid_source"] = (
+            admitted_before_revocation
+            and verifier.verify_source(witnesses[1])
+            and not evaluate_corpus_record(
+                witnesses[1], ledger_path=ledger,
+                expected_head=revoked.event_hash,
+                base_verifier=verifier.verify_source, approved=True,
+            )
+        )
+        checks["scientific_corpus_external_pin_denies_history_rollback"] = (
+            not evaluate_corpus_record(
+                witnesses[0], ledger_path=ledger, expected_head=first_pin,
+                base_verifier=verifier.verify_source, approved=True,
+            )
         )
         (source_root / "local.beta.json").write_bytes(b"corrupt")
         source_tamper_denied = not verifier.verify_source(witnesses[1])

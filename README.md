@@ -23,6 +23,16 @@ See [Cloud-first / no-benchmark V5](docs/CLOUD_FIRST_NO_BENCHMARK_V5.md).
 A green CI or offline readiness check does not certify real cloud API access
 or end-to-end autonomous coding.
 
+## Versioned scientific corpus admission and revocation (V19)
+
+The [V19 corpus governance manual](docs/SCIENTIFIC_CORPUS_GOVERNANCE_V19.md)
+provides a read-only externally pinned chain of source admissions, versions
+and revocations. The new `hexcortex-science-governed` CLI revalidates
+corpus policy and real source bytes at both the evidence cell and Critic
+boundaries. A revoked source is rejected **even when its source-byte SHA-256
+remains valid**. The demonstration hash in the repo is for *synthetic test
+fixtures only*, not a trusted external production pin or publisher signature.
+
 ## Scientific source evidence through CognitiveCircuit (V18)
 
 The [V18 evidence-to-critic-to-spine documentation](docs/SCIENTIFIC_EVIDENCE_CIRCUIT_V18.md)

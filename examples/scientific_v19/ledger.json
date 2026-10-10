@@ -1,0 +1,20 @@
+[
+  {
+    "sequence": 1,
+    "operation": "admit",
+    "source_id": "example.alpha",
+    "revision": 1,
+    "record_sha256": "594485965764d35bf83f4bcffc0137943db023522b2a1c8af69f9c1ed218e9bd",
+    "previous_hash": "0000000000000000000000000000000000000000000000000000000000000000",
+    "event_hash": "66f0984e3cc2ec69c57e529f19d6087aabac79e5e945b5d737b4b73341901081"
+  },
+  {
+    "sequence": 2,
+    "operation": "admit",
+    "source_id": "example.beta",
+    "revision": 1,
+    "record_sha256": "587f99c6a77b188ab49dc5c9ecc796085dd8a20b92d0f7dd1a4d3b361a252042",
+    "previous_hash": "66f0984e3cc2ec69c57e529f19d6087aabac79e5e945b5d737b4b73341901081",
+    "event_hash": "8eadc291e08d7292c07519c955fa4e52611577dc57f25a16f962c2c42c6a44c5"
+  }
+]
