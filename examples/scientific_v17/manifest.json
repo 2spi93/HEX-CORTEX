@@ -1,0 +1,30 @@
+[
+  {
+    "absolute_uncertainty": "2",
+    "claim_id": "demo_velocity",
+    "domain": "physics",
+    "kind": "measurement",
+    "published_on": "2026-10-10",
+    "source_digest_sha256": "11b9e372f5854dba514045079000098f4afd7c0f7298d2b35c0f261191e4e857",
+    "source_id": "example.alpha",
+    "source_license": "synthetic-example-no-scientific-claims",
+    "source_uri": "https://example.org/synthetic/example.alpha",
+    "source_version": "demo.v1",
+    "unit": "m/s",
+    "value": "100"
+  },
+  {
+    "absolute_uncertainty": "1/1000",
+    "claim_id": "demo_velocity",
+    "domain": "physics",
+    "kind": "measurement",
+    "published_on": "2026-10-10",
+    "source_digest_sha256": "63b5600e428560b4f6af548e87cc76f65a87e8717848f441be9d2193b0ff1679",
+    "source_id": "example.beta",
+    "source_license": "synthetic-example-no-scientific-claims",
+    "source_uri": "https://example.org/synthetic/example.beta",
+    "source_version": "demo.v1",
+    "unit": "km/s",
+    "value": "1/10"
+  }
+]
