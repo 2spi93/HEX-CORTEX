@@ -53,9 +53,9 @@ A skill is not a prompt. A skill candidate must come from accepted learning even
 
 Execution is not the identity of HEX-CORTEX. Any destructive or irreversible execution requires a dedicated authorization gate.
 
-### Local-first, server-later
+### Local-only architecture (decision 2026-10-10)
 
-Development remains local-first. Server deployment is staging only after tests, limits, health checks, and safe persistence contracts.
+No HEX-CORTEX server. Hosted reasoning APIs require explicit consent. No local LLM, GPU, or benchmark gate.
 
 ## Current strategic spine
 
@@ -68,8 +68,6 @@ CortexLearningEvent
 → DistillationDataset later
 ```
 
-## Immediate next focus
+## Current engineering focus
 
-Convert promoted learning events into skill candidates, without activating them automatically.
-
-The next build step is CortexSkillCandidate.
+Prior skill candidate and genome contracts already exist. Connect existing modules with independent evidence, recovery and gateway protection. See [original architecture audit](ORIGINAL_VISION_GAP_AUDIT_2026_10.md).
