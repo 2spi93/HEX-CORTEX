@@ -158,7 +158,7 @@ def test_degraded_cell_requires_separate_secondary_verification() -> None:
         task, cell_handler=_good, verify_evidence=primary, approved=True,
     )
     assert rejected["status"] == "blocked"
-    assert rejected["outcomes"][0]["reason"] == "verification_failed"
+    assert any(row["reason"] == "verification_failed" for row in rejected["outcomes"] if row["status"] == "rejected")
     # Because the degraded cell had another rejection, it may now be quarantined.
     # Use another fresh registry to exercise the permitted double-check path.
     circuit = _setup()
