@@ -74,7 +74,7 @@ def test_math_result_is_verifiable_and_tamper_detected():
 
 def test_math_cell_plugs_into_existing_cognitive_circuit():
     registry = CellRegistry([
-        CellSpec(cell_id="math", role=CellRole.LOGIC, domains=["mathematics"])
+        CellSpec(cell_id="math", role=CellRole.MATH, domains=["mathematics"])
     ])
     circuit = CognitiveCircuit(registry)
     task = Task(task_id="math-task", content="2 ** 6 + 1 / 2",
