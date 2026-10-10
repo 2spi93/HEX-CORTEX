@@ -1,4 +1,4 @@
-"""Local operator CLI: read-only repo diagnostic or approved local LLM run."""
+"""Model-agnostic local operator CLI: offline tools or explicitly approved Brain."""
 
 from __future__ import annotations
 
@@ -8,6 +8,7 @@ import platform
 from collections.abc import Sequence
 from pathlib import Path
 
+from hex_cortex.memory.cortex_cloud_brain_v5 import CloudBrain
 from hex_cortex.memory.cortex_local_harness_v2 import (
     Budget,
     Capability,
@@ -26,6 +27,9 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--task-id", default="inspect-local-checkout")
     parser.add_argument("--approve-read", action="store_true")
     parser.add_argument("--approve-model", action="store_true")
+    parser.add_argument("--approve-cloud-send", action="store_true")
+    parser.add_argument("--provider", choices=["ollama", "openai", "anthropic"], default="ollama")
+    parser.add_argument("--dry-run", action="store_true", help="report bounded configuration without inference or file changes")
     parser.add_argument("--model", action="append", default=[])
     parser.add_argument("--instruction", default="Inspect local checkout")
     parser.add_argument("--domain", default="coding")
@@ -40,6 +44,17 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--approve-save-receipt", action="store_true")
     args = parser.parse_args(argv)
 
+    if args.dry_run:
+        print(json.dumps({
+            "status": "configuration_only", "provider": args.provider,
+            "selected_models": args.model, "max_tokens": args.max_tokens,
+            "timeout_seconds": args.timeout, "network_call_performed": False,
+            "benchmark_required": False, "checkout_modified": False,
+            "will_send_instruction_if_authorized": bool(args.model),
+            "explicit_cloud_approval": args.approve_cloud_send,
+        }, sort_keys=True))
+        return 0
+
     try:
         harness = build_readonly_harness(args.project_root, session_id=args.session)
         if args.model:
@@ -51,6 +66,12 @@ def main(argv: Sequence[str] | None = None) -> int:
                 if not model_id or not digest:
                     raise ValueError("model digest mapping must not be empty")
                 digests[model_id] = digest
+            if args.provider != "ollama" and args.fingerprint_registry:
+                raise ValueError("cloud_provider_rejects_local_fingerprint_registry")
+            if args.provider != "ollama" and len(args.model) != 1:
+                raise ValueError("cloud_provider_requires_one_explicit_model")
+            if args.provider != "ollama" and args.endpoint != "http://127.0.0.1:11434":
+                raise ValueError("custom_cloud_endpoint_denied")
             if args.fingerprint_registry:
                 harness.priors = load_experimental_priors(
                     args.fingerprint_registry, domain=args.domain,
@@ -62,17 +83,27 @@ def main(argv: Sequence[str] | None = None) -> int:
                 and any(model not in harness.priors for model in args.model)
             ):
                 raise ValueError("measured fingerprints required for all routing candidates")
+            cloud_authorized = (
+                args.provider == "ollama" or args.approve_cloud_send
+            )
             harness.grants = frozenset(
                 {Capability.READ_REPO, Capability.CALL_MODEL}
-            ) if args.approve_model else frozenset({Capability.READ_REPO})
+            ) if args.approve_model and cloud_authorized else frozenset({Capability.READ_REPO})
             harness.budget = Budget(max_model_calls=1, max_tool_calls=0)
-            brain = LocalOllamaBrain(
-                endpoint=args.endpoint, timeout_seconds=args.timeout,
-                max_predict_tokens=args.max_tokens,
-            )
+            if args.provider == "ollama":
+                brain = LocalOllamaBrain(
+                    endpoint=args.endpoint, timeout_seconds=args.timeout,
+                    max_predict_tokens=args.max_tokens,
+                )
+            else:
+                brain = CloudBrain(
+                    provider=args.provider, timeout_seconds=args.timeout,
+                    max_output_tokens=args.max_tokens,
+                )
             result = run_clocked_local_task(
                 harness, Task(args.task_id, args.domain, args.instruction),
-                models=args.model, brain=brain, approved=args.approve_model,
+                models=args.model, brain=brain,
+                approved=args.approve_model and cloud_authorized,
             )
         else:
             result = run_clocked_local_task(
