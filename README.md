@@ -10,6 +10,19 @@
 > documented in [Local Operator Manual](docs/LOCAL_HARNESS_V2_OPERATOR.md).
 > No remote infrastructure is in scope, and a passing CI is not live-model certification.
 
+## Cloud-first development policy (2026-10-10)
+
+**A local LLM is no longer required to develop, test or validate the
+architecture.** Keep the existing Ollama integrations for later, but do not
+block development or CI on machine learning benchmarks or GPU/VRAM.
+`hexcortex-readiness --pretty` validates model-free wiring; `hexcortex-harness`
+can explicitly use hosted OpenAI/Anthropic APIs after separate model and
+cloud-transmission approvals. No personal server is deployed.
+
+See [Cloud-first / no-benchmark V5](docs/CLOUD_FIRST_NO_BENCHMARK_V5.md).
+A green CI or offline readiness check does not certify real cloud API access
+or end-to-end autonomous coding.
+
 ## Current operational entry points
 
 ```text
@@ -19,6 +32,7 @@ hexcortex-doctor     audit local checkout; default expected branch main
 hexcortex-benchmark  run bounded localhost Ollama smoke benchmarks
 hexcortex-skills     export active SkillRecord JSONL to portable SKILL.md
 hexcortex-harness    bounded local tool/brain execution with consent and receipts
+hexcortex-readiness  offline architecture smoke; no LLM, cloud keys or benchmarks
 hexcortex-benchmark-v2  machine-bound heldout Ollama fingerprints
 hexcortex-repo-eval  local no-exec multi-file repair probe (experimental)
 hexcortex-a2a-local   local A2A-compatible JSONL subset
