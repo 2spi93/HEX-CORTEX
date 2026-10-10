@@ -5,6 +5,10 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+from hex_cortex.memory.cortex_durable_jsonl_v7 import (
+    atomic_jsonl_snapshot,
+    exclusive_jsonl_writer,
+)
 from hex_cortex.spine.canonical_spine import CanonicalSpine
 from hex_cortex.spine.schemas import CanonicalSpineEvent
 
@@ -18,20 +22,37 @@ class CanonicalSpineJsonlStore:
     def save(self, spine: CanonicalSpine) -> int:
         """Write all spine events to JSONL and return the number written."""
 
-        self.path.parent.mkdir(parents=True, exist_ok=True)
+        if not spine.verify_integrity().ok:
+            raise ValueError("invalid_spine_cannot_save")
         events = spine.events
-        with self.path.open("w", encoding="utf-8") as handle:
-            for event in events:
-                line = event.model_dump_json()
-                handle.write(f"{line}\n")
+        with exclusive_jsonl_writer(self.path):
+            # A snapshot write is explicit; never silently overwrite a newer
+            # chain with a stale in-memory instance.
+            current = self.load()
+            current_events = current.events
+            if current_events and events[:len(current_events)] != current_events:
+                raise ValueError("spine_snapshot_would_rewrite_history")
+            atomic_jsonl_snapshot(self.path, (row.model_dump_json() for row in events))
         return len(events)
 
     def append_event(self, event: CanonicalSpineEvent) -> None:
         """Append one already-built canonical event to JSONL."""
 
-        self.path.parent.mkdir(parents=True, exist_ok=True)
-        with self.path.open("a", encoding="utf-8") as handle:
-            handle.write(f"{event.model_dump_json()}\n")
+        with exclusive_jsonl_writer(self.path):
+            current = self.load()
+            existing = current.events
+            # Crash-safe idempotent retry is allowed only for the same event
+            # identity and exact hash-chain payload.
+            prior = next((row for row in existing if row.event_id == event.event_id), None)
+            if prior is not None:
+                if prior != event:
+                    raise ValueError("spine_event_id_collision")
+                return
+            candidate = CanonicalSpine()
+            candidate.replace_events([*existing, event])
+            atomic_jsonl_snapshot(
+                self.path, (row.model_dump_json() for row in candidate.events)
+            )
 
     def load(self) -> CanonicalSpine:
         """Load a spine from JSONL and verify hash-chain integrity."""
