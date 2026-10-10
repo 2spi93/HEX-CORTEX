@@ -95,15 +95,14 @@ def review_skill_evidence(
         profile / CORTEX_LEARNING_EVENT_FILENAME
     ).load()
     matching = [row for row in events if row.learning_id in set(source_ids)]
+    by_id = {row.learning_id: row for row in matching}
     if (
         len(matching) != len(source_ids)
-        or len({row.learning_id for row in matching}) != len(matching)
-        or any(row.learning_hash != expected for expected, row in zip(
-            source_hashes,
-            (next((ev for ev in matching if ev.learning_id == source_id), None)
-             for source_id in source_ids),
-            strict=True,
-        ) if row is None or row.learning_hash != expected)
+        or len(by_id) != len(matching)
+        or any(
+            source_id not in by_id or by_id[source_id].learning_hash != source_hash
+            for source_id, source_hash in zip(source_ids, source_hashes, strict=True)
+        )
     ):
         blockers.append("source_events_missing_or_inconsistent")
 
