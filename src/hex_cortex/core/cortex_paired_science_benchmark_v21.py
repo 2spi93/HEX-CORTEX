@@ -186,9 +186,10 @@ def evaluate_paired_model_amplification(
         "model_outputs_captured_by_this_command": False,
         "model_called": False,
         "capture_mode": "synthetic_fixture" if synthetic else "operator_supplied_unattested",
-        "real_model_amplification_measured": measured,
+        "real_model_amplification_measured": False,
         "real_model_calls_independently_attested": False,
         "evidence_is_external_and_unverified": measured,
+        "paired_scores_computed": True,
         "sample_size": totals["pairs"],
         "baseline_correct": totals["baseline_correct"],
         "cortex_correct": totals["cortex_correct"],
@@ -220,8 +221,7 @@ def evaluate_paired_model_amplification(
         "provider_access_required": False,
         "checkout_modified": False,
     }
-    # Do not surface synthetic-fake positive gains as a 'measured model gain'.
-    if synthetic:
-        report["real_model_amplification_measured"] = False
+    # Independent provider attestation, task independence and holdout
+    # provenance remain unverified for BOTH synthetic and operator-supplied captures.
     report["report_sha256"] = _digest(report)
     return report
