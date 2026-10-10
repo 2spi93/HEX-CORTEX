@@ -23,6 +23,19 @@ See [Cloud-first / no-benchmark V5](docs/CLOUD_FIRST_NO_BENCHMARK_V5.md).
 A green CI or offline readiness check does not certify real cloud API access
 or end-to-end autonomous coding.
 
+## Conservative uncertainty propagation through the scientific cortex (V20)
+
+The [V20 decision uncertainty manual](docs/SCIENTIFIC_DECISION_UNCERTAINTY_V20.md)
+adds a decision cell that conservatively spans **all source uncertainty
+intervals**, rather than promoting the narrower evidence intersection
+to an unwarranted certainty. The optional local `hexcortex-science-decision`
+CLI uses the existing V19 pinned governed corpus, V17 byte-integrity
+checks, the real CognitiveCircuit/Critic and an explicit operator
+consent gate. It returns `provisionally_supported`,
+`provisionally_refuted` or `indeterminate` with exact bounds; it
+never reports a fabricated confidence probability or authorizes
+real-world action. A passing pipeline does not certify scientific truth.
+
 ## Versioned scientific corpus admission and revocation (V19)
 
 The [V19 corpus governance manual](docs/SCIENTIFIC_CORPUS_GOVERNANCE_V19.md)
