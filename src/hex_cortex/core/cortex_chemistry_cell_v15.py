@@ -334,3 +334,34 @@ def chemistry_cell_result(cell_id: str, task: Task, *, approved: bool = False) -
         payload={"balance": result["balance"], "simulation": result["simulation"]},
         evidence_refs=["chemistry:stoichiometric:" + str(result["equation_hash"])],
     )
+
+
+def verify_chemistry_cell_result(candidate: CellResult, request_text: str) -> bool:
+    """Recompute the result in an independently invoked read-only verifier.
+
+    This verification shares the computation module; it is NOT independent
+    chemical laboratory evidence or a proof of reaction feasibility.
+    """
+    if not isinstance(request_text, str) or len(request_text) > 4096:
+        return False
+    try:
+        request = json.loads(request_text)
+        if not isinstance(request, dict) or not {"reactants", "products"} <= set(
+            request
+        ) or set(request) - {"reactants", "products", "amounts_mol"}:
+            return False
+        expected = run_chemistry(
+            request["reactants"], request["products"],
+            amounts_mol=request.get("amounts_mol"), approved=True,
+        )
+    except (ValueError, TypeError, KeyError, OverflowError):
+        return False
+    return (
+        expected.get("status") == "verified_idealized_stoichiometry"
+        and candidate.evidence_refs == [
+            "chemistry:stoichiometric:" + str(expected["equation_hash"])
+        ]
+        and candidate.payload == {
+            "balance": expected["balance"], "simulation": expected["simulation"]
+        }
+    )
