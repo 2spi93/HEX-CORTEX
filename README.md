@@ -23,6 +23,20 @@ See [Cloud-first / no-benchmark V5](docs/CLOUD_FIRST_NO_BENCHMARK_V5.md).
 A green CI or offline readiness check does not certify real cloud API access
 or end-to-end autonomous coding.
 
+## Universal Cognitive Exoskeleton — project mission (V12)
+
+HEX-CORTEX is **not a coding-only agent**. The owner's original North Star
+is a model-independent cognitive exoskeleton (Tony Stark's armor metaphor)
+for universal scientific knowledge, mathematics, physics, molecular chemistry,
+biology, engineering and embodied interfaces to applications, devices,
+robots and drones. Coding is the *first validated engineering test ground*.
+
+The [universal mission and embodiment contract](docs/UNIVERSAL_CORTEX_NORTH_STAR_V12.md)
+sets up fail-closed domain/target schemas and a science-evidence ledger
+without pretending mathematical solvers, chemistry experts or drone pilots
+have already been installed. **No direct physical actuation in this release**;
+all physical control is deferred to real independently enforced safety gates.
+
 ## Current operational entry points
 
 ```text

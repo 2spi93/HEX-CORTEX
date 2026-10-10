@@ -24,6 +24,7 @@ _COMPONENT_FILES = {
     "registry": "src/hex_cortex/core/cell_registry.py",
     "cognitive_circuit": "src/hex_cortex/core/cognitive_circuit_v1.py",
     "cognitive_replay_pipeline": "src/hex_cortex/core/cognitive_replay_pipeline_v11.py",
+    "universal_capability_contracts": "src/hex_cortex/core/universal_capabilities_v12.py",
     "cloud_adapters": "src/hex_cortex/memory/cortex_cloud_brain_v5.py",
     "permissions": "src/hex_cortex/memory/cortex_local_harness_v2.py",
     "gateway": "src/hex_cortex/memory/cortex_gateway.py",
@@ -43,6 +44,7 @@ _DOCUMENTS = (
     "docs/GATEWAY_EFFECT_RECOVERY_V9.md",
     "docs/RELEASE_ACCEPTANCE_V10.md",
     "docs/COMPETITIVE_ARCHITECTURE_POSITION_2026_10.md",
+    "docs/UNIVERSAL_CORTEX_NORTH_STAR_V12.md",
 )
 
 

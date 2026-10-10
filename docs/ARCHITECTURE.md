@@ -2,6 +2,21 @@
 
 HEX-CORTEX is a cellular cognitive architecture. It is not designed as a single monolithic LLM. It is designed as a system of specialized cells connected through a fast router, a compact global workspace, and a replayable memory spine.
 
+## Universal mission and interface boundaries
+
+The foundational objective is to amplify any replaceable AI brain with
+cross-domain scientific reasoning, proven tools, memory, world models,
+verification and embodiment (applications, instruments, robots, drones).
+**Coding is one validation lane, not the project's definition.**
+
+V12 defines typed knowledge domains and software/physical target capabilities
+in `core/universal_capabilities_v12.py`. These are **contracts only**;
+domain-specific mathematics, chemistry, physics and robot control remain
+unimplemented until trustworthy adapters, evidence and safety constraints
+have been validated. Simulations and plans cannot grant actuator authority.
+
+See [North Star V12](UNIVERSAL_CORTEX_NORTH_STAR_V12.md).
+
 ## Core components
 
 ### 1. Thalamic Router
