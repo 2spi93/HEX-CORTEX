@@ -8,6 +8,11 @@ from uuid import uuid4
 
 from pydantic import BaseModel, Field
 
+from hex_cortex.memory.cortex_durable_jsonl_v7 import (
+    atomic_jsonl_snapshot,
+    exclusive_jsonl_writer,
+)
+
 from hex_cortex.memory.cortex_learning_event import (
     CORTEX_LEARNING_EVENT_FILENAME,
     CortexLearningEventJsonlStore,
@@ -57,16 +62,20 @@ class CortexSkillCandidateJsonlStore:
         return records
 
     def save(self, records: list[CortexSkillCandidateRecord]) -> int:
-        self.path.parent.mkdir(parents=True, exist_ok=True)
-        with self.path.open("w", encoding="utf-8") as handle:
-            for record in records:
-                handle.write(f"{record.model_dump_json()}\n")
+        with exclusive_jsonl_writer(self.path):
+            atomic_jsonl_snapshot(self.path, (record.model_dump_json() for record in records))
         return len(records)
 
     def append_many(self, records: list[CortexSkillCandidateRecord]) -> int:
-        current = self.load()
-        current.extend(records)
-        return self.save(current)
+        with exclusive_jsonl_writer(self.path):
+            current = self.load()
+            seen = {item.candidate_hash for item in current}
+            for record in records:
+                if record.candidate_hash not in seen:
+                    current.append(record)
+                    seen.add(record.candidate_hash)
+            atomic_jsonl_snapshot(self.path, (item.model_dump_json() for item in current))
+            return len(current)
 
 
 def build_cortex_skill_candidates(profile: Path) -> dict[str, object]:
