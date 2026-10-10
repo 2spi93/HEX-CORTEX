@@ -164,6 +164,12 @@ class CognitiveClock:
                 confidence=result.confidence,
             )
 
+            # A long-running synchronous handler cannot be preempted, but its
+            # completion must not be misreported as within the wall-time budget.
+            if self._elapsed_ms(started_at) > self.max_latency_ms:
+                stopped_reason = "latency_budget_exceeded"
+                break
+
             if result.status == TickStatus.FAILED and tick.required and self.stop_on_failure:
                 stopped_reason = f"required_tick_failed:{tick.name.value}"
                 break
@@ -214,11 +220,12 @@ class CognitiveClock:
                 payload=raw_result,
                 elapsed_ms=elapsed_ms,
             )
-        except Exception as exc:  # noqa: BLE001 - tick failures must be captured as data.
+        except Exception:  # noqa: BLE001 - untrusted errors may contain API keys or prompts
             return TickResult(
                 tick_name=tick.name,
                 status=TickStatus.FAILED,
-                error=str(exc),
+                # Never persist an arbitrary exception message in CanonicalSpine.
+                error="tick_handler_failed",
                 elapsed_ms=self._elapsed_ms(started_at),
             )
 
