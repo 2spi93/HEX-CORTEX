@@ -14,6 +14,7 @@ from pathlib import Path
 
 from hex_cortex.core.cell_registry import CellRegistry
 from hex_cortex.core.cognitive_circuit_v1 import CognitiveCircuit
+from hex_cortex.core.cognitive_replay_pipeline_v11 import run_circuit_replay_memory
 from hex_cortex.core.schemas import CellResult, CellRole, CellSpec, Task as CoreTask
 from hex_cortex.memory.cortex_durable_jsonl_v7 import (
     atomic_jsonl_snapshot,
@@ -110,6 +111,26 @@ def offline_readiness() -> dict[str, object]:
         and result["model_used"] is False
         and result["spine_verified"] is True
         and result["checkout_modified"] is False
+    )
+    followup = run_circuit_replay_memory(
+        circuit,
+        CoreTask(
+            task_id="model-free-replay", content="synthetic regression fixture",
+            domain_hints=["coding"], risk=0.1, novelty=0.1, uncertainty=0.1,
+        ),
+        approved=True,
+        cell_handler=lambda cell_id, task: CellResult(
+            cell_id=cell_id, task_id=task.task_id, confidence=0.7,
+            uncertainty=0.3, evidence_refs=["fixture:checked"],
+        ),
+        verify_evidence=lambda candidate: candidate.evidence_refs == ["fixture:checked"],
+    )
+    checks["cell_to_spine_to_replay_memory_proposal"] = (
+        followup.status == "memory_proposed_not_promoted"
+        and followup.spine_verified
+        and followup.memory_proposal_sha256 is not None
+        and followup.skill_promoted is False
+        and followup.memory_persisted is False
     )
     # A real filesystem transaction is tested in the disposable OS temp root.
     with tempfile.TemporaryDirectory(prefix="hex-cortex-memory-v7-") as folder:
