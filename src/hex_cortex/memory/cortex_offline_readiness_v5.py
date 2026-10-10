@@ -116,7 +116,7 @@ def offline_readiness() -> dict[str, object]:
         with exclusive_jsonl_writer(path):
             atomic_jsonl_snapshot(path, ['{"safe":true}'])
         checks["atomic_learning_memory_roundtrip"] = (
-            path.read_text(encoding="utf-8") == '{"safe":true}\\n'
+            path.read_text(encoding="utf-8") == '{"safe":true}\n'
             and not path.with_name(path.name + ".write-lock").exists()
         )
         review = review_skill_evidence(
