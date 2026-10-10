@@ -145,7 +145,7 @@ def test_bounded_simulation_grid_always_conserves_atoms_and_molar_mass():
     (["H2", "O2"], ["H2O"], {"H2": "1.5", "O2": "1"}, "chemistry_amount_invalid"),
     (["H2", "O2"], ["H2O"], {"H2": "__import__('os')", "O2": "1"}, "chemistry_amount_invalid"),
     (["H2", "O2"], ["H2O"], {"H2": "2**1000", "O2": "1"}, "chemistry_amount_invalid"),
-    (["O2"], ["CO2"], None, "chemistry_no_positive_balance"),
+    (["O2"], ["CO2"], None, "chemistry_underdetermined_or_inconsistent"),
     (["H2", "O2"], ["H2", "H2O"], None, "chemistry_duplicate_species"),
     (["C", "O2"], ["CO", "CO2"], None, "chemistry_underdetermined_or_inconsistent"),
 ])
