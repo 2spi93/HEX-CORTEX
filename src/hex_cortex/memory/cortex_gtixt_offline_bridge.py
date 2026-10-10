@@ -23,6 +23,35 @@ READ_ONLY_CAPABILITIES = (
 )
 
 
+_SENSITIVE_KEY_FRAGMENTS = (
+    "token", "apikey", "accesstoken", "refreshtoken", "password", "passwd",
+    "secret", "credential", "privatekey", "authorization", "bearer",
+    "sessioncookie", "clientsecret",
+)
+
+
+def _validate_export_tree(value: object, *, depth: int = 0, nodes: list[int] | None = None) -> None:
+    """Fail closed on nested secrets, deeply recursive or non-JSON exports."""
+    if nodes is None:
+        nodes = [0]
+    nodes[0] += 1
+    if depth > 8 or nodes[0] > 256:
+        raise ValueError("GTIXT snapshot structure budget exceeded")
+    if isinstance(value, dict):
+        for key, item in value.items():
+            if not isinstance(key, str) or not key or len(key) > 128:
+                raise ValueError("GTIXT snapshot invalid key")
+            compact = "".join(char for char in key.casefold() if char.isalnum())
+            if any(fragment in compact for fragment in _SENSITIVE_KEY_FRAGMENTS):
+                raise ValueError("credential-like key rejected")
+            _validate_export_tree(item, depth=depth + 1, nodes=nodes)
+    elif isinstance(value, list):
+        for item in value:
+            _validate_export_tree(item, depth=depth + 1, nodes=nodes)
+    elif value is not None and not isinstance(value, str | int | float | bool):
+        raise ValueError("GTIXT snapshot contains unsupported value")
+
+
 def inspect_gtixt_snapshot(
     snapshot: Mapping[str, object],
     *,
@@ -47,11 +76,10 @@ def inspect_gtixt_snapshot(
     details = capabilities.get(capability)
     if not isinstance(details, dict):
         raise ValueError("requested capability missing or malformed")
-    if any(str(key).lower() in {
-        "token", "apikey", "password", "secret", "credential", "private_key"
-    } for key in details):
-        raise ValueError("credential-like key rejected")
-    body = json.dumps(details, sort_keys=True)
+    # Deep scan the entire declared export, not just the requested category.
+    # Nested arrays and objects must not bypass the project boundary.
+    _validate_export_tree(capabilities)
+    body = json.dumps(details, sort_keys=True, allow_nan=False)
     if len(body.encode("utf-8")) > 8_192:
         raise ValueError("snapshot exceeds read-only data budget")
     digest = hashlib.sha256(body.encode("utf-8")).hexdigest()
