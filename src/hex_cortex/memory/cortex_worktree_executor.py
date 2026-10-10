@@ -37,7 +37,7 @@ def build_worktree_plan(
         blockers.append("worktree_path_escape")
     if target.exists():
         blockers.append("worktree_target_exists")
-    checks = check_ids or ["pytest", "ruff"]
+    checks = check_ids or ["ruff"]
     invalid_checks = [check for check in checks if check not in _CHECKS]
     if invalid_checks:
         blockers.append("check_not_allowlisted")
@@ -187,11 +187,14 @@ def run_allowlisted_checks(
         return _blocked("isolated_linked_worktree_required")
     if not check_ids or any(check_id not in _CHECKS for check_id in check_ids):
         return _blocked("check_not_allowlisted")
-    # pytest discovers/imports test modules and runs arbitrary Python. An
-    # isolated Git worktree is NOT a process sandbox and provides no host
-    # protection. Never run generated/untrusted tests from this command.
+    # An isolated Git worktree is NOT an OS process sandbox. Running pytest
+    # imports arbitrary repository code; even Python interpreter startup
+    # or module resolution for compileall may execute untrusted imports.
+    # Static Ruff analysis is the only permitted automated check here.
     if "pytest" in check_ids:
         return _blocked("untrusted_pytest_requires_os_sandbox")
+    if "compileall" in check_ids:
+        return _blocked("untrusted_python_requires_os_sandbox")
     rows = []
     for check_id in check_ids:
         result = _run(_CHECKS[check_id], cwd=worktree, timeout_seconds=timeout_seconds)
