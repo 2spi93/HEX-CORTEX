@@ -19,6 +19,13 @@ from hex_cortex.core.cortex_chemistry_cell_v15 import run_chemistry
 from datetime import date
 import hashlib
 from hex_cortex.core.cortex_scientific_evidence_circuit_v18 import run_scientific_evidence_circuit
+from hex_cortex.core.cortex_paired_science_benchmark_v21 import (
+    ModelObservation, PairedEvaluation, ScienceEvalItem,
+    evaluate_paired_model_amplification,
+)
+from hex_cortex.core.cortex_jepa_latent_contract_v21 import (
+    LatentWorldObservation, score_latent_prediction,
+)
 from hex_cortex.core.cortex_scientific_decision_v20 import (
     ScientificDecisionSpec,
     evaluate_scientific_decision,
@@ -482,6 +489,55 @@ def offline_readiness() -> dict[str, object]:
             and source_check["truth_certified"] is False
             and source_tamper_denied
         )
+    # V21: synthetic scores exercise paired scorer wiring only. They
+    # must NEVER be misrepresented as a real model amplification result.
+    benchmark_task = ScienceEvalItem(
+        task_id="benchmark-smoke", domain="mathematics",
+        task_sha256="a" * 64,
+        expected="1/2", score_mode="rational",
+    )
+    samples = [
+        ModelObservation(
+            task_id="benchmark-smoke", arm=arm,
+            provider="synthetic.test", model_id="synthetic.no-model",
+            model_revision="fixture.1", task_sha256="a" * 64,
+            settings_sha256="b" * 64,
+            response=answer, latency_ms=15, billed_input_tokens=0,
+            billed_output_tokens=0, billed_cost_microusd=0,
+            capture_kind="synthetic_fixture", receipt_sha256="c" * 64,
+        ) for arm, answer in (("baseline", "1/3"), ("cortex", "1/2"))
+    ]
+    synthetic_eval = evaluate_paired_model_amplification(
+        PairedEvaluation(
+            protocol_version="hex_cortex_v21_paired_science_v1",
+            dataset_id="readiness-synthetic-only", dataset_sha256="d" * 64,
+            items=[benchmark_task], observations=samples,
+        ), operator_approved=True,
+    )
+    checks["matched_model_benchmark_no_fake_amplification"] = (
+        synthetic_eval["status"] == "scored"
+        and synthetic_eval["cortex_only_correct"] == 1
+        and synthetic_eval["real_model_amplification_measured"] is False
+        and synthetic_eval["real_model_calls_independently_attested"] is False
+        and synthetic_eval["model_called"] is False
+    )
+    latent = score_latent_prediction(
+        LatentWorldObservation(
+            observation_id="readiness-latent-fixture",
+            encoder_identity_sha256="a" * 64,
+            predictor_identity_sha256="b" * 64,
+            horizon_steps=1,
+            predicted_latent=("1/2",), observed_latent=("1",),
+            origin="synthetic_fixture",
+        ), operator_approved=True,
+    )
+    checks["jepa_latent_contract_without_false_training_claim"] = (
+        latent["status"] == "scored_latent_prediction"
+        and latent["mean_squared_latent_error"] == "1/4"
+        and latent["learned_jepa_model_loaded"] is False
+        and latent["model_called"] is False
+        and latent["physical_action_authorized"] is False
+    )
     # Constructors only; neither provider is contacted or authenticated.
     checks["cloud_adapter_interfaces"] = (
         CloudBrain("openai").api_key_variable == "OPENAI_API_KEY"

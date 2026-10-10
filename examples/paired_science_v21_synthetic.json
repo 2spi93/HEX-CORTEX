@@ -1,0 +1,129 @@
+{
+  "protocol_version": "hex_cortex_v21_paired_science_v1",
+  "dataset_id": "synthetic-demo-not-a-model-benchmark",
+  "dataset_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+  "items": [
+    {
+      "task_id": "math_demo",
+      "domain": "mathematics",
+      "task_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "expected": "1/2",
+      "score_mode": "rational",
+      "split": "held_out"
+    },
+    {
+      "task_id": "physics_demo",
+      "domain": "physics",
+      "task_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "expected": "2",
+      "score_mode": "rational",
+      "split": "held_out"
+    },
+    {
+      "task_id": "chemistry_demo",
+      "domain": "chemistry",
+      "task_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "expected": "2 H2 + O2 -> 2 H2O",
+      "score_mode": "exact_text",
+      "split": "held_out"
+    }
+  ],
+  "observations": [
+    {
+      "task_id": "math_demo",
+      "arm": "baseline",
+      "provider": "synthetic.test.only",
+      "model_id": "synthetic-not-a-model",
+      "model_revision": "fixture.v1",
+      "task_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "settings_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "response": "1/3",
+      "latency_ms": 100,
+      "billed_input_tokens": 10,
+      "billed_output_tokens": 8,
+      "billed_cost_microusd": 5,
+      "capture_kind": "synthetic_fixture",
+      "receipt_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+    },
+    {
+      "task_id": "math_demo",
+      "arm": "cortex",
+      "provider": "synthetic.test.only",
+      "model_id": "synthetic-not-a-model",
+      "model_revision": "fixture.v1",
+      "task_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "settings_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "response": "1/2",
+      "latency_ms": 140,
+      "billed_input_tokens": 10,
+      "billed_output_tokens": 12,
+      "billed_cost_microusd": 7,
+      "capture_kind": "synthetic_fixture",
+      "receipt_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+    },
+    {
+      "task_id": "physics_demo",
+      "arm": "baseline",
+      "provider": "synthetic.test.only",
+      "model_id": "synthetic-not-a-model",
+      "model_revision": "fixture.v1",
+      "task_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "settings_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "response": "2",
+      "latency_ms": 100,
+      "billed_input_tokens": 10,
+      "billed_output_tokens": 8,
+      "billed_cost_microusd": 5,
+      "capture_kind": "synthetic_fixture",
+      "receipt_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+    },
+    {
+      "task_id": "physics_demo",
+      "arm": "cortex",
+      "provider": "synthetic.test.only",
+      "model_id": "synthetic-not-a-model",
+      "model_revision": "fixture.v1",
+      "task_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "settings_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "response": "2",
+      "latency_ms": 140,
+      "billed_input_tokens": 10,
+      "billed_output_tokens": 12,
+      "billed_cost_microusd": 7,
+      "capture_kind": "synthetic_fixture",
+      "receipt_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+    },
+    {
+      "task_id": "chemistry_demo",
+      "arm": "baseline",
+      "provider": "synthetic.test.only",
+      "model_id": "synthetic-not-a-model",
+      "model_revision": "fixture.v1",
+      "task_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "settings_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "response": "2 H2 + O2 -> H2O",
+      "latency_ms": 100,
+      "billed_input_tokens": 10,
+      "billed_output_tokens": 8,
+      "billed_cost_microusd": 5,
+      "capture_kind": "synthetic_fixture",
+      "receipt_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+    },
+    {
+      "task_id": "chemistry_demo",
+      "arm": "cortex",
+      "provider": "synthetic.test.only",
+      "model_id": "synthetic-not-a-model",
+      "model_revision": "fixture.v1",
+      "task_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "settings_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "response": "2 H2 + O2 -> 2 H2O",
+      "latency_ms": 140,
+      "billed_input_tokens": 10,
+      "billed_output_tokens": 12,
+      "billed_cost_microusd": 7,
+      "capture_kind": "synthetic_fixture",
+      "receipt_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+    }
+  ]
+}

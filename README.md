@@ -23,6 +23,25 @@ See [Cloud-first / no-benchmark V5](docs/CLOUD_FIRST_NO_BENCHMARK_V5.md).
 A green CI or offline readiness check does not certify real cloud API access
 or end-to-end autonomous coding.
 
+## Model amplification evidence + Yann LeCun JEPA design review (V21)
+
+The [OpenAI Math 2026 / Yann LeCun world-model review](docs/OPENAI_MATH_2026_LECUN_WORLD_MODELS_V21.md)
+screens the metadata of all **719 currently indexed mathematical manuscripts
+in 372 families**, distinguishing original 722 announcements, revised
+or withdrawn manuscripts, and unverified proofs. The metadata inventory
+is in `research/openai_math_2026_372_family_metadata_screen.csv`;
+it is **not** verification of 719 mathematical proofs.
+
+The [V21 paired benchmark contract](docs/MODEL_AMPLIFICATION_EVALUATION_V21.md)
+provides `hexcortex-amplification-eval` for scoring *externally captured*
+answers from the same model alone and with HEX-CORTEX, including paired
+gains/regressions, cost, latency and an exact conditional McNemar statistic.
+The bundled fixture is synthetic. It **never** claims a measured AI uplift.
+
+A bounded latent-vector prediction scorer creates a JEPA-compatible
+**future evidence interface**; no actual I-JEPA, V-JEPA 2.1 or LeWorldModel
+is trained, loaded or benchmarked, and no physical action is enabled.
+
 ## Conservative uncertainty propagation through the scientific cortex (V20)
 
 The [V20 decision uncertainty manual](docs/SCIENTIFIC_DECISION_UNCERTAINTY_V20.md)

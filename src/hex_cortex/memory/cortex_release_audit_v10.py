@@ -34,6 +34,8 @@ _COMPONENT_FILES = {
     "scientific_corpus_governance": "src/hex_cortex/core/cortex_scientific_corpus_v19.py",
     "scientific_decision_intervals": "src/hex_cortex/core/cortex_scientific_decision_v20.py",
     "scientific_decision_circuit": "src/hex_cortex/core/cortex_scientific_decision_circuit_v20.py",
+    "paired_scientific_benchmark": "src/hex_cortex/core/cortex_paired_science_benchmark_v21.py",
+    "jepa_latent_evaluation_contract": "src/hex_cortex/core/cortex_jepa_latent_contract_v21.py",
     "homeostatic_feedback": "src/hex_cortex/core/cortex_homeostasis_v13.py",
     "cloud_adapters": "src/hex_cortex/memory/cortex_cloud_brain_v5.py",
     "permissions": "src/hex_cortex/memory/cortex_local_harness_v2.py",
@@ -63,6 +65,8 @@ _DOCUMENTS = (
     "docs/SCIENTIFIC_EVIDENCE_CIRCUIT_V18.md",
     "docs/SCIENTIFIC_CORPUS_GOVERNANCE_V19.md",
     "docs/SCIENTIFIC_DECISION_UNCERTAINTY_V20.md",
+    "docs/OPENAI_MATH_2026_LECUN_WORLD_MODELS_V21.md",
+    "docs/MODEL_AMPLIFICATION_EVALUATION_V21.md",
 )
 
 
