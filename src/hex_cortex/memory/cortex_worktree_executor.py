@@ -72,6 +72,18 @@ def create_isolated_worktree(
         return _blocked("operator_approval_required")
     if plan.get("status") != "ready":
         return _blocked("worktree_plan_not_ready")
+    try:
+        expected = build_worktree_plan(
+            repository_root=Path(str(plan["repository_root"])),
+            worktree_root=Path(str(plan["worktree_root"])),
+            candidate_id=plan["candidate_id"],
+            base_ref=plan["base_ref"],
+            check_ids=plan["check_ids"],
+        )
+    except (KeyError, TypeError, ValueError, AttributeError):
+        return _blocked("worktree_plan_invalid")
+    if expected != plan or expected["status"] != "ready":
+        return _blocked("worktree_plan_tampered_or_stale")
     repo = Path(str(plan["repository_root"])).resolve()
     target = Path(str(plan["worktree_path"])).resolve()
     root = Path(str(plan["worktree_root"])).resolve()
@@ -118,8 +130,8 @@ def apply_reviewable_patch(
         return _blocked("operator_approval_required")
     worktree = worktree_path.resolve()
     patch = patch_path.resolve()
-    if not (worktree / ".git").exists():
-        return _blocked("worktree_not_git")
+    if not _is_linked_worktree(worktree):
+        return _blocked("isolated_linked_worktree_required")
     if not patch.is_file():
         return _blocked("patch_file_missing")
     observed_hash = _file_hash(patch)
@@ -171,10 +183,15 @@ def run_allowlisted_checks(
     if not operator_approved:
         return _blocked("operator_approval_required")
     worktree = worktree_path.resolve()
-    if not (worktree / ".git").exists():
-        return _blocked("worktree_not_git")
+    if not _is_linked_worktree(worktree):
+        return _blocked("isolated_linked_worktree_required")
     if not check_ids or any(check_id not in _CHECKS for check_id in check_ids):
         return _blocked("check_not_allowlisted")
+    # pytest discovers/imports test modules and runs arbitrary Python. An
+    # isolated Git worktree is NOT a process sandbox and provides no host
+    # protection. Never run generated/untrusted tests from this command.
+    if "pytest" in check_ids:
+        return _blocked("untrusted_pytest_requires_os_sandbox")
     rows = []
     for check_id in check_ids:
         result = _run(_CHECKS[check_id], cwd=worktree, timeout_seconds=timeout_seconds)
@@ -205,6 +222,22 @@ def run_allowlisted_checks(
     }
     receipt["receipt_hash"] = _stable_hash(receipt)
     return receipt
+
+
+def _is_linked_worktree(path: Path) -> bool:
+    """Original checkout .git is a directory; detached worktrees have a gitdir file.
+
+    This is a guard against accidentally testing/patching main, not proof of
+    an OS isolation boundary or verification of the gitdir's trustworthiness.
+    """
+    marker = path / ".git"
+    if marker.is_symlink() or not marker.is_file():
+        return False
+    try:
+        pointer = marker.read_text(encoding="utf-8")
+    except (OSError, UnicodeError):
+        return False
+    return pointer.startswith("gitdir: ") and len(pointer) < 8192
 
 
 def _run(command: list[str], *, cwd: Path, timeout_seconds: float) -> dict[str, object]:
