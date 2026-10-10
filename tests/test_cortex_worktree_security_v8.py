@@ -149,3 +149,24 @@ def test_git_marker_symlink_is_rejected_when_supported(tmp_path: Path) -> None:
     except (OSError, NotImplementedError):
         pytest.skip("host symlinks not permitted")
     assert hands._is_linked_worktree(worktree) is False
+
+def test_untrusted_compileall_is_also_blocked(tmp_path: Path, monkeypatch) -> None:
+    worktree = _worktree(tmp_path)
+    calls = []
+    monkeypatch.setattr(hands, "_run", lambda *a, **k: calls.append(a))
+    report = hands.run_allowlisted_checks(
+        worktree_path=worktree, check_ids=["compileall"], operator_approved=True,
+    )
+    assert report["status"] == "blocked"
+    assert "untrusted_python_requires_os_sandbox" in report["blockers"]
+    assert calls == []
+
+
+def test_new_default_plan_contains_only_static_ruff(tmp_path: Path) -> None:
+    repo = _repo(tmp_path)
+    plan = hands.build_worktree_plan(
+        repository_root=repo, worktree_root=tmp_path / "worktrees",
+        candidate_id="safe-candidate", base_ref="main",
+    )
+    assert plan["status"] == "ready"
+    assert plan["check_ids"] == ["ruff"]
