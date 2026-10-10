@@ -15,6 +15,11 @@ from pathlib import Path
 from hex_cortex.core.cell_registry import CellRegistry
 from hex_cortex.core.cognitive_circuit_v1 import CognitiveCircuit
 from hex_cortex.core.cognitive_replay_pipeline_v11 import run_circuit_replay_memory
+from hex_cortex.core.universal_capabilities_v12 import (
+    DeploymentTarget,
+    RequestedOperation,
+    plan_universal_task,
+)
 from hex_cortex.core.schemas import CellResult, CellRole, CellSpec, Task as CoreTask
 from hex_cortex.memory.cortex_durable_jsonl_v7 import (
     atomic_jsonl_snapshot,
@@ -167,6 +172,34 @@ def offline_readiness() -> dict[str, object]:
             and denied_tests["blockers"] == ["untrusted_pytest_requires_os_sandbox"]
             and denied_tests["execution_performed"] is False
         )
+    # Cross-domain V12: neither scientific claims nor physical actions
+    # may be marked as operational by a mere declarative capability.
+    scientific = plan_universal_task(
+        CoreTask(
+            task_id="cross-domain-science", content="fixture only",
+            domain_hints=["chemistry", "materials"],
+        ),
+        operator_approved=True,
+    )
+    drone = plan_universal_task(
+        CoreTask(
+            task_id="physical-safety", content="fixture only",
+            domain_hints=["aerospace", "robotics"],
+        ),
+        target=DeploymentTarget.DRONE,
+        operation=RequestedOperation.ACTUATE,
+        operator_approved=True,
+    )
+    checks["universal_science_contract_without_fake_expertise"] = (
+        scientific["status"] == "advisory_only"
+        and "molecular_chemistry" in scientific["matched_capability_ids"]
+        and scientific["calculation_executed"] is False
+    )
+    checks["physical_actuation_denied_even_with_approval"] = (
+        drone["status"] == "blocked"
+        and drone["physical_actuation_allowed"] is False
+        and drone["physical_actuation_performed"] is False
+    )
     # Constructors only; neither provider is contacted or authenticated.
     checks["cloud_adapter_interfaces"] = (
         CloudBrain("openai").api_key_variable == "OPENAI_API_KEY"
