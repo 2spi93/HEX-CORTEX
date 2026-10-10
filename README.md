@@ -23,6 +23,15 @@ See [Cloud-first / no-benchmark V5](docs/CLOUD_FIRST_NO_BENCHMARK_V5.md).
 A green CI or offline readiness check does not certify real cloud API access
 or end-to-end autonomous coding.
 
+## Scientific Knowledge Router and disagreement detection (V16)
+
+The [V16 scientific knowledge evidence dossier](docs/SCIENTIFIC_KNOWLEDGE_PROVENANCE_V16.md)
+describes source lineage, scientific quantity units, exact interval uncertainty,
+fail-closed provenance checks and explicit conflict detection spanning MathCell,
+PhysicsCell and ChemistryCell. Sources are verified only through a trusted
+host callback; simulated fixtures **do not certify scientific truth**.
+No network, local LLM, autonomous research or physical-device authority.
+
 ## ChemistryCell with bounded stoichiometric simulations (V15)
 
 The [V15 ChemistryCell dossier](docs/CHEMISTRY_STOICHIOMETRY_SIMULATION_V15.md)
