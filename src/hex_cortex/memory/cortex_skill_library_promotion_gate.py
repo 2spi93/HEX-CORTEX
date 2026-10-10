@@ -68,17 +68,27 @@ class CortexSkillLibraryPromotionGateJsonlStore:
         return len(records)
 
 
+    def append_if_new(
+        self, record: CortexSkillLibraryPromotionGateRecord
+    ) -> tuple[int, list[CortexSkillLibraryPromotionGateRecord]]:
+        with exclusive_jsonl_writer(self.path):
+            current = self.load()
+            if record.source_candidate_hash and any(
+                item.source_candidate_hash == record.source_candidate_hash for item in current
+            ):
+                return len(current), []
+            atomic_jsonl_snapshot(
+                self.path, (item.model_dump_json() for item in [*current, record])
+            )
+            return len(current) + 1, [record]
+
+
 def build_cortex_skill_library_promotion_gate(profile: Path) -> dict[str, object]:
     candidate = _latest_promotable_candidate(profile)
     record = _gate_record(profile, candidate)
     path = profile / CORTEX_SKILL_LIBRARY_PROMOTION_GATE_FILENAME
     store = CortexSkillLibraryPromotionGateJsonlStore(path)
-    current = store.load()
-    if record.source_candidate_hash and any(item.source_candidate_hash == record.source_candidate_hash for item in current):
-        records: list[CortexSkillLibraryPromotionGateRecord] = []
-    else:
-        records = [record]
-    count = store.save([*current, *records])
+    count, records = store.append_if_new(record)
     return {
         "gate_type": "cortex_skill_library_promotion_gate",
         "profile_path": str(profile),
