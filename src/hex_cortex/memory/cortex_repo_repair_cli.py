@@ -14,6 +14,7 @@ import sys
 from collections.abc import Sequence
 from pathlib import Path
 
+from hex_cortex.memory.cortex_local_critic_v4 import review_repair_candidate
 from hex_cortex.memory.cortex_local_cognitive_cycle import run_clocked_local_task
 from hex_cortex.memory.cortex_local_harness_v2 import (
     Budget,
@@ -68,6 +69,7 @@ def run_local_repair_probe(
     project_root: Path | None = None,
     brain: LocalOllamaBrain | None = None,
     seed: int = 20261009,
+    approve_docker: bool = False,
 ) -> dict[str, object]:
     """Run each case through one fresh, separately budgeted local session."""
     if offline_responses is not None:
@@ -117,6 +119,14 @@ def run_local_repair_probe(
         for row in report["task_results"]:
             if row["task_id"] in failure_reasons:
                 row["error_code"] = "model_call_failed"
+    if approve_docker:
+        report["critic_reviews"] = [
+            review_repair_candidate(
+                case, responses.get(case.case_id, ""),
+                approve_docker=True, seed=seed,
+            )
+            for case in CASES
+        ]
     return report
 
 
@@ -128,6 +138,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--hardware", default=platform.node() or "unknown-local-host")
     parser.add_argument("--responses", type=Path, help="offline JSON map: task_id -> JSON candidate")
     parser.add_argument("--approve-model", action="store_true")
+    parser.add_argument("--approve-docker", action="store_true", help="execute approved AST repairs in a local locked-down Docker container")
     parser.add_argument("--project-root", type=Path, default=Path("."))
     parser.add_argument("--endpoint", default="http://127.0.0.1:11434")
     parser.add_argument("--timeout", type=float, default=60.0)
@@ -168,6 +179,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             quantization=resolved_quantization, hardware_id=args.hardware,
             offline_responses=supplied, approved=args.approve_model,
             project_root=args.project_root, brain=brain, seed=args.seed,
+            approve_docker=args.approve_docker,
         )
     except (ValueError, PermissionError, OSError, json.JSONDecodeError) as exc:
         print(json.dumps({"status": "blocked", "reason": str(exc)}), file=sys.stderr)
