@@ -9,6 +9,10 @@ from pathlib import Path
 from time import monotonic
 from uuid import uuid4
 
+from hex_cortex.memory.cortex_durable_jsonl_v7 import (
+    atomic_jsonl_snapshot,
+    exclusive_jsonl_writer,
+)
 from hex_cortex.memory.cortex_policy import CortexMode
 
 CORTEX_GATEWAY_FILENAME = "cortex-gateway.jsonl"
@@ -114,97 +118,128 @@ def run_cortex_adapter_gateway(
         *blockers,
     )
     path = profile / CORTEX_GATEWAY_FILENAME
-    rows = _load(path)
-    existing = next(
-        (row for row in rows if row.get("gateway_hash") == gateway_hash),
-        None,
-    )
-    if existing is not None:
+    # Lock covers dedup check, durable intent, handler, and final record.
+    # Cooperating concurrent callers cannot execute the same side effect twice.
+    with exclusive_jsonl_writer(path):
+        rows = _load(path)
+        existing = next(
+            (row for row in rows if row.get("gateway_hash") == gateway_hash),
+            None,
+        )
+        if existing is not None:
+            return {
+                "gateway_type": "cortex_adapter_gateway",
+                "gateway_path": str(path),
+                "gateway_count": len(rows),
+                "gateway_records": [existing],
+            }
+
+        # Reserve a durable intent *before* any side effect. If the host exits
+        # midway, the existing intent blocks a second invocation until a human
+        # reconciles the external effect. This is not a distributed transaction.
+        reserved = allowed and execution_mode == "execute" and adapter is not None
+        if reserved:
+            rows.append({
+                "gateway_hash": gateway_hash,
+                "gateway_status": "in_flight",
+                "gateway_allowed": allowed,
+                "execution_mode": execution_mode,
+                "execution_performed": False,
+                "execution_completed": False,
+                "next_action": "reconcile_unknown_external_effect_before_retry",
+                "blockers": ["external_effect_outcome_unknown"],
+            })
+            _write(path, rows)
+
+        started_at = monotonic()
+        observed: dict[str, object] = {}
+        handler_error: str | None = None
+        execution_performed = False
+        if allowed and execution_mode == "execute" and adapter is not None:
+            execution_performed = True
+            try:
+                observed = adapter.handler(dict(request))
+                if not isinstance(observed, dict):
+                    observed = {"status": "blocked", "summary": "adapter returned non-dict"}
+                    handler_error = "adapter_result_not_dict"
+            except Exception as exc:  # noqa: BLE001 - receipt captures adapter failure.
+                handler_error = type(exc).__name__
+                observed = {"status": "blocked", "summary": "adapter raised"}
+        elapsed_ms = round((monotonic() - started_at) * 1000, 3)
+        # Synchronous handlers cannot be preempted. Never call an elapsed-time
+        # overrun "completed"; human review is required before an effect retry.
+        over_time_budget = bool(
+            execution_performed and adapter is not None
+            and elapsed_ms > adapter.timeout_seconds * 1000
+        )
+        if over_time_budget:
+            handler_error = "adapter_time_budget_exceeded"
+        observed_hash = _stable_hash(observed) if observed else None
+        result_summary = _summarize_result(observed, handler_error)
+        completed = (
+            execution_performed
+            and handler_error is None
+            and result_summary.get("status") not in {"blocked", "error"}
+        )
+        record = {
+            "gateway_id": f"cortex_gateway_{uuid4().hex}",
+            "created_at": datetime.now(UTC).isoformat(),
+            "profile_path": str(profile),
+            "gateway_status": "ready" if allowed else "blocked",
+            "gateway_allowed": allowed,
+            "execution_mode": execution_mode,
+            "policy_mode": policy_mode.value,
+            "route_hash": route_record.get("route_hash"),
+            "adapter_receipt_hash": receipt_hash,
+            "adapter_name": adapter_name,
+            "adapter_lane": adapter.lane if adapter else None,
+            "request_hash": request_hash,
+            "idempotency_key_hash": (
+                _hash(idempotency_key) if idempotency_key else None
+            ),
+            "secret_ref_names": secret_names,
+            "secret_values_persisted": False,
+            "raw_request_persisted": False,
+            "raw_result_persisted": False,
+            "operator_approved": operator_approved,
+            "trusted_plan": trusted_plan,
+            "network_allowed": network_allowed,
+            "local_process_allowed": local_process_allowed,
+            "execution_performed": execution_performed,
+            "execution_completed": completed,
+            "network_call_performed": (
+                bool(observed.get("network_call_performed")) if observed else False
+            ),
+            "local_process_started": (
+                bool(observed.get("local_process_started")) if observed else False
+            ),
+            "external_effect_performed": (
+                bool(observed.get("external_effect_performed")) if observed else False
+            ),
+            "elapsed_ms": elapsed_ms,
+            "timeout_seconds": adapter.timeout_seconds if adapter else None,
+            "result_summary": result_summary,
+            "observed_hash": observed_hash,
+            "next_action": _next_action(
+                allowed=allowed,
+                execution_mode=execution_mode,
+                completed=completed,
+                handler_error=handler_error,
+            ),
+            "blockers": [*blockers, "adapter_time_budget_exceeded"] if over_time_budget else blockers,
+            "gateway_hash": gateway_hash,
+        }
+        if reserved:
+            rows[-1] = record
+        else:
+            rows.append(record)
+        _write(path, rows)
         return {
             "gateway_type": "cortex_adapter_gateway",
             "gateway_path": str(path),
             "gateway_count": len(rows),
-            "gateway_records": [existing],
+            "gateway_records": [record],
         }
-
-    started_at = monotonic()
-    observed: dict[str, object] = {}
-    handler_error: str | None = None
-    execution_performed = False
-    if allowed and execution_mode == "execute" and adapter is not None:
-        execution_performed = True
-        try:
-            observed = adapter.handler(dict(request))
-            if not isinstance(observed, dict):
-                observed = {"status": "blocked", "summary": "adapter returned non-dict"}
-                handler_error = "adapter_result_not_dict"
-        except Exception as exc:  # noqa: BLE001 - receipt captures adapter failure.
-            handler_error = type(exc).__name__
-            observed = {"status": "blocked", "summary": "adapter raised"}
-    elapsed_ms = round((monotonic() - started_at) * 1000, 3)
-    observed_hash = _stable_hash(observed) if observed else None
-    result_summary = _summarize_result(observed, handler_error)
-    completed = (
-        execution_performed
-        and handler_error is None
-        and result_summary.get("status") not in {"blocked", "error"}
-    )
-    record = {
-        "gateway_id": f"cortex_gateway_{uuid4().hex}",
-        "created_at": datetime.now(UTC).isoformat(),
-        "profile_path": str(profile),
-        "gateway_status": "ready" if allowed else "blocked",
-        "gateway_allowed": allowed,
-        "execution_mode": execution_mode,
-        "policy_mode": policy_mode.value,
-        "route_hash": route_record.get("route_hash"),
-        "adapter_receipt_hash": receipt_hash,
-        "adapter_name": adapter_name,
-        "adapter_lane": adapter.lane if adapter else None,
-        "request_hash": request_hash,
-        "idempotency_key_hash": (
-            _hash(idempotency_key) if idempotency_key else None
-        ),
-        "secret_ref_names": secret_names,
-        "secret_values_persisted": False,
-        "raw_request_persisted": False,
-        "raw_result_persisted": False,
-        "operator_approved": operator_approved,
-        "trusted_plan": trusted_plan,
-        "network_allowed": network_allowed,
-        "local_process_allowed": local_process_allowed,
-        "execution_performed": execution_performed,
-        "execution_completed": completed,
-        "network_call_performed": (
-            bool(observed.get("network_call_performed")) if observed else False
-        ),
-        "local_process_started": (
-            bool(observed.get("local_process_started")) if observed else False
-        ),
-        "external_effect_performed": (
-            bool(observed.get("external_effect_performed")) if observed else False
-        ),
-        "elapsed_ms": elapsed_ms,
-        "timeout_seconds": adapter.timeout_seconds if adapter else None,
-        "result_summary": result_summary,
-        "observed_hash": observed_hash,
-        "next_action": _next_action(
-            allowed=allowed,
-            execution_mode=execution_mode,
-            completed=completed,
-            handler_error=handler_error,
-        ),
-        "blockers": blockers,
-        "gateway_hash": gateway_hash,
-    }
-    rows.append(record)
-    _write(path, rows)
-    return {
-        "gateway_type": "cortex_adapter_gateway",
-        "gateway_path": str(path),
-        "gateway_count": len(rows),
-        "gateway_records": [record],
-    }
 
 
 def summarize_cortex_gateway(path: Path) -> dict[str, object]:
@@ -359,12 +394,10 @@ def _load(path: Path) -> list[dict[str, object]]:
 
 
 def _write(path: Path, rows: list[dict[str, object]]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    content = "".join(
-        json.dumps(row, sort_keys=True) + "\n"
-        for row in rows
+    """Write a complete snapshot under the caller's exclusive writer lock."""
+    atomic_jsonl_snapshot(
+        path, (json.dumps(row, sort_keys=True) for row in rows)
     )
-    path.write_text(content, encoding="utf-8")
 
 
 def _stable_hash(payload: dict[str, object]) -> str:
