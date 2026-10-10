@@ -13,6 +13,8 @@ from collections.abc import Sequence
 from pathlib import Path
 
 from hex_cortex.core.cell_registry import CellRegistry
+from hex_cortex.core.cortex_exact_math_v13 import calculate_exact
+from hex_cortex.core.cortex_homeostasis_v13 import HealthObservation, homeostatic_review
 from hex_cortex.core.cognitive_circuit_v1 import CognitiveCircuit
 from hex_cortex.core.cognitive_replay_pipeline_v11 import run_circuit_replay_memory
 from hex_cortex.core.universal_capabilities_v12 import (
@@ -199,6 +201,25 @@ def offline_readiness() -> dict[str, object]:
         drone["status"] == "blocked"
         and drone["physical_actuation_allowed"] is False
         and drone["physical_actuation_performed"] is False
+    )
+    # V13: the first operational mathematical organ performs an exact
+    # rational computation, and a bio-inspired feedback advisor quarantines
+    # corrupt state. Neither system calls a model or physical device.
+    exact = calculate_exact("1 / 3 + 1 / 6", approved=True)
+    checks["independently_checked_exact_math"] = (
+        exact["status"] == "verified_exact_arithmetic"
+        and exact["numerator"] == 1
+        and exact["denominator"] == 2
+        and exact["independent_traversal_agrees"] is True
+    )
+    feedback = homeostatic_review(HealthObservation(
+        cell_id="simulated-cell", error_rate=0.0, latency_ratio=0.1,
+        consecutive_failures=0, spine_integrity_ok=False,
+    ))
+    checks["homeostatic_integrity_quarantine_advisory"] = (
+        feedback["advisory_state"] == "quarantined"
+        and feedback["registry_mutated"] is False
+        and feedback["physical_actuation_allowed"] is False
     )
     # Constructors only; neither provider is contacted or authenticated.
     checks["cloud_adapter_interfaces"] = (
