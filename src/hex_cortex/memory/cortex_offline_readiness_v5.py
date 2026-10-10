@@ -15,6 +15,11 @@ from pathlib import Path
 from hex_cortex.core.cell_registry import CellRegistry
 from hex_cortex.core.cognitive_circuit_v1 import CognitiveCircuit
 from hex_cortex.core.schemas import CellResult, CellRole, CellSpec, Task as CoreTask
+from hex_cortex.memory.cortex_durable_jsonl_v7 import (
+    atomic_jsonl_snapshot,
+    exclusive_jsonl_writer,
+)
+from hex_cortex.memory.cortex_skill_evidence_review_v7 import review_skill_evidence
 from hex_cortex.memory.cortex_cloud_brain_v5 import CloudBrain
 from hex_cortex.memory.cortex_local_cognitive_cycle import run_clocked_local_task
 from hex_cortex.memory.cortex_local_harness_v2 import (
@@ -105,6 +110,25 @@ def offline_readiness() -> dict[str, object]:
         and result["spine_verified"] is True
         and result["checkout_modified"] is False
     )
+    # A real filesystem transaction is tested in the disposable OS temp root.
+    with tempfile.TemporaryDirectory(prefix="hex-cortex-memory-v7-") as folder:
+        path = Path(folder) / "journal.jsonl"
+        with exclusive_jsonl_writer(path):
+            atomic_jsonl_snapshot(path, ['{"safe":true}'])
+        checks["atomic_learning_memory_roundtrip"] = (
+            path.read_text(encoding="utf-8") == '{"safe":true}\n'
+            and not path.with_name(path.name + ".write-lock").exists()
+        )
+        review = review_skill_evidence(
+            Path(folder) / "uncreated-profile",
+            candidate_hash="a" * 64,
+            operator_approved=False,
+        )
+        checks["unapproved_learning_review_denied"] = (
+            review["status"] == "blocked"
+            and review["skill_promoted"] is False
+            and review["skill_activated"] is False
+        )
     # Constructors only; neither provider is contacted or authenticated.
     checks["cloud_adapter_interfaces"] = (
         CloudBrain("openai").api_key_variable == "OPENAI_API_KEY"

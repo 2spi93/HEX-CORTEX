@@ -7,6 +7,11 @@ from uuid import uuid4
 
 from pydantic import BaseModel, Field
 
+from hex_cortex.memory.cortex_durable_jsonl_v7 import (
+    atomic_jsonl_snapshot,
+    exclusive_jsonl_writer,
+)
+
 from hex_cortex.memory.cortex_skill_candidate import (
     CORTEX_SKILL_CANDIDATE_FILENAME,
     CortexSkillCandidateJsonlStore,
@@ -58,11 +63,24 @@ class CortexSkillLibraryPromotionGateJsonlStore:
         return records
 
     def save(self, records: list[CortexSkillLibraryPromotionGateRecord]) -> int:
-        self.path.parent.mkdir(parents=True, exist_ok=True)
-        with self.path.open("w", encoding="utf-8") as handle:
-            for record in records:
-                handle.write(f"{record.model_dump_json()}\n")
+        with exclusive_jsonl_writer(self.path):
+            atomic_jsonl_snapshot(self.path, (record.model_dump_json() for record in records))
         return len(records)
+
+
+    def append_if_new(
+        self, record: CortexSkillLibraryPromotionGateRecord
+    ) -> tuple[int, list[CortexSkillLibraryPromotionGateRecord]]:
+        with exclusive_jsonl_writer(self.path):
+            current = self.load()
+            if record.source_candidate_hash and any(
+                item.source_candidate_hash == record.source_candidate_hash for item in current
+            ):
+                return len(current), []
+            atomic_jsonl_snapshot(
+                self.path, (item.model_dump_json() for item in [*current, record])
+            )
+            return len(current) + 1, [record]
 
 
 def build_cortex_skill_library_promotion_gate(profile: Path) -> dict[str, object]:
@@ -70,12 +88,7 @@ def build_cortex_skill_library_promotion_gate(profile: Path) -> dict[str, object
     record = _gate_record(profile, candidate)
     path = profile / CORTEX_SKILL_LIBRARY_PROMOTION_GATE_FILENAME
     store = CortexSkillLibraryPromotionGateJsonlStore(path)
-    current = store.load()
-    if record.source_candidate_hash and any(item.source_candidate_hash == record.source_candidate_hash for item in current):
-        records: list[CortexSkillLibraryPromotionGateRecord] = []
-    else:
-        records = [record]
-    count = store.save([*current, *records])
+    count, records = store.append_if_new(record)
     return {
         "gate_type": "cortex_skill_library_promotion_gate",
         "profile_path": str(profile),

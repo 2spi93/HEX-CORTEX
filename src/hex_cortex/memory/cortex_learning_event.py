@@ -7,6 +7,11 @@ from uuid import uuid4
 
 from pydantic import BaseModel, Field
 
+from hex_cortex.memory.cortex_durable_jsonl_v7 import (
+    atomic_jsonl_snapshot,
+    exclusive_jsonl_writer,
+)
+
 CORTEX_LEARNING_EVENT_FILENAME = "cortex-learning-event.jsonl"
 _VALID_OUTCOMES = {"success", "failure", "correction", "external_lesson", "reuse"}
 _VALID_DOMAINS = {"coding", "general", "research", "ops", "architecture", "product"}
@@ -55,16 +60,18 @@ class CortexLearningEventJsonlStore:
         return records
 
     def save(self, records: list[CortexLearningEventRecord]) -> int:
-        self.path.parent.mkdir(parents=True, exist_ok=True)
-        with self.path.open("w", encoding="utf-8") as handle:
-            for record in records:
-                handle.write(f"{record.model_dump_json()}\n")
+        with exclusive_jsonl_writer(self.path):
+            atomic_jsonl_snapshot(self.path, (record.model_dump_json() for record in records))
         return len(records)
 
     def append(self, record: CortexLearningEventRecord) -> int:
-        records = self.load()
-        records.append(record)
-        return self.save(records)
+        with exclusive_jsonl_writer(self.path):
+            records = self.load()
+            if record.learning_id in {item.learning_id for item in records}:
+                return len(records)
+            records.append(record)
+            atomic_jsonl_snapshot(self.path, (item.model_dump_json() for item in records))
+            return len(records)
 
 
 def record_cortex_learning_event(

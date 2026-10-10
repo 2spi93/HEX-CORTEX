@@ -7,6 +7,11 @@ from uuid import uuid4
 
 from pydantic import BaseModel, Field
 
+from hex_cortex.memory.cortex_durable_jsonl_v7 import (
+    atomic_jsonl_snapshot,
+    exclusive_jsonl_writer,
+)
+
 from hex_cortex.memory.cortex_skill_candidate import (
     CORTEX_SKILL_CANDIDATE_FILENAME,
     CortexSkillCandidateJsonlStore,
@@ -59,11 +64,28 @@ class CortexSkillLibraryJsonlStore:
         return records
 
     def save(self, records: list[CortexSkillLibraryRecord]) -> int:
-        self.path.parent.mkdir(parents=True, exist_ok=True)
-        with self.path.open("w", encoding="utf-8") as handle:
-            for record in records:
-                handle.write(f"{record.model_dump_json()}\n")
+        with exclusive_jsonl_writer(self.path):
+            atomic_jsonl_snapshot(self.path, (record.model_dump_json() for record in records))
         return len(records)
+
+
+    def register_candidates(
+        self, profile: Path, candidates: list[CortexSkillCandidateRecord]
+    ) -> tuple[int, list[CortexSkillLibraryRecord]]:
+        """Guard entire read/select/write transaction, not only the final save."""
+        with exclusive_jsonl_writer(self.path):
+            current = self.load()
+            seen = {record.source_candidate_hash for record in current}
+            additions: list[CortexSkillLibraryRecord] = []
+            for candidate in candidates:
+                if _is_promotable(candidate) and candidate.candidate_hash not in seen:
+                    additions.append(_library_record(profile, candidate))
+                    seen.add(candidate.candidate_hash)
+            if additions:
+                atomic_jsonl_snapshot(
+                    self.path, (row.model_dump_json() for row in [*current, *additions])
+                )
+            return len(current) + len(additions), additions
 
 
 def build_cortex_skill_library(profile: Path) -> dict[str, object]:
@@ -72,14 +94,7 @@ def build_cortex_skill_library(profile: Path) -> dict[str, object]:
     ).load()
     path = profile / CORTEX_SKILL_LIBRARY_FILENAME
     store = CortexSkillLibraryJsonlStore(path)
-    current = store.load()
-    existing_hashes = {record.source_candidate_hash for record in current}
-    records = [
-        _library_record(profile, candidate)
-        for candidate in candidates
-        if _is_promotable(candidate) and candidate.candidate_hash not in existing_hashes
-    ]
-    count = store.save([*current, *records])
+    count, records = store.register_candidates(profile, candidates)
     return {
         "library_type": "cortex_skill_library",
         "profile_path": str(profile),
