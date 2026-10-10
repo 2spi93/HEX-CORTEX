@@ -59,3 +59,48 @@ def test_unallowlisted_fields_rejected() -> None:
     snapshot["database_url"] = "not allowed"
     with pytest.raises(ValueError, match="unallowlisted"):
         inspect_gtixt_snapshot(snapshot, capability="health", explicitly_approved=True)
+
+@pytest.mark.parametrize("nested", [
+    {"metadata": {"API_Key": "sensitive"}},
+    {"metrics": [{"ok": True}, {"private-key": "sensitive"}]},
+    {"other": {"headers": {"Authorization": "Bearer secret"}}},
+    {"audit": {"refresh_token": "sensitive"}},
+])
+def test_nested_credentials_are_rejected(nested: dict[str, object]) -> None:
+    snapshot = _snapshot()
+    snapshot["capabilities"]["health"] = nested
+    with pytest.raises(ValueError, match="credential-like"):
+        inspect_gtixt_snapshot(snapshot, capability="health", explicitly_approved=True)
+
+
+def test_unrequested_capability_cannot_hide_credential() -> None:
+    snapshot = _snapshot()
+    snapshot["capabilities"]["open_tasks"] = {
+        "nested": [{"deep": {"passwd": "secret"}}],
+    }
+    with pytest.raises(ValueError, match="credential-like"):
+        inspect_gtixt_snapshot(snapshot, capability="health", explicitly_approved=True)
+
+
+def test_nested_safe_export_retains_pure_read_only_semantics() -> None:
+    snapshot = _snapshot()
+    snapshot["capabilities"]["health"] = {
+        "summary": {"state": "ok"},
+        "components": [{"name": "index", "healthy": True}],
+    }
+    report = inspect_gtixt_snapshot(
+        snapshot, capability="health", explicitly_approved=True,
+    )
+    assert report["payload"] == snapshot["capabilities"]["health"]
+    assert report["memory_imported"] is False
+    assert report["mutation_performed"] is False
+
+
+def test_excessive_nested_depth_fails_closed() -> None:
+    snapshot = _snapshot()
+    nested: dict[str, object] = {"status": "ok"}
+    for _ in range(12):
+        nested = {"wrapped": nested}
+    snapshot["capabilities"]["health"] = nested
+    with pytest.raises(ValueError, match="budget"):
+        inspect_gtixt_snapshot(snapshot, capability="health", explicitly_approved=True)
