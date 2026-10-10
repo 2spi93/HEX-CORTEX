@@ -59,7 +59,7 @@ def default_cloud_transport(
             if response.geturl() != url:
                 raise CloudRequestFailed("cloud_redirect_denied")
             payload = response.read(1_000_001)
-    except (OSError, urllib.error.URLError) as exc:
+    except (OSError, urllib.error.URLError):
         raise CloudRequestFailed("cloud_transport_failed") from None
     if len(payload) > 1_000_000:
         raise CloudRequestFailed("cloud_response_too_large")
