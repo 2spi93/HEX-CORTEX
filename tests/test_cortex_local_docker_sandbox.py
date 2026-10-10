@@ -9,7 +9,10 @@ from pathlib import Path
 import pytest
 
 from hex_cortex.memory.cortex_local_critic_v4 import review_repair_candidate
-from hex_cortex.memory.cortex_local_docker_sandbox import verify_repair_in_local_docker
+from hex_cortex.memory.cortex_local_docker_sandbox import (
+    _trusted_test_runner,
+    verify_repair_in_local_docker,
+)
 from hex_cortex.memory.cortex_repo_repair_probe_v3 import CASES, _test_inputs
 
 
@@ -210,3 +213,10 @@ def test_timeout_force_removes_named_container(monkeypatch) -> None:
     assert result["reason"] == "sandbox_timeout"
     assert calls[-1][:3] == ["docker", "rm", "--force"]
     assert calls[-1][-1] == calls[-2][calls[-2].index("--name") + 1]
+
+def test_all_trusted_runtime_test_drivers_compile_without_execution() -> None:
+    for case in CASES:
+        source = _trusted_test_runner(case, 20261009)
+        assert "sys.path.insert(0, '/work')" in source
+        assert "passed = 0" in source
+        compile(source, "<trusted-test-runner>", "exec")
