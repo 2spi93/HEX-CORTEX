@@ -1,0 +1,2 @@
+# Scientific source SHA-256 fixtures must preserve exact bytes across Windows/Linux.
+examples/scientific_v17/*.json -text
