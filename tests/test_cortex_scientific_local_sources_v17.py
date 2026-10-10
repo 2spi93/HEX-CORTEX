@@ -221,3 +221,24 @@ def test_operator_cannot_inject_path_from_source_identifier(tmp_path: Path):
     malicious = records[0].model_copy(update={"source_id": "evil/../../secret"})
     verifier = LocalScientificEvidenceVerifier(sources, operator_approved=True)
     assert not verifier.verify_source(malicious)
+
+
+
+def test_checked_in_demo_manifest_and_source_octets_match_on_this_os(capsys):
+    repo = Path(__file__).resolve().parents[1]
+    location = repo / "examples" / "scientific_v17"
+    records = load_local_scientific_manifest(location / "manifest.json", approved=True)
+    verifier = LocalScientificEvidenceVerifier(location, operator_approved=True)
+    assert len(records) == 2
+    assert all(verifier.verify_source(item) for item in records)
+    code = main([
+        "--manifest", str(location / "manifest.json"),
+        "--sources-dir", str(location),
+        "--claim-id", "demo_velocity", "--domain", "physics",
+        "--unit", "m/s", "--approve-read",
+    ])
+    assert code == 0
+    report = json.loads(capsys.readouterr().out)
+    assert report["status"] == "consistent_evidence_not_certified"
+    assert report["interval_lower"] == "99"
+    assert report["interval_upper"] == "101"
