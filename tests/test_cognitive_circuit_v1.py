@@ -151,8 +151,9 @@ def test_degraded_cell_requires_separate_secondary_verification() -> None:
     circuit.registry.record_failure("logic", "prior_failure")
     circuit.registry.record_failure("logic", "prior_failure")
     task = Task(task_id="degraded", content="Review", domain_hints=["coding"],
-                novelty=0.1, risk=0.1, uncertainty=0.1)
-    primary = lambda _: True
+                novelty=0.9, risk=0.9, uncertainty=0.9)
+    def primary(_):
+        return True
     rejected = circuit.run(
         task, cell_handler=_good, verify_evidence=primary, approved=True,
     )
@@ -165,22 +166,23 @@ def test_degraded_cell_requires_separate_secondary_verification() -> None:
     circuit.registry.record_failure("logic", "prior_failure")
     verified = circuit.run(
         Task(task_id="degraded-verified", content="Review", domain_hints=["coding"],
-             novelty=0.1, risk=0.1, uncertainty=0.1),
+             novelty=0.9, risk=0.9, uncertainty=0.9),
         cell_handler=_good, verify_evidence=primary,
         secondary_verifier=lambda _: True, approved=True,
     )
     assert verified["status"] == "verified"
-    assert verified["verified_cell_count"] == 2
+    assert verified["verified_cell_count"] == 3
 
 
 def test_secondary_verifier_cannot_be_same_callback() -> None:
     circuit = _setup()
     circuit.registry.record_failure("logic", "bad")
     circuit.registry.record_failure("logic", "bad")
-    verifier = lambda _: True
+    def verifier(_):
+        return True
     report = circuit.run(
         Task(task_id="same-callback", content="Review", domain_hints=["coding"],
-             novelty=0.1, risk=0.1, uncertainty=0.1),
+             novelty=0.9, risk=0.9, uncertainty=0.9),
         cell_handler=_good,
         verify_evidence=verifier, secondary_verifier=verifier,
         approved=True,
