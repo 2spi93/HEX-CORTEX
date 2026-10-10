@@ -10,10 +10,12 @@ Docker reduces risk but is NOT a guarantee against hostile-code escape.
 from __future__ import annotations
 
 import json
+import os
 import subprocess
 import tempfile
 from collections.abc import Callable
 from pathlib import Path
+from uuid import uuid4
 
 from hex_cortex.memory.cortex_repo_repair_probe_v3 import (
     RepairCase,
@@ -69,9 +71,10 @@ def _invoke(runner: Runner, args: list[str], *, timeout: int) -> subprocess.Comp
     return runner(args, shell=False, capture_output=True, text=True, timeout=timeout)
 
 
-def _secure_container_args(workdir: Path) -> list[str]:
+def _secure_container_args(workdir: Path, container_name: str) -> list[str]:
     return [
         "docker", "run", "--rm", "--pull=never", "--network=none",
+        "--name", container_name,
         "--read-only", "--cap-drop=ALL", "--security-opt=no-new-privileges",
         "--pids-limit=64", "--memory=256m", "--cpus=1",
         "--user=65534:65534", "--tmpfs", "/tmp:rw,nosuid,nodev,noexec,size=32m",
@@ -109,7 +112,19 @@ def verify_repair_in_local_docker(
     except (ValueError, TypeError):
         return {**blocked, "reason": "unsafe_or_invalid_candidate"}
 
+    if os.environ.get("DOCKER_HOST"):
+        return {**blocked, "reason": "explicit_docker_host_override_denied"}
     try:
+        # A Docker context may point to an SSH/TCP remote daemon: forbid it.
+        context = _invoke(
+            runner,
+            ["docker", "context", "inspect", "--format", "{{.Endpoints.docker.Host}}"],
+            timeout=8,
+        )
+        if context.returncode != 0 or not context.stdout.strip().startswith(
+            ("npipe://", "unix://")
+        ):
+            return {**blocked, "reason": "nonlocal_docker_context_denied"}
         inspected = _invoke(runner, ["docker", "image", "inspect", _IMAGE], timeout=8)
         if inspected.returncode != 0:
             return {**blocked, "reason": "local_docker_image_missing"}
@@ -123,10 +138,18 @@ def verify_repair_in_local_docker(
                 target.write_bytes(source.encode("utf-8"))
             runner_path = root / "__trusted_test_runner__.py"
             runner_path.write_bytes(_trusted_test_runner(case, seed).encode("utf-8"))
-            command = _secure_container_args(root)
-            done = _invoke(runner, command, timeout=_TIMEOUT_SECONDS)
+            name = "hex-cortex-eval-" + uuid4().hex
+            command = _secure_container_args(root, name)
+            try:
+                done = _invoke(runner, command, timeout=_TIMEOUT_SECONDS)
+            except subprocess.TimeoutExpired:
+                try:
+                    _invoke(runner, ["docker", "rm", "--force", name], timeout=8)
+                except (subprocess.TimeoutExpired, FileNotFoundError, OSError):
+                    pass
+                return {**blocked, "executed": True, "reason": "sandbox_timeout"}
     except subprocess.TimeoutExpired:
-        return {**blocked, "executed": True, "reason": "sandbox_timeout"}
+        return {**blocked, "reason": "sandbox_preflight_timeout"}
     except (FileNotFoundError, OSError):
         return {**blocked, "reason": "local_docker_unavailable"}
     except ValueError:
