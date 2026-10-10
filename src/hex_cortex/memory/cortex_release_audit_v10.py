@@ -23,6 +23,7 @@ _COMPONENT_FILES = {
     "workspace": "src/hex_cortex/core/workspace.py",
     "registry": "src/hex_cortex/core/cell_registry.py",
     "cognitive_circuit": "src/hex_cortex/core/cognitive_circuit_v1.py",
+    "cognitive_replay_pipeline": "src/hex_cortex/core/cognitive_replay_pipeline_v11.py",
     "cloud_adapters": "src/hex_cortex/memory/cortex_cloud_brain_v5.py",
     "permissions": "src/hex_cortex/memory/cortex_local_harness_v2.py",
     "gateway": "src/hex_cortex/memory/cortex_gateway.py",
