@@ -32,6 +32,8 @@ _COMPONENT_FILES = {
     "verified_local_scientific_sources": "src/hex_cortex/core/cortex_scientific_local_sources_v17.py",
     "scientific_evidence_circuit": "src/hex_cortex/core/cortex_scientific_evidence_circuit_v18.py",
     "scientific_corpus_governance": "src/hex_cortex/core/cortex_scientific_corpus_v19.py",
+    "scientific_decision_intervals": "src/hex_cortex/core/cortex_scientific_decision_v20.py",
+    "scientific_decision_circuit": "src/hex_cortex/core/cortex_scientific_decision_circuit_v20.py",
     "homeostatic_feedback": "src/hex_cortex/core/cortex_homeostasis_v13.py",
     "cloud_adapters": "src/hex_cortex/memory/cortex_cloud_brain_v5.py",
     "permissions": "src/hex_cortex/memory/cortex_local_harness_v2.py",
@@ -60,6 +62,7 @@ _DOCUMENTS = (
     "docs/SCIENTIFIC_LOCAL_SOURCES_V17.md",
     "docs/SCIENTIFIC_EVIDENCE_CIRCUIT_V18.md",
     "docs/SCIENTIFIC_CORPUS_GOVERNANCE_V19.md",
+    "docs/SCIENTIFIC_DECISION_UNCERTAINTY_V20.md",
 )
 
 
