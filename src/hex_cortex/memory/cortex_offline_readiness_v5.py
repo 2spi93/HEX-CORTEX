@@ -12,6 +12,9 @@ import tempfile
 from collections.abc import Sequence
 from pathlib import Path
 
+from hex_cortex.core.cell_registry import CellRegistry
+from hex_cortex.core.cognitive_circuit_v1 import CognitiveCircuit
+from hex_cortex.core.schemas import CellResult, CellRole, CellSpec, Task as CoreTask
 from hex_cortex.memory.cortex_cloud_brain_v5 import CloudBrain
 from hex_cortex.memory.cortex_local_cognitive_cycle import run_clocked_local_task
 from hex_cortex.memory.cortex_local_harness_v2 import (
@@ -75,6 +78,33 @@ def offline_readiness() -> dict[str, object]:
             and "simulated answer" not in json.dumps(model_harness.receipts)
             and model_harness.verify_replay()
         )
+    # Original cortex backbone: real deterministic Router + Registry +
+    # GlobalWorkspace + CognitiveClock + CanonicalSpine, no model or network.
+    registry = CellRegistry([
+        CellSpec(cell_id="logic", role=CellRole.LOGIC, domains=["coding"]),
+    ])
+    circuit = CognitiveCircuit(registry)
+    task = CoreTask(
+        task_id="model-free-circuit", content="restricted deterministic test",
+        domain_hints=["coding"], risk=0.1, novelty=0.1, uncertainty=0.1,
+    )
+    result = circuit.run(
+        task, approved=True,
+        cell_handler=lambda cell_id, core_task: CellResult(
+            cell_id=cell_id, task_id=core_task.task_id,
+            confidence=0.7, uncertainty=0.3,
+            evidence_refs=["offline:deterministic-fixture"],
+        ),
+        verify_evidence=lambda evidence: evidence.evidence_refs == [
+            "offline:deterministic-fixture"
+        ],
+    )
+    checks["original_cortex_integrated_circuit"] = (
+        result["status"] == "verified"
+        and result["model_used"] is False
+        and result["spine_verified"] is True
+        and result["checkout_modified"] is False
+    )
     # Constructors only; neither provider is contacted or authenticated.
     checks["cloud_adapter_interfaces"] = (
         CloudBrain("openai").api_key_variable == "OPENAI_API_KEY"
