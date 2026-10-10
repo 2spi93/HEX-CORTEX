@@ -14,6 +14,7 @@ from hex_cortex.core.cortex_chemistry_cell_v15 import (
     _parse_formula,
     chemistry_cell_result,
     run_chemistry,
+    verify_chemistry_cell_result,
 )
 from hex_cortex.core.schemas import CellRole, CellSpec, Task
 
@@ -200,6 +201,12 @@ def test_chemistry_cell_integrates_legacy_cognitive_circuit_without_action():
     assert result["status"] == "verified"
     assert cortex.spine.verify_integrity().ok
     assert task.content not in str(cortex.spine.events)
+    original = chemistry_cell_result("chemistry", task, approved=True)
+    assert verify_chemistry_cell_result(original, task.content)
+    assert not verify_chemistry_cell_result(
+        original.model_copy(update={"payload": {"balance": "tampered"}}),
+        task.content,
+    )
 
 
 def test_malformed_chemistry_task_never_runs_any_calculation():
