@@ -110,3 +110,51 @@ def test_cognitive_clock_rejects_too_many_ticks() -> None:
                 RegisteredTick(TickName.ACTION, noop),
             ],
         )
+
+
+def test_tick_handler_exception_never_leaks_tokens_to_spine() -> None:
+    spine = CanonicalSpine()
+    clock = CognitiveClock(spine=spine)
+    secret = "api-key-do-not-persist"
+
+    def broken(_context: CognitiveTickContext) -> None:
+        raise RuntimeError("provider exploded: " + secret)
+
+    report = clock.run(
+        task=Task(task_id="redacted", content="Privately inspect a task"),
+        mode=CognitiveMode.WORKING,
+        ticks=[RegisteredTick(TickName.CRITIC, broken)],
+    )
+    assert report.completed is False
+    assert report.results[0].error == "tick_handler_failed"
+    assert secret not in str(spine.events)
+    assert secret not in report.model_dump_json()
+    assert spine.verify_integrity().ok
+
+
+def test_overslow_tick_is_reported_as_budget_exceeded(monkeypatch) -> None:
+    clock = CognitiveClock(max_latency_ms=20)
+    ticks_called = []
+
+    def slow(_context: CognitiveTickContext) -> dict[str, object]:
+        from time import sleep
+
+        ticks_called.append("slow")
+        sleep(0.025)
+        return {"ok": True}
+
+    def should_not_run(_context: CognitiveTickContext) -> None:
+        ticks_called.append("second")
+
+    report = clock.run(
+        task=Task(content="Latency-bound"),
+        mode=CognitiveMode.REFLEX,
+        ticks=[
+            RegisteredTick(TickName.INTAKE, slow),
+            RegisteredTick(TickName.ROUTING, should_not_run),
+        ],
+    )
+    assert report.completed is False
+    assert report.stopped_reason == "latency_budget_exceeded"
+    assert ticks_called == ["slow"]
+
