@@ -11,6 +11,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import re
 import stat
 from pathlib import Path
 
@@ -98,6 +99,10 @@ class LocalScientificEvidenceVerifier:
         # The EvidenceRecord source_id grammar excludes / and backslashes.
         # The source file is the sole read target; no URL is opened.
         if not isinstance(record, EvidenceRecord):
+            return False
+        # A BaseModel.model_copy(update=...) bypasses Pydantic validation.
+        # Recheck at the filesystem trust boundary, including Windows ADS.
+        if not re.fullmatch(r"[a-z][a-z0-9_.-]{1,95}", record.source_id):
             return False
         target = root / (record.source_id + ".json")
         try:
