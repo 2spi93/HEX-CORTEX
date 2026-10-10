@@ -18,6 +18,10 @@ from hex_cortex.core.cortex_physics_cell_v14 import calculate_physics
 from hex_cortex.core.cortex_chemistry_cell_v15 import run_chemistry
 from datetime import date
 import hashlib
+from hex_cortex.core.cortex_scientific_local_sources_v17 import (
+    LocalScientificEvidenceVerifier,
+    expected_scientific_source_bytes,
+)
 from hex_cortex.core.cortex_scientific_knowledge_v16 import (
     EvidenceKind,
     EvidenceQuery,
@@ -317,6 +321,48 @@ def offline_readiness() -> dict[str, object]:
         verifier_absent["status"] == "blocked"
         and verifier_absent["reason"] == "trusted_source_verifier_required"
     )
+    # V17: verify real source BYTES in the disposable temp directory,
+    # not a mocked true callback. No external publisher authentication.
+    with tempfile.TemporaryDirectory(prefix="hex-cortex-sources-v17-") as folder:
+        source_root = Path(folder)
+        witnesses: list[EvidenceRecord] = []
+        for sid in ("local.alpha", "local.beta"):
+            prototype = EvidenceRecord(
+                claim_id="offline_bytes_fixture",
+                domain=KnowledgeDomain.PHYSICS,
+                value="100", unit="m/s", absolute_uncertainty="1",
+                kind=EvidenceKind.MEASUREMENT,
+                source_id=sid,
+                source_uri="https://example.org/synthetic/" + sid,
+                source_version="fixture.v1",
+                source_digest_sha256="0" * 64,
+                source_license="synthetic-test-only",
+                published_on=date(2026, 10, 10),
+            )
+            witness_bytes = expected_scientific_source_bytes(prototype)
+            (source_root / (sid + ".json")).write_bytes(witness_bytes)
+            witnesses.append(prototype.model_copy(update={
+                "source_digest_sha256": hashlib.sha256(witness_bytes).hexdigest()
+            }))
+        verifier = LocalScientificEvidenceVerifier(
+            source_root, operator_approved=True,
+        )
+        source_check = review_scientific_knowledge(
+            EvidenceQuery(
+                claim_id="offline_bytes_fixture",
+                domain=KnowledgeDomain.PHYSICS,
+                result_unit="m/s",
+            ),
+            witnesses, operator_approved=True,
+            verify_source=verifier.verify_source,
+        )
+        (source_root / "local.beta.json").write_bytes(b"corrupt")
+        source_tamper_denied = not verifier.verify_source(witnesses[1])
+        checks["local_scientific_source_byte_integrity"] = (
+            source_check["status"] == "consistent_evidence_not_certified"
+            and source_check["truth_certified"] is False
+            and source_tamper_denied
+        )
     # Constructors only; neither provider is contacted or authenticated.
     checks["cloud_adapter_interfaces"] = (
         CloudBrain("openai").api_key_variable == "OPENAI_API_KEY"
