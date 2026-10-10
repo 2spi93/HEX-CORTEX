@@ -65,6 +65,20 @@ appeler `sympify` ou un parseur évaluant des expressions non fiables
 sans validation. Le calcul exact d'expressions rationnelles est une
 première brique exploitable par MathCell, PhysicsCell, ChemistryCell.
 
+### Calcul utilisable immédiatement dans PowerShell
+
+```powershell
+python -m pip install -e ".[dev]"
+hexcortex-math --expression "1 / 3 + 1 / 6" --approve-calculate --pretty
+```
+
+Résultat attendu : `numerator: 1`, `denominator: 2`,
+`independent_traversal_agrees: true`. Sans
+`--approve-calculate`, le calcul est refusé ; aucune API
+ou connexion réseau n'est sollicitée. La grammaire exacte accepte
+uniquement des littéraux entiers : `0.1 + 0.2` sera refusé,
+et non arrondi silencieusement.
+
 ## Homéostasie du cortex
 
 `src/hex_cortex/core/cortex_homeostasis_v13.py` reçoit une
