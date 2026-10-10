@@ -52,6 +52,7 @@ class CognitiveCircuit:
         *,
         cell_handler: CellHandler,
         verify_evidence: IndependentVerifier | None = None,
+        secondary_verifier: IndependentVerifier | None = None,
         approved: bool = False,
     ) -> dict[str, object]:
         """Run only the selected healthy cells; report bounded, redacted evidence."""
@@ -99,6 +100,15 @@ class CognitiveCircuit:
                         raise ValueError("cell result budget exceeded")
                     if not verify_evidence(proposed):
                         raise ValueError("independent verification rejected")
+                    health = next(
+                        (row for row in self.registry.health_records if row.cell_id == cell_id),
+                        None,
+                    )
+                    if health is not None and health.requires_double_check:
+                        if (secondary_verifier is None
+                                or secondary_verifier is verify_evidence
+                                or not secondary_verifier(proposed)):
+                            raise ValueError("independent double verification missing")
                 except Exception:  # noqa: BLE001 - confidential input/errors must not enter spine
                     failures.add(cell_id)
                     self.registry.record_failure(cell_id, "verification_failed")
