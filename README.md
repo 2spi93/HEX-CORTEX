@@ -37,6 +37,14 @@ allowlisted AST interpreter; generated source is never executed and no
 checkout is altered. [Operator manual](docs/REPO_REPAIR_PROBE_V3.md).
 Scores are research-only and are not trusted routing priors.
 
+**Local Critic V4:** the repo evaluation CLI now fails fast on unknown Ollama
+models, resolves real local model metadata by default, and distinguishes
+failed model calls from rejected patches. An independent static critic can
+optionally verify approved AST-safe candidates with tests in a tightly
+restricted **local Docker Linux container** via `--approve-docker`. It is
+disabled by default, mounts no checkout, and never grants modification rights.
+See [Local Critic and Sandbox V4](docs/LOCAL_CRITIC_SANDBOX_V4.md).
+
 **Readiness terminology:** code present, tested, configured, operational
 and deployed are separate states. See the audit for detailed limitations.
 
