@@ -1,5 +1,9 @@
 # HEX-CORTEX Repository Repair Probe V3 — mode local uniquement
 
+**Mise a jour V4:** voir [Local Critic et sandbox](LOCAL_CRITIC_SANDBOX_V4.md).
+Le diagnostic Ollama et la verification Docker optionnelle completent
+le probe V3 sans modifier son contrat AST historique.
+
 Objectif : distinguer la capacite a repondre aux 13 questions historiques
 du benchmark et la capacite a proposer une correction de plusieurs fichiers
 Python. Ce module est **un prototype de validation comportementale**,
