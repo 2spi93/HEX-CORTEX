@@ -19,6 +19,14 @@ from hex_cortex.core.cortex_chemistry_cell_v15 import run_chemistry
 from datetime import date
 import hashlib
 from hex_cortex.core.cortex_scientific_evidence_circuit_v18 import run_scientific_evidence_circuit
+from hex_cortex.core.cortex_scientific_decision_v20 import (
+    ScientificDecisionSpec,
+    evaluate_scientific_decision,
+)
+from hex_cortex.core.cortex_scientific_decision_circuit_v20 import (
+    decision_task,
+    run_scientific_decision_circuit,
+)
 from hex_cortex.core.cortex_scientific_corpus_v19 import (
     CorpusOperation,
     evaluate_corpus_record,
@@ -431,6 +439,41 @@ def offline_readiness() -> dict[str, object]:
                 witnesses[0], ledger_path=ledger, expected_head=first_pin,
                 base_verifier=verifier.verify_source, approved=True,
             )
+        )
+        # V20: use a conservative interval across BOTH real source
+        # witnesses. The narrower consensus overlap must not make a
+        # threshold-crossing measurement look safe or authoritative.
+        decision_query = EvidenceQuery(
+            claim_id="offline_bytes_fixture",
+            domain=KnowledgeDomain.PHYSICS,
+            result_unit="m/s",
+        )
+        near = ScientificDecisionSpec(
+            query=decision_query, relation="at_least", threshold="100",
+        )
+        clear = ScientificDecisionSpec(
+            query=decision_query, relation="at_least", threshold="95",
+        )
+        ambiguous = evaluate_scientific_decision(
+            near, witnesses, operator_approved=True,
+            verify_source=verifier.verify_source,
+        )
+        clear_report, decision_circuit = run_scientific_decision_circuit(
+            decision_task(clear, task_id="offline-uncertainty-decision"),
+            spec=clear, records=witnesses,
+            verify_source=verifier.verify_source, approved=True,
+        )
+        checks["scientific_uncertainty_requires_abstention_near_threshold"] = (
+            ambiguous["status"] == "indeterminate"
+            and ambiguous["calibrated_confidence_available"] is False
+            and ambiguous["physical_action_authorized"] is False
+            and clear_report["status"] == "provisionally_supported"
+        )
+        checks["scientific_decision_critic_reverifies_sources"] = (
+            clear_report["cognitive_evidence_status"] == "verified"
+            and clear_report["verified_cell_count"] == 1
+            and clear_report["scientific_truth_certified"] is False
+            and decision_circuit.spine.verify_integrity().ok
         )
         (source_root / "local.beta.json").write_bytes(b"corrupt")
         source_tamper_denied = not verifier.verify_source(witnesses[1])
