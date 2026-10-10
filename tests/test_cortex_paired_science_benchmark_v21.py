@@ -13,7 +13,6 @@ from hex_cortex.core.cortex_jepa_latent_contract_v21 import (
 )
 from hex_cortex.core.cortex_paired_science_benchmark_cli_v21 import main
 from hex_cortex.core.cortex_paired_science_benchmark_v21 import (
-    ModelObservation,
     PairedEvaluation,
     ScienceEvalItem,
     evaluate_paired_model_amplification,
