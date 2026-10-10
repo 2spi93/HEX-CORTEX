@@ -23,6 +23,16 @@ See [Cloud-first / no-benchmark V5](docs/CLOUD_FIRST_NO_BENCHMARK_V5.md).
 A green CI or offline readiness check does not certify real cloud API access
 or end-to-end autonomous coding.
 
+## Scientific source evidence through CognitiveCircuit (V18)
+
+The [V18 evidence-to-critic-to-spine documentation](docs/SCIENTIFIC_EVIDENCE_CIRCUIT_V18.md)
+demonstrates a real offline `hexcortex-science-circuit` CLI. Approved
+local source bytes are checked before an evidence cell emits its typed
+result, and rechecked before CognitiveCircuit's Critic accepts it.
+A mid-run modified source is rejected. This verifies cognitive plumbing
+and local data consistency, **not publisher identity, scientific truth
+or AI-driven discovery**.
+
 ## Real offline source-byte provenance verification (V17)
 
 The [V17 local scientific source dossier](docs/SCIENTIFIC_LOCAL_SOURCES_V17.md)
