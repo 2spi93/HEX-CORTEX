@@ -23,6 +23,17 @@ See [Cloud-first / no-benchmark V5](docs/CLOUD_FIRST_NO_BENCHMARK_V5.md).
 A green CI or offline readiness check does not certify real cloud API access
 or end-to-end autonomous coding.
 
+## Real offline source-byte provenance verification (V17)
+
+The [V17 local scientific source dossier](docs/SCIENTIFIC_LOCAL_SOURCES_V17.md)
+adds an explicitly consented `hexcortex-knowledge` CLI. It loads a local
+operator-chosen JSON manifest and canonical source witness files; checks
+actual bytes, SHA-256, bounded size and exact structured claims; and
+detects contradictions without network or LLM access. A bundled
+`examples/scientific_v17` fixture is **synthetic**, not real
+scientific confirmation. No publisher authenticity or scientific truth
+is certified.
+
 ## Scientific Knowledge Router and disagreement detection (V16)
 
 The [V16 scientific knowledge evidence dossier](docs/SCIENTIFIC_KNOWLEDGE_PROVENANCE_V16.md)

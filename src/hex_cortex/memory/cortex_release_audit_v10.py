@@ -29,6 +29,7 @@ _COMPONENT_FILES = {
     "classical_physics_cell": "src/hex_cortex/core/cortex_physics_cell_v14.py",
     "chemistry_stoichiometric_cell": "src/hex_cortex/core/cortex_chemistry_cell_v15.py",
     "scientific_knowledge_router": "src/hex_cortex/core/cortex_scientific_knowledge_v16.py",
+    "verified_local_scientific_sources": "src/hex_cortex/core/cortex_scientific_local_sources_v17.py",
     "homeostatic_feedback": "src/hex_cortex/core/cortex_homeostasis_v13.py",
     "cloud_adapters": "src/hex_cortex/memory/cortex_cloud_brain_v5.py",
     "permissions": "src/hex_cortex/memory/cortex_local_harness_v2.py",
@@ -54,6 +55,7 @@ _DOCUMENTS = (
     "docs/PHYSICS_SI_CELL_V14.md",
     "docs/CHEMISTRY_STOICHIOMETRY_SIMULATION_V15.md",
     "docs/SCIENTIFIC_KNOWLEDGE_PROVENANCE_V16.md",
+    "docs/SCIENTIFIC_LOCAL_SOURCES_V17.md",
 )
 
 
