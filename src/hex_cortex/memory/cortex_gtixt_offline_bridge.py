@@ -24,7 +24,7 @@ READ_ONLY_CAPABILITIES = (
 
 
 _SENSITIVE_KEY_FRAGMENTS = (
-    "apikey", "accesstoken", "refreshtoken", "password", "passwd",
+    "token", "apikey", "accesstoken", "refreshtoken", "password", "passwd",
     "secret", "credential", "privatekey", "authorization", "bearer",
     "sessioncookie", "clientsecret",
 )
