@@ -20,6 +20,7 @@ from hex_cortex.memory.cortex_durable_jsonl_v7 import (
     exclusive_jsonl_writer,
 )
 from hex_cortex.memory.cortex_skill_evidence_review_v7 import review_skill_evidence
+from hex_cortex.memory.cortex_worktree_executor import run_allowlisted_checks
 from hex_cortex.memory.cortex_cloud_brain_v5 import CloudBrain
 from hex_cortex.memory.cortex_local_cognitive_cycle import run_clocked_local_task
 from hex_cortex.memory.cortex_local_harness_v2 import (
@@ -128,6 +129,22 @@ def offline_readiness() -> dict[str, object]:
             review["status"] == "blocked"
             and review["skill_promoted"] is False
             and review["skill_activated"] is False
+        )
+    # The read-only smoke actively verifies generated-code execution is
+    # blocked before reaching Python/pytest, even with generic approval.
+    with tempfile.TemporaryDirectory(prefix="hex-cortex-hands-v8-") as folder:
+        worktree = Path(folder)
+        (worktree / ".git").write_text(
+            "gitdir: /fake/local/worktrees/test\\n", encoding="utf-8"
+        )
+        denied_tests = run_allowlisted_checks(
+            worktree_path=worktree, check_ids=["pytest"],
+            operator_approved=True,
+        )
+        checks["untrusted_python_execution_denied"] = (
+            denied_tests["status"] == "blocked"
+            and denied_tests["blockers"] == ["untrusted_pytest_requires_os_sandbox"]
+            and denied_tests["execution_performed"] is False
         )
     # Constructors only; neither provider is contacted or authenticated.
     checks["cloud_adapter_interfaces"] = (
