@@ -16,6 +16,15 @@ from hex_cortex.core.cell_registry import CellRegistry
 from hex_cortex.core.cortex_exact_math_v13 import calculate_exact
 from hex_cortex.core.cortex_physics_cell_v14 import calculate_physics
 from hex_cortex.core.cortex_chemistry_cell_v15 import run_chemistry
+from datetime import date
+import hashlib
+from hex_cortex.core.cortex_scientific_knowledge_v16 import (
+    EvidenceKind,
+    EvidenceQuery,
+    EvidenceRecord,
+    review_scientific_knowledge,
+)
+from hex_cortex.core.universal_capabilities_v12 import KnowledgeDomain
 from hex_cortex.core.cortex_homeostasis_v13 import HealthObservation, homeostatic_review
 from hex_cortex.core.cognitive_circuit_v1 import CognitiveCircuit
 from hex_cortex.core.cognitive_replay_pipeline_v11 import run_circuit_replay_memory
@@ -264,6 +273,49 @@ def offline_readiness() -> dict[str, object]:
         and chemistry_sim.get("mass_conserved_under_fixed_rounded_weights") is True
         and chemistry["laboratory_action_performed"] is False
         and invalid_reaction["status"] == "blocked"
+    )
+    # V16 uses two synthetic host-authenticated SOURCE FIXTURES;
+    # agreement is NOT independent external certification or scientific truth.
+    def fixture(source: str, value: str) -> EvidenceRecord:
+        return EvidenceRecord(
+            claim_id="source_comparison_fixture",
+            domain=KnowledgeDomain.PHYSICS,
+            value=value,
+            unit="m/s",
+            absolute_uncertainty="1",
+            kind=EvidenceKind.MEASUREMENT,
+            source_id=source,
+            source_uri="https://example.org/synthetic/" + source,
+            source_version="test.1",
+            source_digest_sha256=hashlib.sha256(source.encode()).hexdigest(),
+            source_license="synthetic-test-fixture",
+            published_on=date(2026, 10, 10),
+        )
+
+    source_query = EvidenceQuery(
+        claim_id="source_comparison_fixture",
+        domain=KnowledgeDomain.PHYSICS,
+        result_unit="m/s",
+    )
+    source_a = fixture("fixture.a", "100")
+    source_b = fixture("fixture.b", "110")
+    disagreement = review_scientific_knowledge(
+        source_query, [source_a, source_b],
+        operator_approved=True,
+        verify_source=lambda _: True,  # explicitly synthetic trusted-host stub
+    )
+    verifier_absent = review_scientific_knowledge(
+        source_query, [source_a, source_b],
+        operator_approved=True,
+    )
+    checks["scientific_provenance_conflict_detected"] = (
+        disagreement["status"] == "conflict"
+        and disagreement["truth_certified"] is False
+        and disagreement["physical_action_authorized"] is False
+    )
+    checks["unverified_scientific_source_denied"] = (
+        verifier_absent["status"] == "blocked"
+        and verifier_absent["reason"] == "trusted_source_verifier_required"
     )
     # Constructors only; neither provider is contacted or authenticated.
     checks["cloud_adapter_interfaces"] = (
