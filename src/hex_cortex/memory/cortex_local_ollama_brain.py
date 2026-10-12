@@ -18,6 +18,7 @@ class LocalOllamaBrain:
     endpoint: str = "http://127.0.0.1:11434"
     timeout_seconds: float = 60.0
     max_predict_tokens: int = 768
+    num_gpu: int | None = None
     transport: Transport = default_local_transport
 
     def __post_init__(self) -> None:
@@ -26,10 +27,18 @@ class LocalOllamaBrain:
             raise ValueError("model request timeout must be within (0, 600]")
         if not 0 < self.max_predict_tokens <= 4096:
             raise ValueError("model token budget must be within (0, 4096]")
+        if self.num_gpu is not None and self.num_gpu < 0:
+            raise ValueError("num_gpu must be non-negative or None for default behavior")
 
     def __call__(self, model_id: str, task: Task) -> str:
         if not model_id.strip():
             raise ValueError("model identifier required")
+        options: dict[str, object] = {
+            "temperature": 0.0,
+            "num_predict": self.max_predict_tokens,
+        }
+        if self.num_gpu is not None:
+            options["num_gpu"] = self.num_gpu
         body = json.dumps(
             {
                 "model": model_id,
@@ -44,10 +53,7 @@ class LocalOllamaBrain:
                     },
                     {"role": "user", "content": task.instruction},
                 ],
-                "options": {
-                    "temperature": 0.0,
-                    "num_predict": self.max_predict_tokens,
-                },
+                "options": options,
                 "stream": False,
                 "keep_alive": 0,
             }

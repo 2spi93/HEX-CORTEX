@@ -85,3 +85,101 @@ def test_cli_model_denied_by_default_without_call(tmp_path: Path, capsys) -> Non
     result = json.loads(capsys.readouterr().out)
     assert code == 2
     assert result["reason"] == "model_call_not_authorized"
+
+
+def test_local_ollama_num_gpu_none_omitted_from_payload() -> None:
+    """When num_gpu is None, it should not appear in the options payload."""
+    collected = []
+
+    def fake_transport(url: str, body: bytes | None, timeout: float) -> str:
+        content = json.loads(body)
+        collected.append((url, content, timeout))
+        return json.dumps({"message": {"content": "OK"}})
+
+    brain = LocalOllamaBrain(transport=fake_transport, num_gpu=None)
+    brain("tiny-local", Task("1", "coding", "Test"))
+    _, body, _ = collected[0]
+    assert "num_gpu" not in body["options"]
+
+
+def test_local_ollama_num_gpu_zero_forces_cpu() -> None:
+    """When num_gpu=0, Ollama should force CPU-only inference."""
+    collected = []
+
+    def fake_transport(url: str, body: bytes | None, timeout: float) -> str:
+        content = json.loads(body)
+        collected.append((url, content, timeout))
+        return json.dumps({"message": {"content": "OK"}})
+
+    brain = LocalOllamaBrain(transport=fake_transport, num_gpu=0)
+    brain("tiny-local", Task("1", "coding", "Test"))
+    _, body, _ = collected[0]
+    assert body["options"]["num_gpu"] == 0
+
+
+def test_local_ollama_num_gpu_positive_included() -> None:
+    """When num_gpu is a positive integer, it should appear in options."""
+    collected = []
+
+    def fake_transport(url: str, body: bytes | None, timeout: float) -> str:
+        content = json.loads(body)
+        collected.append((url, content, timeout))
+        return json.dumps({"message": {"content": "OK"}})
+
+    brain = LocalOllamaBrain(transport=fake_transport, num_gpu=2)
+    brain("tiny-local", Task("1", "coding", "Test"))
+    _, body, _ = collected[0]
+    assert body["options"]["num_gpu"] == 2
+
+
+def test_local_ollama_negative_num_gpu_rejected() -> None:
+    """Negative num_gpu values should be rejected."""
+    with pytest.raises(ValueError, match="num_gpu must be non-negative"):
+        LocalOllamaBrain(num_gpu=-1)
+
+
+def test_cli_num_gpu_zero_passed_to_brain(tmp_path: Path, capsys) -> None:
+    """CLI --num-gpu 0 should be transmitted to the brain."""
+    collected = []
+
+    def fake_transport(url: str, body: bytes | None, timeout: float) -> str:
+        content = json.loads(body)
+        collected.append((url, content, timeout))
+        return json.dumps({"message": {"content": "OK"}})
+
+    # Patch LocalOllamaBrain to capture the transport call
+    import hex_cortex.memory.cortex_local_harness_cli as cli_module
+    original_brain = cli_module.LocalOllamaBrain
+
+    def patched_brain(*args, **kwargs):
+        kwargs["transport"] = fake_transport
+        return original_brain(*args, **kwargs)
+
+    cli_module.LocalOllamaBrain = patched_brain  # type: ignore
+    try:
+        code = main([
+            "--project-root", str(tmp_path),
+            "--model", "local",
+            "--instruction", "Test",
+            "--approve-model",
+            "--num-gpu", "0",
+        ])
+        result = json.loads(capsys.readouterr().out)
+        assert code == 0
+        assert result["status"] == "complete"
+        assert len(collected) == 1
+        _, body, _ = collected[0]
+        assert body["options"]["num_gpu"] == 0
+    finally:
+        cli_module.LocalOllamaBrain = original_brain
+
+
+def test_cli_num_gpu_negative_rejected(tmp_path: Path, capsys) -> None:
+    """CLI --num-gpu with negative value should be rejected."""
+    code = main([
+        "--project-root", str(tmp_path),
+        "--num-gpu", "-1",
+    ])
+    result = json.loads(capsys.readouterr().out)
+    assert code == 2
+    assert "num_gpu must be non-negative" in result["reason"]
