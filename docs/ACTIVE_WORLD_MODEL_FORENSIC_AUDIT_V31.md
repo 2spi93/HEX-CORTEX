@@ -27,7 +27,7 @@ valid predictions in a real environment.
 2. Rebuild the existing dataset manifest and check input-record content
    hashes, split counts, binding of checkpoint to dataset manifest and
    encoder identity.
-3. Actually read/h̶a̶s̶h̶ SHA256 the original and promoted \`safetensors\`
+3. Compute SHA256 from the original and promoted \`safetensors\`
    bytes, compare to both manifests and registry.
 4. Check candidate manifest integrity, active registry integrity,
    promoted receipt identity and source candidate lineage.
