@@ -38,6 +38,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--approve-science", action="store_true")
     parser.add_argument("--approve-model", action="store_true")
     parser.add_argument("--show-answer", action="store_true")
+    parser.add_argument("--strict-answer", action="store_true")
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args(argv)
 
@@ -78,6 +79,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             approve_science=True,
             approve_model=True,
             max_latency_ms=round(args.timeout * 1_000),
+            strict_answer=args.strict_answer,
         )
     except (ValueError, TypeError, OSError) as exc:
         print(json.dumps({"status": "blocked", "reason": str(exc)}))
