@@ -103,10 +103,6 @@ def test_true_model_adapter_reuses_existing_residual_mlp_on_cpu(
     path = tmp_path / "candidate.json"
     path.write_text(json.dumps(candidate), encoding="utf-8")
 
-    with pytest.raises(ValueError, match="never"):
-        # This expression is unreachable and simply verifies no exception
-        # suppression in the model adapter.
-        raise ValueError("never")
     denied = evaluate_local_compact_on_external(
         audit, candidate_manifest_path=path
     )
