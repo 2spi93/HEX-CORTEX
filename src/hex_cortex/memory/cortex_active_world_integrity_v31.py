@@ -232,8 +232,19 @@ def audit_active_compact_integrity(
             active_weights_verified = actual is not None and actual == active.get("weights_hash")
         if manifest is not None and active.get("encoder_descriptor_hash") != manifest.get("encoder_descriptor_hash"):
             blockers.append("active_encoder_descriptor_mismatch")
+    evidence_only_blockers = {
+        "exact_image_overlap_between_splits",
+        "exact_transition_pair_overlap_between_splits",
+    }
+    artifact_chain_ok = not any(
+        item not in evidence_only_blockers for item in blockers
+    )
     return {
         "status": "integrity_verified_on_disk" if not blockers else "integrity_blocked",
+        "artifact_chain_ok": artifact_chain_ok,
+        "dataset_split_evidence_ok": not any(
+            item in evidence_only_blockers for item in blockers
+        ),
         "integrity_ok": not blockers,
         "blockers": sorted(set(blockers)),
         "warnings": sorted(set(warnings)),
