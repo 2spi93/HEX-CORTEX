@@ -144,6 +144,13 @@ def test_v4_http_serves_media_and_code_without_opening_actuation(tmp_path):
                 "/api/code/source?name=",
             ]:
                 assert _request(server, "GET", url)[0] in {400, 404}
+            code, data, _ = _request(server, "GET", "/api/capabilities")
+            assert code == 200
+            declared = {x["id"]: x for x in json.loads(data)["features"]}
+            assert declared["code"]["status"] == "connected_allowlisted_readonly"
+            assert declared["scene3d"]["status"] == "connected_cpu_wireframe_only"
+            assert declared["voice"]["status"] == "browser_speech_opt_in_may_use_cloud"
+            assert declared["devices"]["status"] == "simulation_only_no_actuation"
             code, data, _ = _request(server, "GET", "/api/devices/capabilities")
             assert code == 200
             assert not json.loads(data)["real_robot_drone_commands_enabled"]
