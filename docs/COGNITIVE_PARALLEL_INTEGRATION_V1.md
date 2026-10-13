@@ -108,3 +108,42 @@ Remaining empirical work:
 - remove automatic factual authority from any unauthenticated source;
 - train JEPA or distill only after data quality, safety and generalization
   have been established independently.
+
+
+## D. Existing Math / Physics / Chemistry verification feeding the actual Brain
+
+The earlier circuits are connected by
+`cortex_science_brain_bridge.py` through an actual
+`LocalHarness` and `CognitiveClock` run. Only bounded typed verified
+cell payloads are provided as **data** to a separately authorized local
+model. A redacted receipt is appended to the same Harness Spine. This
+is not a proof that the model's final generated answer is correct; a
+new independent check of model output is still required.
+
+CPU-only preflight (no model or file access):
+
+```powershell
+python -m hex_cortex.memory.cortex_science_brain_cli --domain physics --example --model qwen2.5:3b --dry-run
+```
+
+One approved model call using PhysicsCell:
+
+```powershell
+python -m hex_cortex.memory.cortex_science_brain_cli --domain physics --example --model qwen2.5:3b --approve-science --approve-model --show-answer
+```
+
+One approved model call using ChemistryCell:
+
+```powershell
+python -m hex_cortex.memory.cortex_science_brain_cli --domain chemistry --example --model qwen2.5:3b --approve-science --approve-model --show-answer
+```
+
+One approved model call using MathCell:
+
+```powershell
+python -m hex_cortex.memory.cortex_science_brain_cli --domain mathematics --example --model qwen2.5:3b --approve-science --approve-model --show-answer
+```
+
+No model executes autonomously, no on-device action is allowed, the
+scientific request is bounded and validated, no raw model response is
+persisted, and GPU offload is disabled (`num_gpu=0`).
