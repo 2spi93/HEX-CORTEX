@@ -112,8 +112,17 @@ def audit_active_compact_integrity(
             blockers.append("dataset_records_unreadable")
             all_rows = []
 
+    candidate_weights_verified = False
+    active_weights_verified = False
     rebuilt = None
     if all_rows:
+        for record in all_rows:
+            if record.get("record_hash") != _digest({
+                k: v for k, v in record.items()
+                if k not in ("record_hash", "next_action")
+            }):
+                blockers.append("record_content_hash_mismatch")
+                break
         rebuilt = build_transition_dataset_manifest(all_rows)
         if rebuilt["blockers"] or not rebuilt["manifest_allowed"]:
             blockers.append("dataset_records_fail_existing_validation")
@@ -177,6 +186,7 @@ def audit_active_compact_integrity(
             weight_hash = _read_weights(root, candidate_path.parent / weight_name, blockers, "trained_weights")
             if weight_hash is not None and weight_hash != candidate.get("weights_hash"):
                 blockers.append("trained_weights_hash_mismatch")
+            candidate_weights_verified = weight_hash is not None and weight_hash == candidate.get("weights_hash")
 
     if active is not None:
         if active.get("registry_type") != "active_compact_world_model_v1":
@@ -199,6 +209,17 @@ def audit_active_compact_integrity(
                 blockers.append("active_candidate_not_promoted")
             if active_candidate.get("weights_hash") != active.get("weights_hash"):
                 blockers.append("active_candidate_weights_hash_mismatch")
+            if active_candidate.get("promotion_receipt_hash") != _digest({
+                "candidate_hash": candidate.get("candidate_hash"),
+                "weights_hash": candidate.get("weights_hash"),
+            }):
+                blockers.append("active_candidate_promotion_receipt_mismatch")
+            if active.get("promotion_receipt_hash") != active_candidate.get("promotion_receipt_hash"):
+                blockers.append("active_registry_promotion_receipt_mismatch")
+            for key, expected in candidate.items():
+                if key != "weights_file" and active_candidate.get(key) != expected:
+                    blockers.append("active_candidate_source_data_mismatch")
+                    break
         if candidate is not None and active.get("weights_hash") != candidate.get("weights_hash"):
             blockers.append("active_weights_candidate_hash_mismatch")
         weights_name = _safe_name(active.get("weights_file"))
@@ -208,6 +229,7 @@ def audit_active_compact_integrity(
             actual = _read_weights(root, active_path.parent / weights_name, blockers, "active_weights")
             if actual is not None and actual != active.get("weights_hash"):
                 blockers.append("active_weights_hash_mismatch")
+            active_weights_verified = actual is not None and actual == active.get("weights_hash")
         if manifest is not None and active.get("encoder_descriptor_hash") != manifest.get("encoder_descriptor_hash"):
             blockers.append("active_encoder_descriptor_mismatch")
     return {
@@ -220,8 +242,8 @@ def audit_active_compact_integrity(
         "dataset_domain_values": sorted(domain_values),
         "exact_cross_split_image_overlap_count": cross_images,
         "exact_cross_split_transition_pair_overlap_count": cross_pairs,
-        "candidate_weights_sha256_verified": not any("trained_weights" in item for item in blockers),
-        "active_weights_sha256_verified": not any("active_weights" in item for item in blockers),
+        "candidate_weights_sha256_verified": candidate_weights_verified,
+        "active_weights_sha256_verified": active_weights_verified,
         "independent_dataset_attested": False,
         "real_world_generalization_certified": False,
         "model_inference_executed": False,
