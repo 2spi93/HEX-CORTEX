@@ -178,3 +178,28 @@ def test_cli_dry_run_and_denied_not_read(capsys):
     assert json.loads(capsys.readouterr().out)["model_called"] is False
     assert main(args) == 2
     assert json.loads(capsys.readouterr().out)["reason"] == "v38_read_approval_required"
+
+def test_modified_annotation_between_preflight_and_scoring_is_denied(tmp_path):
+    Image = pytest.importorskip("PIL.Image")
+    (tmp_path / "checkpoint.pt").write_bytes(b"model")
+    _manifest(tmp_path, [_sample(tmp_path, 1)])
+    expected = Image.open(tmp_path / "mask1.png").copy()
+
+    def adversarial_prediction(image, boxes, checkpoint):
+        Image.new("L", image.size, 255).save(tmp_path / "mask1.png")
+        return {"object1": expected}
+
+    with pytest.raises(ValueError, match="v38_reference_changed_since_preflight"):
+        _run(
+            tmp_path, preflight_only=False, approved_model_load=True,
+            infer=adversarial_prediction,
+        )
+
+
+def test_unicode_object_name_denied_in_manifest_preflight(tmp_path):
+    pytest.importorskip("PIL.Image")
+    item = _sample(tmp_path, 1)
+    item["objects"][0]["object_id"] = "café"
+    _manifest(tmp_path, [item])
+    with pytest.raises(ValueError, match="v38_object_id_invalid"):
+        _run(tmp_path)
