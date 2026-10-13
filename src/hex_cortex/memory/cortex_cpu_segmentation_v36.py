@@ -8,7 +8,6 @@ MobileSAM's third-party checkpoint loader is invoked.
 from __future__ import annotations
 
 import hashlib
-import math
 import re
 import time
 from pathlib import Path
