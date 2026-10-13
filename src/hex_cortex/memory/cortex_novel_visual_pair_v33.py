@@ -123,6 +123,8 @@ def evaluate_new_visual_pair(
     descriptor = build_frozen_encoder_descriptor(
         model_ref=model_ref, pooling=pooling, device="cpu",
     )
+    if descriptor.get("device") != "cpu":
+        raise ValueError("novel_pair_encoder_device_must_be_cpu")
     if descriptor["descriptor_hash"] != active.get("encoder_descriptor_hash"):
         raise ValueError("novel_pair_encoder_identity_mismatch")
     preflight = {
