@@ -42,7 +42,12 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--allow-unmeasured", action="store_true")
     parser.add_argument("--spine-output", type=Path)
     parser.add_argument("--approve-save-receipt", action="store_true")
+    parser.add_argument("--num-gpu", type=int, default=None, help="Number of model layers to offload to GPU (0 = CPU only)")
     args = parser.parse_args(argv)
+
+    if args.num_gpu is not None and args.num_gpu < 0:
+        print(json.dumps({"status": "blocked", "reason": "num_gpu must be non-negative"}))
+        return 2
 
     if args.dry_run:
         print(json.dumps({
@@ -94,6 +99,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                 brain = LocalOllamaBrain(
                     endpoint=args.endpoint, timeout_seconds=args.timeout,
                     max_predict_tokens=args.max_tokens,
+                    num_gpu=args.num_gpu,
                 )
             else:
                 brain = CloudBrain(

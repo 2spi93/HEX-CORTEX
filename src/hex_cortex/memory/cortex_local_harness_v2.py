@@ -209,8 +209,13 @@ class LocalHarness:
             seen.add(str(row["task_id"]))
         if not self.spine.verify_integrity().ok:
             return False
+        # Rehydrated Spines can contain receipts from previous sessions.
+        # Verify only this session's emitted receipts, while checking the
+        # cryptographic integrity of the entire history above.
         spine_receipts = [
-            event for event in self.spine.events if event.event_type == "harness.receipt"
+            event for event in self.spine.events
+            if event.event_type == "harness.receipt"
+            and event.correlation_keys.get("session_id") == self.session.session_id
         ]
         return (
             len(spine_receipts) == len(self.receipts)
