@@ -277,3 +277,4 @@ JS = r"""
   devices();
   codeInventory();
 })();
+"""
