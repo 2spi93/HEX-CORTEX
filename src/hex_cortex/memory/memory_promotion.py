@@ -530,6 +530,15 @@ class MemoryPromoter:
                 "expected_task_id": expected_task_id,
                 "source_task_id": source_task_id,
             }
+        # A valid hash chain proves history consistency, not arithmetic truth.
+        # Math-tagged source episodes must be rechecked by the actual ExactMathCell
+        # before any memory index mutation, including checkpoint restore.
+        task_events = self.spine.events_for_task(source_task_id)
+        if any(e.event_type == "math.exact_verified" for e in task_events):
+            from hex_cortex.memory.cortex_verified_math_memory import verify_math_fact_task
+
+            if not verify_math_fact_task(self.spine, source_task_id):
+                return False, {"reason": "math_fact_source_not_verified"}
         return True, {
             "provenance_validated": True,
             "source_event_count": len(memory.source_event_ids),
