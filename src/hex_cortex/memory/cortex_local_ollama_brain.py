@@ -20,6 +20,7 @@ class LocalOllamaBrain:
     max_predict_tokens: int = 768
     num_gpu: int | None = None
     transport: Transport = default_local_transport
+    response_format: dict[str, object] | str | None = None
 
     def __post_init__(self) -> None:
         _require_localhost(self.endpoint.rstrip("/") + "/api/chat")
@@ -29,6 +30,13 @@ class LocalOllamaBrain:
             raise ValueError("model token budget must be within (0, 4096]")
         if self.num_gpu is not None and self.num_gpu < 0:
             raise ValueError("num_gpu must be non-negative or None for default behavior")
+        if self.response_format is not None:
+            if self.response_format != "json" and not isinstance(self.response_format, dict):
+                raise ValueError("response_format must be a JSON schema or 'json'")
+            if isinstance(self.response_format, dict):
+                encoded = json.dumps(self.response_format, ensure_ascii=True)
+                if len(encoded) > 32768 or self.response_format.get("type") != "object":
+                    raise ValueError("response_format JSON schema invalid or too large")
 
     def __call__(self, model_id: str, task: Task) -> str:
         if not model_id.strip():
@@ -39,8 +47,7 @@ class LocalOllamaBrain:
         }
         if self.num_gpu is not None:
             options["num_gpu"] = self.num_gpu
-        body = json.dumps(
-            {
+        request: dict[str, object] = {
                 "model": model_id,
                 "messages": [
                     {
@@ -57,7 +64,9 @@ class LocalOllamaBrain:
                 "stream": False,
                 "keep_alive": 0,
             }
-        ).encode("utf-8")
+        if self.response_format is not None:
+            request["format"] = self.response_format
+        body = json.dumps(request).encode("utf-8")
         result = json.loads(
             self.transport(
                 self.endpoint.rstrip("/") + "/api/chat",
