@@ -161,6 +161,29 @@ def test_exact_seen_image_denied_before_dinov2_load(
     assert seen["current_seen"] is True
 
 
+
+def test_non_cpu_mock_descriptor_cannot_bypass_gpu_safety_gate(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _install_real_cpu_checkpoint(tmp_path)
+    _inputs(tmp_path)
+    import hex_cortex.memory.cortex_novel_visual_pair_v33 as module
+
+    wrong_device = build_frozen_encoder_descriptor(device="auto")
+    wrong_device["descriptor_hash"] = _hash("encoder")
+    monkeypatch.setattr(
+        module, "build_frozen_encoder_descriptor", lambda **kw: wrong_device,
+    )
+    with pytest.raises(ValueError, match="novel_pair_encoder_device_must_be_cpu"):
+        _evaluate(
+            tmp_path, approved_encoding=True,
+            approved_inference=True,
+            encoder_runner=lambda *_: (_ for _ in ()).throw(
+                AssertionError("encoder runner must not run"),
+            ),
+        )
+
+
 def test_operator_image_files_must_be_in_explicit_approved_root(
     tmp_path: Path,
 ) -> None:
