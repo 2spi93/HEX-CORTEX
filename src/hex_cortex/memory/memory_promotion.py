@@ -539,6 +539,13 @@ class MemoryPromoter:
 
             if not verify_math_fact_task(self.spine, source_task_id):
                 return False, {"reason": "math_fact_source_not_verified"}
+        if any(e.event_type == "science.verified_domain_fact" for e in task_events):
+            from hex_cortex.memory.cortex_verified_science_memory_v23 import (
+                verify_science_fact_task,
+            )
+
+            if not verify_science_fact_task(self.spine, source_task_id):
+                return False, {"reason": "science_fact_source_not_verified"}
         return True, {
             "provenance_validated": True,
             "source_event_count": len(memory.source_event_ids),
