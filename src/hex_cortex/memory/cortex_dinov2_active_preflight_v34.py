@@ -49,7 +49,6 @@ def _cached_files(model_ref: str) -> dict[str, bool]:
 
 def _load_cached_cpu(model_ref: str) -> dict[str, object]:
     try:
-        import torch
         from transformers import AutoImageProcessor, AutoModel
     except ImportError as exc:
         raise ValueError("active_encoder_optional_dependencies_unavailable") from exc
