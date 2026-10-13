@@ -13,6 +13,9 @@ from hex_cortex.memory.cortex_world_residual_learning_v27 import (
     _metric, fit_bounded_world_residual, simulate_with_reviewed_bias,
 )
 from hex_cortex.memory.cortex_world_residual_cli_v27 import _public_demo
+from hex_cortex.memory.cortex_world_prospective_guard_v29 import (
+    guard_next_simulated_prediction,
+)
 
 _REGIMES = {
     "training_like_bias": (0.4, -0.2),
@@ -21,7 +24,7 @@ _REGIMES = {
 }
 
 
-def stress_world_bias_regimes(*, approved: bool = False) -> dict[str, object]:
+def stress_world_bias_regimes(*, approved: bool = False, approve_next_prediction: bool = False) -> dict[str, object]:
     if not approved:
         return {
             "status": "blocked", "reason": "stress_test_approval_required",
@@ -36,6 +39,7 @@ def stress_world_bias_regimes(*, approved: bool = False) -> dict[str, object]:
     for name, biases in _REGIMES.items():
         before_losses: list[float] = []
         after_losses: list[float] = []
+        historical_transitions: list[dict[str, object]] = []
         for i in range(4):
             state = {
                 "x": float(100 + i * 3), "y": float(-10 + i),
@@ -54,15 +58,32 @@ def stress_world_bias_regimes(*, approved: bool = False) -> dict[str, object]:
                 candidate=candidate, state=state, action=action,
                 dt_seconds=dt, approved=True,
             )["corrected_predicted_state"]
+            historical_transitions.append({
+                "id": f"shift-{name}-{i}", "split": "test",
+                "state": state, "action": action, "dt_seconds": dt,
+                "observed_next_state": observed,
+            })
             before_losses.append(_metric(observed, baseline))
             after_losses.append(_metric(observed, corrected))
         base = sum(before_losses) / len(before_losses)
         actual = sum(after_losses) / len(after_losses)
+        prospective = (
+            guard_next_simulated_prediction(
+                candidate=candidate,
+                completed_history=historical_transitions,
+                next_state={"x": 200., "y": 0., "vx": 1., "vy": 0.},
+                next_action={"ax": 0., "ay": 0.},
+                next_dt_seconds=1.,
+                approved=True,
+            )
+            if approve_next_prediction else None
+        )
         regimes.append({
             "regime": name, "samples": len(before_losses),
             "baseline_normalized_mse": round(base, 10),
             "candidate_normalized_mse": round(actual, 10),
             "candidate_worse": actual > base + 1e-10,
+            "prospective_next_prediction": prospective,
         })
     regression_names = [
         row["regime"] for row in regimes if row["candidate_worse"]
