@@ -57,6 +57,8 @@ HTML = (
 )
 
 CSS = BASE_CSS + r"""
+#camera-stream[hidden]{display:none!important}
+
 #knowledge-sources{min-height:100px;max-height:220px}
 #knowledge-state{font-size:12px;color:#a9c4d0}
 #knowledge-grid .catalog-card{min-height:100px}
@@ -90,6 +92,17 @@ RUNTIME_V5 = RUNTIME.replace(
         (data.server_capability_facts_used?
           ' · contexte HEX-CORTEX vérifié [snapshot, capabilities, devices]':''));
     """,
+)
+
+# Prefer the compact 3B model when installed: the operator observed >30 s
+# response latency with a 14B model on the CPU. Selection is advisory only.
+RUNTIME_V5 = RUNTIME_V5.replace(
+    """      $('send-chat').disabled=!data.models.length;
+      show('chat-state',data.models.length+' modèle(s) Ollama détecté(s). Envoi CPU sur demande.');""",
+    """      if(data.models.includes('qwen2.5:3b'))selector.value='qwen2.5:3b';
+      $('send-chat').disabled=!data.models.length;
+      show('chat-state',data.models.length+' modèle(s) Ollama détecté(s). '
+        +'Démarrer avec 3B pour une réponse CPU plus rapide.');""",
 )
 
 JS_KNOWLEDGE = r"""
