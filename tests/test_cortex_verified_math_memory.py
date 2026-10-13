@@ -72,6 +72,7 @@ def test_math_fact_can_reach_real_harness_as_untrusted_verified_data(
         models=["test"], brain=brain,
         approve_model=True, approve_memory_use=True,
         query=RetrievalQuery(query="127*413"),
+        target_math_expression="127*413",
     )
     assert outcome["status"] == "complete"
     assert outcome["memory_context"]["retrieved_count"] == 1
