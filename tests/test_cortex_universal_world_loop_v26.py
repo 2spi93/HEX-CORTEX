@@ -171,3 +171,56 @@ def test_cli_stub_qwen_cpu_only(
     assert "model_answer" not in report
     assert report["model_answer_sha256"]
     assert config[0]["num_gpu"] == 0
+
+
+def test_cli_demo_is_explicitly_illustrative_not_real_sensor(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str],
+) -> None:
+    args = ["--project-root", str(tmp_path), "--approve-observe", "--approve-simulate"]
+    assert main(args) == 0
+    receipt = json.loads(capsys.readouterr().out)
+    assert receipt["observed_transition_origin"] == "illustrative_fixture"
+    assert receipt["residual"]["position_error_m"] == 1.0
+
+
+def test_cli_operator_supplied_state_does_not_invent_sensor_measurement(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str],
+) -> None:
+    args = [
+        "--project-root", str(tmp_path), "--approve-observe", "--approve-simulate",
+        "--state-x", "10", "--state-vx", "3", "--dt-seconds", "2",
+    ]
+    assert main(args) == 0
+    receipt = json.loads(capsys.readouterr().out)
+    assert receipt["predicted_state"]["x"] == 16.0
+    assert receipt["residual"] is None
+    assert receipt["observed_transition_origin"] is None
+    assert receipt["physical_action_executed"] is False
+
+
+def test_cli_explicit_observed_values_create_non_calibrated_residual(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str],
+) -> None:
+    args = [
+        "--project-root", str(tmp_path), "--approve-observe", "--approve-simulate",
+        "--state-x", "10", "--state-vx", "3",
+        "--observed-x", "15", "--observed-y", "0",
+        "--observed-vx", "3", "--observed-vy", "0",
+    ]
+    assert main(args) == 0
+    receipt = json.loads(capsys.readouterr().out)
+    assert receipt["observed_transition_origin"] == "operator_supplied"
+    assert receipt["residual"]["position_error_m"] == 1.0
+    assert receipt["residual"]["measurement_calibrated"] is False
+
+
+def test_cli_partial_measurement_is_refused_before_llm(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str],
+) -> None:
+    args = [
+        "--project-root", str(tmp_path), "--approve-observe", "--approve-simulate",
+        "--observed-x", "3",
+    ]
+    assert main(args) == 2
+    receipt = json.loads(capsys.readouterr().out)
+    assert receipt["reason"] == "world_observed_state_requires_all_four_coordinates"
