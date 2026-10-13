@@ -73,11 +73,6 @@ def _percentile(values: list[float], p: float) -> float:
 
 
 def _preflight(*, root: Path, manifest_path: str) -> tuple[list[dict], dict]:
-    try:
-        from PIL import Image
-    except ImportError as exc:
-        raise ValueError("v38_pillow_required") from exc
-
     file = _relative_file(root, manifest_path, {".json"}, 250_000)
     with file.open("r", encoding="utf-8") as f:
         manifest = json.load(
@@ -86,6 +81,11 @@ def _preflight(*, root: Path, manifest_path: str) -> tuple[list[dict], dict]:
         )
     if not isinstance(manifest, dict) or manifest.get("schema") != _MANIFEST_SCHEMA:
         raise ValueError("v38_manifest_schema_invalid")
+    try:
+        from PIL import Image
+    except ImportError as exc:
+        raise ValueError("v38_pillow_required") from exc
+
     samples = manifest.get("samples")
     if not isinstance(samples, list) or not 1 <= len(samples) <= _MAX_SAMPLES:
         raise ValueError("v38_sample_count_invalid")
