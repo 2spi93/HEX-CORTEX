@@ -132,6 +132,13 @@ def project_system_facts(brief: dict) -> str:
         "or tests, writing code, controlling Windows, external camera/phone "
         "remote control, driving drones/robots, guaranteed offline STT, "
         "promoting skills, or automatically accessing other repositories.\n"
+        "CPU image segmentation panel V6: "+
+        ("enabled only after manual bbox, explicit local photo upload and "
+         "server opt-in; cannot be launched by this Chat. "
+         if brief.get("vision_cpu_available") is True
+         else "not enabled for this server. ")+
+        "Source [vision] /api/vision/cpu/availability. "
+        "This predicts a mask, not object semantics or certified accuracy.\n"
         "Source keys for operator review: [snapshot] /api/snapshot; "
         "[capabilities] /api/capabilities; "
         "[devices] /api/devices/capabilities. "
