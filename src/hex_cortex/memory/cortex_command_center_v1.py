@@ -8,8 +8,6 @@ pre-existing allowlisted, in-memory read-only LocalHarness repo probe.
 from __future__ import annotations
 
 import argparse
-import hashlib
-import http.client
 import json
 import re
 from collections import Counter
@@ -159,7 +157,6 @@ def _spine(root: Path) -> dict:
 
 
 def _cockpit(root: Path) -> dict:
-    profile = _safe_path(root, Path(".hex-cortex"))
     log = _safe_path(root, Path(".hex-cortex") / CORTEX_UI_COCKPIT_BUILD_FILENAME)
     if not log.exists():
         return {"status": "not_built", "build_count": 0, "latest_allowed": None}
