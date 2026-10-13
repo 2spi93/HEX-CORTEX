@@ -189,3 +189,79 @@ def test_explicit_file_permission_and_cli_dry_run(tmp_path: Path,
     data = json.loads(capsys.readouterr().out)
     assert data["status"] == "integrity_verified_on_disk"
     assert data["model_inference_executed"] is False
+
+
+
+def test_active_cpu_smoke_requires_separate_inference_approval(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str],
+) -> None:
+    from hex_cortex.memory.cortex_active_world_cpu_smoke_cli_v31 import main as smoke
+
+    assert smoke(["--project-root", str(tmp_path), "--dry-run"]) == 0
+    assert json.loads(capsys.readouterr().out)["model_forward_calls"] == 0
+    assert smoke(["--project-root", str(tmp_path), "--approve-read"]) == 2
+    assert json.loads(capsys.readouterr().out)["model_forward_calls"] == 0
+
+
+def test_actual_active_safetensors_cpu_forward_proves_only_runtime(
+    tmp_path: Path,
+) -> None:
+    torch = pytest.importorskip("torch")
+    safetensors = pytest.importorskip("safetensors.torch")
+    from hex_cortex.memory.cortex_compact_world_model import _build_model
+    from hex_cortex.memory.cortex_active_world_cpu_smoke_v31 import (
+        run_active_world_cpu_smoke,
+    )
+
+    state = _build_fixture(tmp_path)
+    model = _build_model(torch, latent_dim=2, action_dim=1, hidden_dim=8)
+    with torch.no_grad():
+        for p in model.parameters():
+            p.zero_()
+    weights = state / "candidate" / "predictor.safetensors"
+    safetensors.save_file(model.state_dict(), str(weights))
+    digest = hashlib.sha256(weights.read_bytes()).hexdigest()
+    candidate_file = state / "candidate" / "candidate.json"
+    candidate = json.loads(candidate_file.read_text(encoding="utf-8"))
+    candidate["weights_hash"] = digest
+    candidate["config"] = {
+        "architecture": "residual_mlp_v1",
+        "latent_dim": 2, "action_dim": 1, "hidden_dim": 8,
+    }
+    candidate["candidate_hash"] = _hash({
+        k: v for k, v in candidate.items() if k != "candidate_hash"
+    })
+    candidate_file.write_text(json.dumps(candidate), encoding="utf-8")
+    active_weights = state / "registry" / "active_predictor.safetensors"
+    active_weights.write_bytes(weights.read_bytes())
+    promoted = dict(candidate)
+    promoted["weights_file"] = "active_predictor.safetensors"
+    promoted["promoted"] = True
+    promoted["promotion_receipt_hash"] = _hash({
+        "candidate_hash": candidate["candidate_hash"],
+        "weights_hash": digest,
+    })
+    (state / "registry" / "active_candidate.json").write_text(
+        json.dumps(promoted), encoding="utf-8",
+    )
+    active_file = state / "registry" / "active.json"
+    active = json.loads(active_file.read_text(encoding="utf-8"))
+    active["candidate_hash"] = candidate["candidate_hash"]
+    active["weights_hash"] = digest
+    active["promotion_receipt_hash"] = promoted["promotion_receipt_hash"]
+    active["registry_hash"] = _hash({
+        k: v for k, v in active.items() if k != "registry_hash"
+    })
+    active_file.write_text(json.dumps(active), encoding="utf-8")
+    report = run_active_world_cpu_smoke(
+        project_root=tmp_path, approved_read=True, approved_inference=True,
+    )
+    assert report["status"] == "cpu_forward_completed"
+    assert report["model_forward_calls"] == 1
+    assert report["weights_sha256_verified"] is True
+    assert len(report["predicted_latent_sha256"]) == 64
+    assert report["latent_dim"] == 2
+    assert report["gpu_used"] is False
+    assert report["real_world_prediction_tested"] is False
+    assert report["files_written"] is False
+    assert report["model_promoted"] is False
