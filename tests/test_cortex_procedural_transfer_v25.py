@@ -94,8 +94,8 @@ def test_unseen_procedural_trial_uses_true_harness_and_no_test_answer(
 def test_proposal_only_after_positive_multi_task_outcomes(tmp_path: Path) -> None:
     results = {
         "127*419": "53213",
-        "1379*2843": "3920797",
-        "6173*7919": "48880387",
+        "1379*2843": "3920497",
+        "6173*7919": "48883987",
         "-429*317": "-135993",
     }
 
