@@ -160,3 +160,59 @@ def fit_bounded_world_residual(
         "physical_action_authorized": False,
         "files_written": False,
     }
+
+
+
+def simulate_with_reviewed_bias(
+    *,
+    candidate: dict[str, object],
+    state: dict[str, float],
+    action: dict[str, float],
+    dt_seconds: float,
+    approved: bool = False,
+) -> dict[str, object]:
+    """Explicit, read-only simulated application of a heldout-checked bias.
+
+    A candidate is NOT an active model and NOT externally signed evidence;
+    this function is never capable of performing physical actuation.
+    """
+    if not approved:
+        return {
+            "status": "blocked",
+            "reason": "manual_experimental_bias_use_requires_approval",
+            "physical_action_executed": False,
+        }
+    if (
+        not isinstance(candidate, dict)
+        or candidate.get("status") != "candidate_for_manual_review"
+        or candidate.get("model_type") != "constant_unmodeled_acceleration_bias_v27"
+        or candidate.get("heldout_regression_count") != 0
+        or candidate.get("heldout_improvement_fraction", 0) <= 0
+        or candidate.get("model_promoted_to_active_world") is not False
+    ):
+        raise ValueError("world_bias_candidate_unqualified")
+    bias = _finite_vector(candidate.get("bias_estimates_m_s2"), ("ax", "ay"))
+    if any(abs(v) > 5 for v in bias.values()):
+        raise ValueError("world_bias_out_of_scope")
+    baseline = simulate_world_transition(
+        state=state, action=action, dt_seconds=dt_seconds, approved=True
+    )
+    dt = float(dt_seconds)
+    prediction = dict(baseline["predicted_state"])
+    for axis in ("x", "y"):
+        acceleration = bias["a" + axis]
+        prediction[axis] += .5 * acceleration * dt ** 2
+        prediction["v" + axis] += acceleration * dt
+    if not all(math.isfinite(v) and abs(v) <= 1_000_000 for v in prediction.values()):
+        raise ValueError("world_corrected_state_out_of_scope")
+    return {
+        "status": "trial_bias_applied_to_simulation",
+        "baseline_predicted_state": baseline["predicted_state"],
+        "corrected_predicted_state": prediction,
+        "experimental_bias_m_s2": bias,
+        "candidate_not_activated": True,
+        "real_world_calibrated": False,
+        "device_connected": False,
+        "physical_action_executed": False,
+        "files_written": False,
+    }
