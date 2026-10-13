@@ -266,7 +266,9 @@ def evaluate_real_photo_masks_v38(
             annotation = next(
                 x for x in entry["annotations"] if x["object_id"] == predicted["object_id"]
             )
-            ref_file = _relative_file(root, entry["references"][predicted["object_id"]], {".png"}, 16_000_000)
+            ref_file = _relative_file(
+                root, entry["references"][predicted["object_id"]], {".png"}, 16_000_000,
+            )
             if _sha256(ref_file) != annotation["operator_reference_mask_sha256"]:
                 raise ValueError("v38_reference_changed_since_preflight")
             image_objects.append({
