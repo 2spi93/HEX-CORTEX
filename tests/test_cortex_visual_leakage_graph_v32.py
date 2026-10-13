@@ -106,31 +106,7 @@ def test_cli_dry_run_and_real_read_without_mutation(
     tmp_path: Path, capsys: pytest.CaptureFixture[str],
 ) -> None:
     state = _build_fixture(tmp_path)
-    all_records = [
-        json.loads(line) for line in
-        (state / "transitions.jsonl").read_text(encoding="utf-8").splitlines()
-    ]
-    shared = all_records[0]["next_image_hash"]
-    all_records[4]["current_image_hash"] = shared
-    for row in all_records:
-        row["record_hash"] = hashlib.sha256(json.dumps(
-            {k: v for k, v in row.items() if k not in ("record_hash", "next_action")},
-            sort_keys=True, separators=(",", ":"),
-        ).encode()).hexdigest()
     source = state / "transitions.jsonl"
-    source.write_text(
-        "".join(json.dumps(row) + "\n" for row in all_records),
-        encoding="utf-8",
-    )
-    from hex_cortex.memory.cortex_observed_transition_dataset import (
-        build_transition_dataset_manifest,
-    )
-    manifest = build_transition_dataset_manifest(
-        all_records, min_train=2, min_validation=1,
-    )
-    (state / "manifest.json").write_text(
-        json.dumps(manifest), encoding="utf-8",
-    )
     original = source.read_bytes()
     args = ["--project-root", str(tmp_path)]
     assert main([*args, "--dry-run"]) == 0
@@ -139,11 +115,26 @@ def test_cli_dry_run_and_real_read_without_mutation(
     assert json.loads(capsys.readouterr().out)["status"] == "blocked"
     assert main([*args, "--approve-read"]) == 0
     report = json.loads(capsys.readouterr().out)
-    assert report["status"] == "visual_leakage_detected"
+    assert report["status"] == "no_exact_image_overlap_detected"
     assert report["artifact_chain_verified_before_graph"] is True
-    assert report["exact_cross_split_image_count"] == 1
-    assert report["overlap_images"][0]["line_numbers"] == [1, 5]
+    assert report["exact_cross_split_image_count"] == 0
     assert source.read_bytes() == original
+    assert report["files_written"] is False
+
+
+def test_cli_blocks_when_dataset_modified_after_checkpoint_training(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str],
+) -> None:
+    state = _build_fixture(tmp_path)
+    source = state / "transitions.jsonl"
+    lines = source.read_text(encoding="utf-8").splitlines()
+    record = json.loads(lines[0])
+    record["current_image_hash"] = _h("new-image")
+    lines[0] = json.dumps(record)
+    source.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    assert main(["--project-root", str(tmp_path), "--approve-read"]) == 2
+    report = json.loads(capsys.readouterr().out)
+    assert report["reason"] == "active_dataset_integrity_must_be_verified_first"
     assert report["files_written"] is False
 
 
