@@ -192,6 +192,10 @@ def run_four_arm_math_eval(
             "memory_provided": arm in {"memory", "combined"},
             "calculator_answer_provided": arm in {"calculator", "combined"},
             "answer": answer if show_answers else None,
+            "answer_copied_from_training_fact": (
+                answer.strip() == training_answer if arm in {"memory", "combined"}
+                else False
+            ),
         }
     return {
         "status": "four_arm_observations_recorded",
@@ -212,6 +216,12 @@ def run_four_arm_math_eval(
         "arms": rows,
         "model_calls": 4,
         "all_four_arms_correct": all(bool(row["correct"]) for row in rows.values()),
+        "negative_transfer_training_answer_copy_observed": bool(
+            rows["memory"]["answer_copied_from_training_fact"]
+            and not rows["memory"]["correct"]
+        ),
+        "memory_only_accurate": bool(rows["memory"]["correct"]),
+        "cross_expression_prior_scalar_diagnostic_mode": True,
         "scientific_grade_scope": "strict_answer_to_math_cell_oracle",
         "model_revision_independently_attested": False,
         "novel_holdout_independently_attested": False,
