@@ -32,7 +32,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     p.add_argument("--model")
     p.add_argument("--endpoint", default="http://127.0.0.1:11434")
     p.add_argument("--timeout", type=float, default=120.0)
-    p.add_argument("--max-tokens", type=int, default=160)
+    p.add_argument("--max-tokens", type=int, default=256)
     p.add_argument("--show-answer", action="store_true")
     p.add_argument("--approve-observe", action="store_true")
     p.add_argument("--approve-simulate", action="store_true")
