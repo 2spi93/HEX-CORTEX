@@ -183,3 +183,37 @@ def test_cli_num_gpu_negative_rejected(tmp_path: Path, capsys) -> None:
     result = json.loads(capsys.readouterr().out)
     assert code == 2
     assert "num_gpu must be non-negative" in result["reason"]
+
+
+def test_local_ollama_structured_schema_opt_in_only() -> None:
+    from hex_cortex.memory.cortex_structured_code_plan import code_plan_json_schema
+
+    seen = []
+
+    def transport(_url: str, body: bytes | None, _timeout: float) -> str:
+        seen.append(json.loads(body))
+        return json.dumps({"message": {"content": '{"summary":"ok"}'}})
+
+    schema = code_plan_json_schema()
+    brain = LocalOllamaBrain(
+        transport=transport, response_format=schema, num_gpu=0,
+        max_predict_tokens=1536,
+    )
+    brain("qwen2.5-coder:7b", Task("test", "coding", "Return JSON"))
+    assert seen[0]["format"] == schema
+    assert seen[0]["options"]["num_gpu"] == 0
+    assert seen[0]["options"]["num_predict"] == 1536
+    assert seen[0]["stream"] is False
+    assert seen[0]["keep_alive"] == 0
+    assert "format" not in json.loads(json.dumps({
+        "model": "plain", "options": {"num_gpu": 0},
+    }))
+
+
+def test_local_ollama_refuses_arbitrary_format_values() -> None:
+    with pytest.raises(ValueError, match="response_format"):
+        LocalOllamaBrain(response_format="xml")
+    with pytest.raises(ValueError, match="response_format"):
+        LocalOllamaBrain(response_format={"type": "array"})
+    with pytest.raises(ValueError, match="response_format"):
+        LocalOllamaBrain(response_format={"type": "object", "description": "a" * 40000})
