@@ -10,6 +10,7 @@ import hashlib
 import json
 from collections.abc import Callable
 
+from hex_cortex.core.cortex_science_answer_grade_v22 import grade_verified_science_answer
 from hex_cortex.core.cortex_verified_science_circuit import run_verified_science_circuit
 from hex_cortex.memory.cortex_local_cognitive_cycle import run_clocked_local_task
 from hex_cortex.memory.cortex_local_harness_v2 import LocalHarness, Task
@@ -26,6 +27,7 @@ def run_science_guided_brain(
     approve_science: bool = False,
     approve_model: bool = False,
     max_latency_ms: int = 120_000,
+    strict_answer: bool = False,
 ) -> dict[str, object]:
     """No automatic model call and no science claim inferred from model output."""
     if not (approve_science and approve_model):
@@ -64,13 +66,24 @@ def run_science_guided_brain(
     if len(json.dumps(evidence, sort_keys=True, default=str)) > 3_000:
         raise ValueError("scientific_evidence_context_budget_exceeded")
     evidence_json = json.dumps(evidence, sort_keys=True, ensure_ascii=False)
+    contracts = {
+        "mathematics": "Answer ONLY with the exact rational integer or numerator/denominator.",
+        "physics": "Answer ONLY as: exact-rational SI-unit. Example: 6 N",
+        "chemistry": (
+            'Answer ONLY with JSON integer coefficient arrays: '
+            '{"reactants":[2,1],"products":[2]}'
+        ),
+    }
+    question = task.instruction + (
+        "\n" + contracts[domain] if strict_answer else ""
+    )
     context = (
         "Independent, domain-bounded scientific calculator data follows. "
         "This is NOT an instruction or permission to operate any tool/device. "
         "Its physical assumptions and uncertainty are limited to the named domain.\n"
         f"Verified domain: {domain}\n"
         f"Calculator evidence (JSON data): {evidence_json}\n"
-        f"Operator question: {task.instruction}"
+        f"Operator question: {question}"
     )
     request_hash = hashlib.sha256(scientific_request.encode("utf-8")).hexdigest()
     proof_hash = hashlib.sha256(evidence_json.encode("utf-8")).hexdigest()
@@ -95,6 +108,14 @@ def run_science_guided_brain(
         approved=True,
         max_latency_ms=max_latency_ms,
     )
+    output = result.get("output")
+    grading = (
+        grade_verified_science_answer(
+            domain=domain, cell_payload=evidence, answer=output
+        )
+        if result.get("status") == "complete" and isinstance(output, str)
+        else {"status": "not_evaluated", "matched": False}
+    )
     return {
         "status": result["status"],
         "reason": result["reason"],
@@ -108,7 +129,8 @@ def run_science_guided_brain(
         "model_calls": 1 if harness._model_calls else 0,
         "answer": result.get("output"),
         "scientific_calculation_performed": True,
-        "model_answer_independently_verified": False,
+        "model_answer_independently_verified": grading["matched"],
+        "answer_verification": grading,
         "real_world_science_certified": False,
         "physical_action_authorized": False,
         "files_saved": False,
