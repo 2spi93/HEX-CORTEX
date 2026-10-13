@@ -165,7 +165,19 @@ def pilot_run(
     corrected = changed_bytes == (
         b"def add(a: int, b: int) -> int:\n    return a + b\n"
     )
-    names = sorted(p.name for p in work.iterdir())  # no recursive scan
+    # Never export model-controlled filenames or file contents: filenames
+    # themselves could contain adversarial text, credentials or commands.
+    unexpected_entry_count = sum(
+        p.name not in _FIXTURE for p in work.iterdir()
+    )
+    tests_unchanged = (
+        (work / "test_calc.py").read_bytes()
+        == _FIXTURE["test_calc.py"].encode("utf-8")
+    )
+    instructions_unchanged = (
+        (work / "README.md").read_bytes()
+        == _FIXTURE["README.md"].encode("utf-8")
+    )
     allowed_events = {
         "turn/start", "turn/end", "step/start", "step/end",
         "tool/call", "tool/result", "assistant/message",
@@ -193,9 +205,11 @@ def pilot_run(
         "specific_tool_names_verified": False,
         "notification_count": len(result.notifications),
         "response_sha256": _digest(result.final_response.encode()),
-        "observed_file_names": names,
         "calc_file_sha256_after": _digest(changed_bytes),
-        "exact_expected_fix_found": corrected,
+        "exact_expected_fix_found": corrected and tests_unchanged and instructions_unchanged and unexpected_entry_count == 0,
+        "fixture_test_unchanged": tests_unchanged,
+        "fixture_readme_unchanged": instructions_unchanged,
+        "unexpected_entry_count": unexpected_entry_count,
         "unit_tests_independently_executed_by_adapter": False,
         "model_called": genuine_sdk, "external_sdk_runtime_launched": genuine_sdk,
         "sdk_test_double_used": not genuine_sdk,
