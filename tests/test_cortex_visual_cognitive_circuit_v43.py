@@ -96,7 +96,7 @@ def test_corrupt_real_mask_is_rejected_before_cognitive_circuit(tmp_path):
     Image = pytest.importorskip("PIL.Image")
     _ready(tmp_path)
     inspection = tmp_path / "receipts/v40_mask_inspection"
-    png = next(inspection.rglob("*.png"))
+    png = next(p for p in inspection.rglob("*.png") if not p.name.endswith(".preview.png"))
     with Image.open(png) as source:
         mask = source.convert("L")
     mask.putpixel((3, 3), 0)
