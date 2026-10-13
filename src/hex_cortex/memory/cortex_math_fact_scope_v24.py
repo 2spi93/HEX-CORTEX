@@ -14,7 +14,11 @@ from hex_cortex.spine.canonical_spine import CanonicalSpine
 
 
 def _canonical_expression(expression: str) -> str:
-    if not isinstance(expression, str) or not 1 <= len(expression.strip()) <= 256:
+    if (
+        not isinstance(expression, str)
+        or not 1 <= len(expression.strip()) <= 256
+        or any(character in expression for character in ("#", "\n", "\r", ";"))
+    ):
         raise ValueError("math_scope_expression_invalid")
     try:
         tree = ast.parse(expression, mode="eval")
