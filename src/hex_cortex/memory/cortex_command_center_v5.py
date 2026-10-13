@@ -22,6 +22,12 @@ from hex_cortex.memory.cortex_command_center_view_v5 import CSS, HTML, JS
 class CommandCenterV5Handler(CommandCenterV4Handler):
     server_version = "HEX-CORTEX-CommandCenter/5.0"
 
+    def _project_brief(self) -> dict:
+        """Backend-derived facts, overridden only for newer verified panels."""
+        return verified_project_brief(
+            self.server.project_root, chat_enabled=self.server.chat_enabled,
+        )
+
     def do_GET(self) -> None:  # noqa: N802
         if not self._allowed_request():
             return
@@ -34,9 +40,7 @@ class CommandCenterV5Handler(CommandCenterV4Handler):
             self._reply(HTTPStatus.OK, CSS.encode(), "text/css; charset=utf-8")
         elif not parsed.query and parsed.path == "/api/project/brief":
             try:
-                brief = verified_project_brief(
-                    self.server.project_root, chat_enabled=self.server.chat_enabled,
-                )
+                brief = self._project_brief()
             except (OSError, ValueError, TypeError, KeyError):
                 self._json(HTTPStatus.SERVICE_UNAVAILABLE, {
                     "status": "blocked", "reason": "project_evidence_unavailable",
@@ -50,9 +54,7 @@ class CommandCenterV5Handler(CommandCenterV4Handler):
         self, *, model: str, prompt: str, history: tuple[tuple[str, str], ...],
     ) -> dict:
         """V3 handles authentication and budgets; facts derived HERE, not from user."""
-        brief = verified_project_brief(
-            self.server.project_root, chat_enabled=self.server.chat_enabled,
-        )
+        brief = self._project_brief()
         result = safe_cpu_chat(
             root=self.server.project_root, model=model, prompt=prompt,
             history=history, trusted_project_facts=project_system_facts(brief),
