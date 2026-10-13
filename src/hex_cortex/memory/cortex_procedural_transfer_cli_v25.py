@@ -7,6 +7,7 @@ from collections.abc import Sequence
 from pathlib import Path
 
 from hex_cortex.memory.cortex_local_ollama_brain import LocalOllamaBrain
+from hex_cortex.memory.cortex_procedural_skill_evidence_v25 import record_skill_trial
 from hex_cortex.memory.cortex_procedural_transfer_v25 import (
     evaluate_procedural_transfer,
 )
@@ -45,6 +46,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--approve-model-calls", action="store_true")
     parser.add_argument("--approve-procedure", action="store_true")
     parser.add_argument("--show-answers", action="store_true")
+    parser.add_argument("--save-evidence", action="store_true")
+    parser.add_argument("--approve-save-evidence", action="store_true")
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args(argv)
     if not 1 <= args.cases <= 4:
@@ -60,6 +63,8 @@ def main(argv: Sequence[str] | None = None) -> int:
             "test_examples": args.cases,
         }, sort_keys=True))
         return 0
+    if args.save_evidence != args.approve_save_evidence:
+        parser.error("--save-evidence and --approve-save-evidence must be supplied together")
     if not (args.approve_model_calls and args.approve_procedure):
         print(json.dumps({"status": "blocked", "model_calls": 0,
                           "reason": "two_explicit_approvals_required"}))
@@ -88,6 +93,16 @@ def main(argv: Sequence[str] | None = None) -> int:
     except (ValueError, TypeError, PermissionError, OSError) as exc:
         print(json.dumps({"status": "blocked", "reason": str(exc)}))
         return 2
+    if args.save_evidence and report["status"] == "procedural_transfer_observations_recorded":
+        try:
+            receipt = record_skill_trial(
+                project_root=args.project_root, report=report, approved=True,
+            )
+        except (ValueError, PermissionError, OSError) as exc:
+            print(json.dumps({"status": "evidence_write_blocked", "reason": str(exc),
+                              "model_calls_already_completed": report["model_calls"]}))
+            return 2
+        report["evidence_receipt"] = receipt
     print(json.dumps(report, sort_keys=True, ensure_ascii=False))
     return 0 if report["status"] == "procedural_transfer_observations_recorded" else 2
 
