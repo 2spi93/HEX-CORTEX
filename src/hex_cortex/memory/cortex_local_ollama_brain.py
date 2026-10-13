@@ -21,6 +21,7 @@ class LocalOllamaBrain:
     num_gpu: int | None = None
     transport: Transport = default_local_transport
     response_format: dict[str, object] | str | None = None
+    history: tuple[tuple[str, str], ...] = ()
 
     def __post_init__(self) -> None:
         _require_localhost(self.endpoint.rstrip("/") + "/api/chat")
@@ -30,6 +31,16 @@ class LocalOllamaBrain:
             raise ValueError("model token budget must be within (0, 4096]")
         if self.num_gpu is not None and self.num_gpu < 0:
             raise ValueError("num_gpu must be non-negative or None for default behavior")
+        if len(self.history) > 6 or len(self.history) % 2 != 0:
+            raise ValueError("chat history exceeds three complete exchanges")
+        for index, turn in enumerate(self.history):
+            if (
+                not isinstance(turn, tuple) or len(turn) != 2
+                or turn[0] != ("user" if index % 2 == 0 else "assistant")
+                or not isinstance(turn[1], str)
+                or not 0 < len(turn[1].strip()) <= 600
+            ):
+                raise ValueError("chat history role, text or length invalid")
         if self.response_format is not None:
             if self.response_format != "json" and not isinstance(self.response_format, dict):
                 raise ValueError("response_format must be a JSON schema or 'json'")
@@ -58,6 +69,7 @@ class LocalOllamaBrain:
                             "repository modification or external call was performed."
                         ),
                     },
+                    *[{"role": role, "content": text} for role, text in self.history],
                     {"role": "user", "content": task.instruction},
                 ],
                 "options": options,
