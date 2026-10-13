@@ -7,8 +7,8 @@ from __future__ import annotations
 
 import argparse
 import json
+from collections.abc import Sequence
 from pathlib import Path
-from typing import Sequence
 
 from hex_cortex.memory.schemas import RetrievalQuery
 from hex_cortex.memory.verified_learning_loop import VerifiedLearningLoop
