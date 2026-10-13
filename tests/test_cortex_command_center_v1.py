@@ -119,12 +119,19 @@ def test_cli_dry_run_refuses_any_socket_or_files(tmp_path, capsys):
     assert not list(tmp_path.iterdir())
 
 
-def _http(server, method, route, *, host=None, origin=None, probe=False, body=None):
+def _http(server, method, route, *, host=None, origin=None, probe=False, body=None,
+          fetch_site=None, fetch_mode=None, fetch_dest=None):
     port = server.server_port
     conn = http.client.HTTPConnection("127.0.0.1", port, timeout=5)
     headers = {"Host": host or f"127.0.0.1:{port}"}
     if origin is not None:
         headers["Origin"] = origin
+    if fetch_site is not None:
+        headers["Sec-Fetch-Site"] = fetch_site
+    if fetch_mode is not None:
+        headers["Sec-Fetch-Mode"] = fetch_mode
+    if fetch_dest is not None:
+        headers["Sec-Fetch-Dest"] = fetch_dest
     if probe:
         headers["X-HEX-Read-Probe"] = "explicit"
         headers["Content-Length"] = "0"
@@ -197,6 +204,61 @@ def test_no_post_based_path_to_tools_or_model(tmp_path):
                 assert status == 405
                 assert b"mutating_endpoint_disabled" in data
             assert not list(tmp_path.iterdir())
+        finally:
+            server.shutdown()
+            thread.join(timeout=5)
+
+
+def test_cross_site_link_can_open_dashboard_but_cannot_access_api_or_probe(tmp_path):
+    """Clicking from ChatGPT is a cross-site navigation, not API authorization."""
+    with CommandCenterServer(tmp_path, port=0) as server:
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        try:
+            browser_entry = {
+                "fetch_site": "cross-site",
+                "fetch_mode": "navigate",
+                "fetch_dest": "document",
+            }
+            status, mime, body, _ = _http(server, "GET", "/", **browser_entry)
+            assert status == 200 and "text/html" in mime
+            assert b"Command Center" in body
+
+            # Even an external navigation cannot reach a JSON route.
+            for route in ("/api/snapshot", "/health", "/assets/command-center.js"):
+                status, _, data, _ = _http(server, "GET", route, **browser_entry)
+                assert status == 403
+                assert json.loads(data)["reason"] == "cross_site_request_denied"
+
+            # Direct API reads from another site and CSRF POST are denied.
+            status, _, data, _ = _http(
+                server, "GET", "/api/snapshot",
+                fetch_site="cross-site", fetch_mode="cors",
+            )
+            assert status == 403
+            assert json.loads(data)["reason"] == "cross_site_request_denied"
+            status, _, data, _ = _http(
+                server, "POST", "/api/harness/probe",
+                fetch_site="cross-site", fetch_mode="navigate",
+                fetch_dest="document",
+                origin=f"http://127.0.0.1:{server.server_port}", probe=True,
+            )
+            assert status == 403
+            assert json.loads(data)["reason"] == "cross_site_request_denied"
+
+            # An explicitly foreign Origin always remains forbidden.
+            status, _, data, _ = _http(
+                server, "GET", "/", **browser_entry, origin="https://external.example",
+            )
+            assert status == 403
+            assert json.loads(data)["reason"] == "origin_not_allowed"
+
+            # Assets/data fetched from inside our page are same-origin.
+            for route in ("/api/snapshot", "/assets/command-center.js"):
+                assert _http(
+                    server, "GET", route, fetch_site="same-origin",
+                    fetch_mode="cors",
+                )[0] == 200
         finally:
             server.shutdown()
             thread.join(timeout=5)
