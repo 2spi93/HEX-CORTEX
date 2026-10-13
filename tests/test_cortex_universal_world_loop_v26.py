@@ -168,6 +168,6 @@ def test_cli_stub_qwen_cpu_only(
     report = json.loads(capsys.readouterr().out)
     assert report["status"] == "complete"
     assert report["model_calls"] == 1
-    assert report["model_answer"] is None
+    assert "model_answer" not in report
     assert report["model_answer_sha256"]
     assert config[0]["num_gpu"] == 0
