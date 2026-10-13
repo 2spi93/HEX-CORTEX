@@ -205,9 +205,6 @@ def test_local_ollama_structured_schema_opt_in_only() -> None:
     assert seen[0]["options"]["num_predict"] == 1536
     assert seen[0]["stream"] is False
     assert seen[0]["keep_alive"] == 0
-    assert "format" not in json.loads(json.dumps({
-        "model": "plain", "options": {"num_gpu": 0},
-    }))
 
 
 def test_local_ollama_refuses_arbitrary_format_values() -> None:
