@@ -31,6 +31,7 @@ def describe_python_structure(source: str) -> dict[str, object]:
         functions.append({
             "name": item.name[:100],
             "line": item.lineno,
+            "has_docstring": ast.get_docstring(item) is not None,
             "parameters": len(item.args.posonlyargs) + len(item.args.args)
             + len(item.args.kwonlyargs),
             "branches": sum(isinstance(n, (ast.If, ast.Match, ast.IfExp))
