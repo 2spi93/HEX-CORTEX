@@ -12,6 +12,7 @@ from collections.abc import Callable
 from hex_cortex.memory.cortex_local_cognitive_cycle import run_clocked_local_task
 from hex_cortex.memory.cortex_local_harness_v2 import LocalHarness, Task
 from hex_cortex.memory.cortex_verified_math_memory import verify_math_fact_task
+from hex_cortex.memory.cortex_math_fact_scope_v24 import math_fact_applicability
 from hex_cortex.memory.local_index import LocalKnowledgeIndex
 from hex_cortex.memory.memory_promotion import MemoryPromoter, PromotionStatus
 from hex_cortex.memory.retrieval_router import RetrievalRouter
@@ -29,6 +30,8 @@ def _verified_context(
     *,
     task: Task,
     query: RetrievalQuery,
+    scope_math_facts: bool = False,
+    target_math_expression: str | None = None,
 ) -> ContextPacket:
     """Rebuild the retrieval index exclusively from trusted replay outputs.
 
@@ -52,6 +55,14 @@ def _verified_context(
         if any(event.event_type == "math.exact_verified" for event in source_events):
             if not verify_math_fact_task(learning.spine, task_id):
                 raise ValueError("verified_math_fact_validation_failed")
+            if scope_math_facts and not math_fact_applicability(
+                learning.spine,
+                source_task_id=task_id,
+                target_expression=target_math_expression,
+            )["eligible"]:
+                # Source truth is verified, but its scalar answer is NOT
+                # valid evidence for a different/unspecified arithmetic task.
+                continue
         replay = ReplayEngine(spine=learning.spine).replay_task(task_id)
         if (
             replay.status != ReplayStatus.CONSOLIDATED
@@ -84,6 +95,7 @@ def run_memory_augmented_task(
     approve_model: bool = False,
     approve_memory_use: bool = False,
     query: RetrievalQuery | None = None,
+    target_math_expression: str | None = None,
 ) -> dict[str, object]:
     """Run a normal gated Harness task, optionally with verified read-only context.
 
@@ -103,7 +115,11 @@ def run_memory_augmented_task(
     effective_instruction = task.instruction
     if approve_memory_use:
         effective_query = query or RetrievalQuery(query=task.instruction)
-        context = _verified_context(learning, task=task, query=effective_query)
+        context = _verified_context(
+            learning, task=task, query=effective_query,
+            scope_math_facts=True,
+            target_math_expression=target_math_expression,
+        )
         if context.context_text:
             # JSON quotation is not a security sandbox; it only marks the
             # trusted-instruction vs untrusted-data boundary for the Brain.
@@ -129,6 +145,8 @@ def run_memory_augmented_task(
     )
     execution["memory_context"] = {
         "enabled": approve_memory_use,
+        "math_fact_scope": "identical_expression_only",
+        "target_math_expression_explicit": target_math_expression is not None,
         "method": context.method.value if context else RetrievalMethod.EMPTY.value,
         "retrieved_count": len(context.results) if context else 0,
         "used_context_chars": len(context.context_text) if context else 0,
