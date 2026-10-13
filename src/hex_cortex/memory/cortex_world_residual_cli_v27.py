@@ -6,7 +6,9 @@ import json
 from collections.abc import Sequence
 
 from hex_cortex.memory.cortex_universal_world_loop_v26 import simulate_world_transition
-from hex_cortex.memory.cortex_world_residual_learning_v27 import fit_bounded_world_residual
+from hex_cortex.memory.cortex_world_residual_learning_v27 import (
+    fit_bounded_world_residual, simulate_with_reviewed_bias,
+)
 
 
 def _public_demo() -> list[dict[str, object]]:
@@ -42,6 +44,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         description="Bounded toy CPU world-model correction with disjoint test split."
     )
     parser.add_argument("--approve-fit", action="store_true")
+    parser.add_argument("--approve-trial-apply", action="store_true")
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args(argv)
     if args.dry_run:
@@ -64,6 +67,14 @@ def main(argv: Sequence[str] | None = None) -> int:
     except (ValueError, TypeError, OverflowError) as exc:
         print(json.dumps({"status": "blocked", "reason": str(exc)}))
         return 2
+    if args.approve_trial_apply:
+        report["illustrative_approved_application"] = simulate_with_reviewed_bias(
+            candidate=report,
+            state={"x": 100.0, "y": 20.0, "vx": 1.5, "vy": .25},
+            action={"ax": 0.0, "ay": 0.0},
+            dt_seconds=2.0,
+            approved=True,
+        )
     print(json.dumps(report, sort_keys=True))
     return 0
 
