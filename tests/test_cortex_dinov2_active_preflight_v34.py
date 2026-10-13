@@ -145,9 +145,11 @@ def test_cpu_load_is_separately_approved_and_dim_checked(
 ) -> None:
     _fixture(tmp_path)
     _patched_descriptor(monkeypatch)
-    cache = lambda _: {
-        "config": True, "preprocessor": True, "weights_file_hint": True,
-    }
+    def cache(_model_ref: str) -> dict[str, bool]:
+        return {
+            "config": True, "preprocessor": True,
+            "weights_file_hint": True,
+        }
     assert inspect_active_dinov2(
         project_root=tmp_path, approved_read=True, approved_load=True,
         cache_probe=cache,
@@ -174,7 +176,7 @@ def test_cpu_load_is_separately_approved_and_dim_checked(
         mismatch = inspect_active_dinov2(
             project_root=tmp_path, approved_read=True,
             approved_cache_probe=True, approved_load=True,
-            cache_probe=cache, cpu_loader=lambda _ref: detail,
+            cache_probe=cache, cpu_loader=lambda _ref, chosen=detail: chosen,
         )
         assert mismatch["status"] == "active_encoder_cpu_or_dimension_mismatch"
         assert mismatch["encoder_loaded"] is False
