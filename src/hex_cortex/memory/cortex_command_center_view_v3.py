@@ -89,6 +89,11 @@ newConversation.addEventListener('click', () =>
 modelSelector.addEventListener('change', () =>
   clearChat('Modèle changé : conversation repartie sans ancien contexte.')
 );
+// Reloading the model list can silently select a different first model.
+// Invalidate the conversational context before such a change.
+el('load-models').addEventListener('click', () =>
+  clearChat('Liste des modèles actualisée : contexte précédent effacé.')
+);
 
 chatForm.addEventListener('submit', async (event) => {
   event.preventDefault();
@@ -100,6 +105,7 @@ chatForm.addEventListener('submit', async (event) => {
   sendChat.disabled = true;
   modelSelector.disabled = true;
   newConversation.disabled = true;
+  el('load-models').disabled = true;
   chatForm.setAttribute('aria-busy', 'true');
   const historyForRequest = chatHistory.slice(-6);
   appendChat('Vous', prompt);
@@ -140,6 +146,7 @@ chatForm.addEventListener('submit', async (event) => {
     sendChat.disabled = false;
     modelSelector.disabled = false;
     newConversation.disabled = false;
+    el('load-models').disabled = false;
     chatForm.setAttribute('aria-busy', 'false');
   }
 });
