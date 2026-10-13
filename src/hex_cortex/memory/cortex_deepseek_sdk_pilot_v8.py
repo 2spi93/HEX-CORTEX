@@ -141,7 +141,8 @@ def pilot_run(
         raise ValueError("v8_dsh_home_must_be_new_before_pilot")
     if home.parent.is_symlink():
         raise ValueError("v8_dsh_home_parent_symlink_denied")
-    if sdk_factory is None:
+    genuine_sdk = sdk_factory is None
+    if genuine_sdk:
         try:
             found = importlib.metadata.version("deepseek-harness-sdk")
         except importlib.metadata.PackageNotFoundError as exc:
@@ -165,6 +166,17 @@ def pilot_run(
         "def add(a: int, b: int) -> int:\n    return a + b\n"
     ).encode("utf-8")
     names = sorted(p.name for p in work.iterdir())  # no recursive scan
+    allowed_events = {
+        "turn/start", "turn/end", "step/start", "step/end",
+        "tool/call", "tool/result", "assistant/message",
+    }
+    event_type_counts = {
+        kind: sum(
+            event.get("type") == kind for event in result.events
+            if isinstance(event, dict)
+        )
+        for kind in sorted(allowed_events)
+    }
     return {
         "schema": "hex.deepseek_sdk_disposable_pilot.v8",
         "status": "sdk_turn_finished_without_accuracy_attestation",
@@ -175,19 +187,24 @@ def pilot_run(
         "profile": "sdk-minimal",
         "finish_reason": result.finish_reason,
         "root_event_count": len(result.events),
+        "root_event_type_counts": event_type_counts,
+        "observed_tool_call_events": event_type_counts["tool/call"],
+        "observed_tool_result_events": event_type_counts["tool/result"],
+        "specific_tool_names_verified": False,
         "notification_count": len(result.notifications),
         "response_sha256": _digest(result.final_response.encode()),
         "observed_file_names": names,
         "calc_file_sha256_after": _digest(changed_bytes),
         "exact_expected_fix_found": corrected,
         "unit_tests_independently_executed_by_adapter": False,
-        "model_called": True, "external_sdk_runtime_launched": True,
+        "model_called": genuine_sdk, "external_sdk_runtime_launched": genuine_sdk,
+        "sdk_test_double_used": not genuine_sdk,
         "shell_capability_exposed_to_agent": True,
         "host_vm_isolation_verified_by_python": False,
         "tool_permissions_enforced_by_hex": False,
         "receipt_contains_raw_model_text": False,
         "auto_promoted_to_canonical_spine": False,
-        "real_hex_repository_modified_by_adapter": False,
+        "main_hex_repository_access_independently_audited": False,
         "notes": "Run only inside VM; review changes and DSH_HOME/session logs there.",
     }
 
@@ -229,7 +246,7 @@ def main(argv: list[str] | None = None) -> int:
                 approved_disposable_vm=args.ack_disposable_vm,
                 approved_model_and_shell=args.approve_model_and_shell,
             )
-    except (OSError, ValueError, RuntimeError, PermissionError) as exc:
+    except Exception as exc:  # noqa: BLE001
         # Error type only: paths, environment, model responses and credentials
         # must never be serialized to stdout or a persistent HEX receipt.
         print(json.dumps({
