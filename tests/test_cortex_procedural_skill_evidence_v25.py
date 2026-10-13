@@ -108,6 +108,61 @@ def test_explicit_revocation_dominates_later_trial(tmp_path: Path) -> None:
     )["files_written"] is False
 
 
+def test_revoked_skill_blocks_before_any_future_model_call(
+    tmp_path: Path,
+) -> None:
+    revoke_skill(
+        project_root=tmp_path, skill_id="multiply_decomposition",
+        reason="known unsafe skill version", approved=True,
+    )
+    calls: list[bool] = []
+
+    def brain(_model: str, _task: Task) -> str:
+        calls.append(True)
+        return "0"
+
+    result = evaluate_procedural_transfer(
+        skill_id="multiply_decomposition",
+        training_expressions=("127*413", "23*51"),
+        evaluation_expressions=("127*419",),
+        model_id="test",
+        brain=brain,
+        project_root=tmp_path,
+        approve_model_calls=True,
+        approve_procedure=True,
+    )
+    assert result["status"] == "blocked"
+    assert result["reason"] == "skill_revoked_or_quarantined"
+    assert result["model_calls"] == 0
+    assert not calls
+
+
+def test_quarantined_skill_blocks_future_model_call(
+    tmp_path: Path,
+) -> None:
+    report = _report(tmp_path, regress=True)
+    record_skill_trial(project_root=tmp_path, report=report, approved=True)
+    calls: list[bool] = []
+
+    def brain(_model: str, _task: Task) -> str:
+        calls.append(True)
+        return "0"
+
+    result = evaluate_procedural_transfer(
+        skill_id="multiply_decomposition",
+        training_expressions=("127*413", "23*51"),
+        evaluation_expressions=("127*419",),
+        model_id="test",
+        brain=brain,
+        project_root=tmp_path,
+        approve_model_calls=True, approve_procedure=True,
+    )
+    assert result["status"] == "blocked"
+    assert result["evidence_status"] == "quarantined"
+    assert result["model_calls"] == 0
+    assert not calls
+
+
 def test_does_not_trust_tampered_report_scores(tmp_path: Path) -> None:
     report = _report(tmp_path)
     report["scores"] = {"baseline": 1234, "skill": 9999}
