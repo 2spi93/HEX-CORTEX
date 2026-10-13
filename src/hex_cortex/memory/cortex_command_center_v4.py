@@ -16,12 +16,14 @@ from hex_cortex.memory.cortex_command_center_v3 import (
     CommandCenterV3Handler,
     CommandCenterV3Server,
 )
+from hex_cortex.memory.cortex_command_center_v2 import capabilities
+
 from hex_cortex.memory.cortex_command_center_view_v4 import CSS, HTML, JS
 
 _CODE_ALLOWLIST = {
     "harness": "src/hex_cortex/memory/cortex_local_harness_v2.py",
     "brain": "src/hex_cortex/memory/cortex_local_ollama_brain.py",
-    "command_center": "src/hex_cortex/memory/cortex_command_center_v3.py",
+    "command_center": "src/hex_cortex/memory/cortex_command_center_v4.py",
     "spine": "src/hex_cortex/spine/jsonl_store.py",
     "architecture": "docs/COMMAND_CENTER_V3_CONVERSATION_CONTINUITY.md",
 }
@@ -129,6 +131,31 @@ class CommandCenterV4Handler(CommandCenterV3Handler):
             self._reply(HTTPStatus.OK, JS.encode(), "text/javascript; charset=utf-8")
         elif parsed.path == "/assets/command-center.css" and not parsed.query:
             self._reply(HTTPStatus.OK, CSS.encode(), "text/css; charset=utf-8")
+        elif parsed.path == "/api/capabilities" and not parsed.query:
+            catalog = capabilities(chat_enabled=self.server.chat_enabled)
+            catalog["schema"] = "hex.command_center.capabilities.v4"
+            for feature in catalog["features"]:
+                if feature["id"] == "voice":
+                    feature["status"] = "browser_speech_opt_in_may_use_cloud"
+                    feature["action"] = "manual_push_to_talk_no_auto_send"
+                elif feature["id"] == "vision":
+                    feature["status"] = "connected_v40_viewer_manual_photo_bbox"
+                    feature["action"] = "local_photo_camera_bbox_export"
+            catalog["features"].extend([
+                {"id": "camera", "name": "Caméra locale",
+                 "status": "browser_permission_required",
+                 "action": "manual_capture_browser_only"},
+                {"id": "code", "name": "Code inspector",
+                 "status": "connected_allowlisted_readonly",
+                 "action": "read_selected_repo_sources_no_execution"},
+                {"id": "scene3d", "name": "3D CPU geometry",
+                 "status": "connected_cpu_wireframe_only",
+                 "action": "rotate_synthetic_cube_no_reconstruction"},
+                {"id": "devices", "name": "Drone / robot / téléphone",
+                 "status": "simulation_only_no_actuation",
+                 "action": "no_live_device_control"},
+            ])
+            self._json(HTTPStatus.OK, catalog)
         elif parsed.path == "/api/devices/capabilities" and not parsed.query:
             self._json(HTTPStatus.OK, device_capabilities())
         elif parsed.path == "/api/code/inventory" and not parsed.query:
