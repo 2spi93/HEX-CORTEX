@@ -9,6 +9,7 @@ from __future__ import annotations
 import hashlib
 import json
 import math
+import re
 import statistics
 from pathlib import Path
 
@@ -17,6 +18,8 @@ from hex_cortex.memory.cortex_cpu_segmentation_v36 import segment_boxes_cpu_v36
 _MANIFEST_SCHEMA = "hex.real_photo_benchmark.v38"
 _MAX_SAMPLES = 25
 _ALLOWED_SPLITS = frozenset({"train", "validation", "test"})
+_SCENE_ID = re.compile(r"[A-Za-z][A-Za-z0-9_-]{0,63}")
+_OBJECT_ID = re.compile(r"[A-Za-z][A-Za-z0-9_-]{0,47}")
 
 
 def _relative_file(root: Path, raw: object, suffixes: set[str], max_bytes: int) -> Path:
@@ -102,12 +105,12 @@ def _preflight(*, root: Path, manifest_path: str) -> tuple[list[dict], dict]:
         group = item.get("source_group")
         split = item.get("split")
         if (
-            not isinstance(scene_id, str) or not scene_id.isidentifier()
-            or len(scene_id) > 64 or scene_id in scene_ids
+            not isinstance(scene_id, str) or not _SCENE_ID.fullmatch(scene_id)
+            or scene_id in scene_ids
         ):
             raise ValueError("v38_scene_id_invalid_or_reused")
         scene_ids.add(scene_id)
-        if not isinstance(group, str) or not group.isidentifier() or len(group) > 64:
+        if not isinstance(group, str) or not _SCENE_ID.fullmatch(group):
             raise ValueError("v38_source_group_invalid")
         if split not in _ALLOWED_SPLITS:
             raise ValueError("v38_split_invalid")
@@ -136,7 +139,7 @@ def _preflight(*, root: Path, manifest_path: str) -> tuple[list[dict], dict]:
             name = obj.get("object_id")
             box = obj.get("box")
             if (
-                not isinstance(name, str) or not name.isidentifier() or len(name) > 48
+                not isinstance(name, str) or not _OBJECT_ID.fullmatch(name)
                 or name in box_by_id
             ):
                 raise ValueError("v38_object_id_invalid")
@@ -263,6 +266,9 @@ def evaluate_real_photo_masks_v38(
             annotation = next(
                 x for x in entry["annotations"] if x["object_id"] == predicted["object_id"]
             )
+            ref_file = _relative_file(root, entry["references"][predicted["object_id"]], {".png"}, 16_000_000)
+            if _sha256(ref_file) != annotation["operator_reference_mask_sha256"]:
+                raise ValueError("v38_reference_changed_since_preflight")
             image_objects.append({
                 "object_id": predicted["object_id"],
                 "reference_iou": iou,
