@@ -89,7 +89,7 @@ def run_four_arm_math_eval(
         raise ValueError("evaluation_must_differ_from_training_expression")
 
     root = Path(project_root).resolve(strict=True)
-    training_payload, training_answer = _checked_math(training_expression)
+    _, training_answer = _checked_math(training_expression)
     target_payload, target_answer = _checked_math(evaluation_expression)
     if Fraction(training_answer) == Fraction(target_answer):
         raise ValueError("evaluation_answer_equals_training_answer")
