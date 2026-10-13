@@ -206,6 +206,30 @@ def test_http_explicit_approval_schema_gates_and_result(tmp_path, monkeypatch):
             thread.join(timeout=5)
 
 
+def test_v6_brief_and_brain_expose_real_opt_in_state_without_chat_tools(tmp_path):
+    from hex_cortex.memory.cortex_command_center_facts_v5 import project_system_facts
+    with CommandCenterV6Server(
+        tmp_path, port=0, chat_enabled=True, vision_enabled=True,
+    ) as server:
+        handler = object.__new__(server.RequestHandlerClass)
+        handler.server = server
+        facts = handler._project_brief()
+        assert facts["schema"] == "hex.project_brief.v6"
+        assert facts["vision_cpu_available"] is True
+        assert facts["chat"]["vision_tool_accessible_to_chat"] is False
+        assert facts["chat"]["tools_enabled"] is False
+        assert "vision" in [item["id"] for item in facts["sources"]]
+        system = project_system_facts(facts)
+        assert "one-shot" not in system or "manual bbox" in system
+        assert "cannot be launched by this Chat" in system
+    with CommandCenterV6Server(tmp_path, port=0, vision_enabled=False) as server:
+        handler = object.__new__(server.RequestHandlerClass)
+        handler.server = server
+        brief = handler._project_brief()
+        assert brief["vision_cpu_available"] is False
+        assert "not enabled" in project_system_facts(brief)
+
+
 def test_ui_real_model_button_only_when_approved_and_selected():
     assert "HEX-CORTEX V6" in HTML
     for element in ["cpu-segment", "mask-export", "segmentation-status", "photo-file"]:
