@@ -65,7 +65,7 @@ def test_v4_has_actual_photo_voice_geometry_code_device_ui():
 def test_frontend_event_handlers_reference_real_v4_html_controls():
     # Catch absent button IDs; syntax-only compilation misses runtime DOM errors.
     ids = set(re.findall(r'id="([^"]+)"', HTML))
-    referenced = set(re.findall(r"\\$\\('([A-Za-z0-9_-]+)'\\)", JS))
+    referenced = set(re.findall(r"\$\('([A-Za-z0-9_-]+)'\)", JS))
     assert referenced
     assert referenced <= ids, f"Missing HTML controls: {referenced - ids}"
 
