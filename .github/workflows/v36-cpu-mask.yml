@@ -25,4 +25,4 @@ jobs:
       - name: Ruff
         run: python -m ruff check .
       - name: Mandatory real pixel operations with injected masks, CPU only
-        run: python -m pytest -q tests/test_cortex_object_layers_v35.py tests/test_cortex_cpu_segmentation_v36.py tests/test_cortex_object_scene_v36.py tests/test_cortex_segmentation_scene_bridge_v36.py tests/test_cortex_segmentation_scene_bridge_cli_v36.py tests/test_cortex_real_cpu_smoke_v37.py
+        run: python -m pytest -q tests/test_cortex_object_layers_v35.py tests/test_cortex_cpu_segmentation_v36.py tests/test_cortex_object_scene_v36.py tests/test_cortex_segmentation_scene_bridge_v36.py tests/test_cortex_segmentation_scene_bridge_cli_v36.py tests/test_cortex_real_cpu_smoke_v37.py tests/test_cortex_real_photo_benchmark_v38.py
