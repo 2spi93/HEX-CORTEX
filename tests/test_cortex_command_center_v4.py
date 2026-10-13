@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import http.client
 import json
+import re
 import shutil
 import subprocess
 import threading
@@ -59,6 +60,14 @@ def test_v4_has_actual_photo_voice_geometry_code_device_ui():
     assert "location.hash.slice(1)||'overview'" in JS
     assert "default-src" not in HTML
     assert "https://" not in HTML
+
+
+def test_frontend_event_handlers_reference_real_v4_html_controls():
+    # Catch absent button IDs; syntax-only compilation misses runtime DOM errors.
+    ids = set(re.findall(r'id="([^"]+)"', HTML))
+    referenced = set(re.findall(r"\\$\\('([A-Za-z0-9_-]+)'\\)", JS))
+    assert referenced
+    assert referenced <= ids, f"Missing HTML controls: {referenced - ids}"
 
 
 def test_v4_javascript_parses_with_node_when_available(tmp_path):
