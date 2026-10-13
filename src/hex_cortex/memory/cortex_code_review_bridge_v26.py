@@ -16,6 +16,7 @@ from hex_cortex.memory.cortex_local_cognitive_cycle import run_clocked_local_tas
 from hex_cortex.memory.cortex_local_harness_v2 import (
     Budget, Capability, LocalHarness, Session, Task,
 )
+from hex_cortex.memory.cortex_code_evidence_gate_v29 import check_code_review_evidence
 from hex_cortex.memory.cortex_structured_code_plan import parse_structured_code_plan
 from hex_cortex.memory.cortex_code_structural_context_v28 import (
     assess_review_substance, describe_python_structure,
@@ -109,6 +110,10 @@ def review_local_code(
     substance = assess_review_substance(
         graded.get("plan"), source_disclosed=bool(source),
     )
+    independent_evidence = check_code_review_evidence(
+        graded.get("plan"), selected_file=relative,
+        structure=structure, source_disclosed=bool(source),
+    )
     return {
         **base,
         "status": (
@@ -118,6 +123,7 @@ def review_local_code(
         "structural_context_provided": True,
         "structural_context": structure,
         "review_quality": substance,
+        "review_evidence": independent_evidence,
         "model_calls": harness._model_calls,
         "source_sent_to_model": bool(source),
         "plan": graded.get("plan"),
