@@ -40,6 +40,13 @@ valid predictions in a real environment.
 7. Never import PyTorch, decode images, invoke model inference, run
    hardware, use GPU, download anything, auto-promote, or write a file.
 
+The new audit reports `artifact_chain_ok` (file/registry/manifests)
+separately from `dataset_split_evidence_ok` (exact image contamination).
+A true artifact chain and a successful CPU forward pass DO NOT negate
+a train/test-leakage blocker. The optional CPU smoke requires its own
+read/inference approvals, uses `torch.inference_mode()` and only an
+unrepresentative synthetic zero vector, and NEVER activates new weights.
+
 A verified SHA256 chain proves byte consistency relative to local
 metadata **only**, not that a file is a valid safetensors tensor map,
 safe learned dynamics, externally signed, or independently generalizing.
@@ -68,6 +75,17 @@ Actual read-only deep integrity audit of your existing local V1
 registry, weights and dataset (**operator approval**):
 ~~~powershell
 python -m hex_cortex.memory.cortex_active_world_integrity_cli_v31 --project-root . --approve-read
+~~~
+
+Separately approved **real CPU model forward pass** on the already
+active `safetensors` checkpoint with all-zero artificial vectors:
+checks whether the actual stored neural network can be loaded and run,
+**not** whether it predicts real images or generalizes to new scenes.
+A contaminated train/test split remains explicitly reported and is
+never silently upgraded to scientific readiness.
+
+~~~powershell
+python -m hex_cortex.memory.cortex_active_world_cpu_smoke_cli_v31 --project-root . --approve-read --approve-inference
 ~~~
 
 Keep V30 data contract comparison separate:
