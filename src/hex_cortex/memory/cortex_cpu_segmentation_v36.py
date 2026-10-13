@@ -11,7 +11,7 @@ import hashlib
 import re
 import time
 from pathlib import Path
-from typing import Callable
+from collections.abc import Callable
 
 _ID = re.compile(r"[A-Za-z][A-Za-z0-9_-]{0,47}")
 _SHA = re.compile(r"[a-f0-9]{64}")
@@ -55,8 +55,8 @@ def _iou(predicted, reference) -> float:
     b = reference.convert("L").point(lambda x: 255 if x >= 128 else 0)
     lhs = a.tobytes()
     rhs = b.tobytes()
-    union = sum(x == 255 or y == 255 for x, y in zip(lhs, rhs))
-    intersection = sum(x == 255 and y == 255 for x, y in zip(lhs, rhs))
+    union = sum(x == 255 or y == 255 for x, y in zip(lhs, rhs, strict=True))
+    intersection = sum(x == 255 and y == 255 for x, y in zip(lhs, rhs, strict=True))
     return 1.0 if union == 0 else intersection / union
 
 
