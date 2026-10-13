@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import argparse
 import base64
+import hashlib
 import binascii
 import json
 from http import HTTPStatus
@@ -27,6 +28,39 @@ from hex_cortex.memory.cortex_command_center_view_v6 import CSS, HTML, JS
 
 class CommandCenterV6Handler(CommandCenterV5Handler):
     server_version = "HEX-CORTEX-CommandCenter/6.0"
+
+    def _project_brief(self) -> dict:
+        """Annotate trusted V5 metadata with V6 capability only, never a user claim."""
+        brief = super()._project_brief()
+        ready = bool(self.server.vision_enabled)
+        brief["schema"] = "hex.project_brief.v6"
+        brief["vision_cpu_available"] = ready
+        brief["chat"]["vision_tool_accessible_to_chat"] = False
+        brief["installed_integrations"]["vision_cpu"] = (
+            "one-shot V36 MobileSAM CPU with manual box, explicit localhost "
+            "photo upload and pinned weights; predicted mask only, no file write"
+            if ready else "vision model disabled until --enable-cpu-vision"
+        )
+        brief["sources"].append({
+            "id": "vision", "path": "/api/vision/cpu/availability",
+            "description": "CPU MobileSAM status; no inference on GET",
+        })
+        brief.pop("facts_sha256", None)
+        encoded = json.dumps(
+            brief, ensure_ascii=False, sort_keys=True, separators=(",", ":"),
+        )
+        brief["facts_sha256"] = hashlib.sha256(encoded.encode("utf-8")).hexdigest()
+        return brief
+
+    def _invoke_cpu_chat(
+        self, *, model: str, prompt: str, history: tuple[tuple[str, str], ...],
+    ) -> dict:
+        result = super()._invoke_cpu_chat(
+            model=model, prompt=prompt, history=history,
+        )
+        if result.get("status") == "completed":
+            result["source_ids"] = ["snapshot", "capabilities", "devices", "vision"]
+        return result
 
     def do_GET(self) -> None:  # noqa: N802
         if not self._allowed_request():
