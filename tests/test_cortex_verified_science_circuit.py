@@ -10,7 +10,7 @@ from hex_cortex.core.cortex_verified_science_circuit import (
 )
 
 
-@pytest.mark.parametrize(("domain", "request", "check"), [
+@pytest.mark.parametrize(("domain", "input_text", "check"), [
     ("mathematics", "127*413", {"numerator": 52451, "denominator": 1}),
     ("physics", json.dumps({
         "law": "force", "inputs": {
@@ -20,10 +20,10 @@ from hex_cortex.core.cortex_verified_science_circuit import (
     }), {"numerator": 6, "denominator": 1, "unit": "N"}),
 ])
 def test_scientific_cells_run_through_real_router_and_clock(
-    domain: str, request: str, check: dict[str, object]
+    domain: str, input_text: str, check: dict[str, object]
 ) -> None:
     result = run_verified_science_circuit(
-        domain=domain, task_id="science-task", request=request, approved=True
+        domain=domain, task_id="science-task", request=input_text, approved=True
     )
     assert result["status"] == "verified_science_circuit"
     assert result["circuit_status"] == "verified"
@@ -39,7 +39,7 @@ def test_scientific_cells_run_through_real_router_and_clock(
 def test_chemistry_cell_existing_balancer_is_routed() -> None:
     request = json.dumps({"reactants": ["H2", "O2"], "products": ["H2O"]})
     result = run_verified_science_circuit(
-        domain="chemistry", task_id="science-task", request=request, approved=True
+        domain="chemistry", task_id="science-task", request=input_text, approved=True
     )
     assert result["status"] == "verified_science_circuit"
     assert result["verified_cell_count"] == 1
@@ -72,16 +72,16 @@ def test_failing_verifier_blocks_without_exposing_raw_input() -> None:
     assert result["spine_integrity_ok"] is True
 
 
-@pytest.mark.parametrize(("domain", "request"), [
+@pytest.mark.parametrize(("domain", "input_text"), [
     ("mathematics", "__import__('os')"),
     ("physics", "{}"),
     ("chemistry", "{}"),
 ])
 def test_reject_invalid_scientific_request_without_evidence(
-    domain: str, request: str
+    domain: str, input_text: str
 ) -> None:
     result = run_verified_science_circuit(
-        domain=domain, task_id="bad", request=request, approved=True
+        domain=domain, task_id="bad", request=input_text, approved=True
     )
     assert result["status"] == "blocked"
     assert result["verified_payload"] is None
