@@ -215,7 +215,8 @@ def run_universal_world_advisory(
         "not a physical sensor measurement. Do not suggest calibrating an "
         "actual sensor based on a fictitious observation.\n"
         "Comparison residual: " + json.dumps(residual, sort_keys=True)
-        + "\nSuggest only a read-only next diagnostic."
+        + "\nReply in at most 70 words with one read-only next diagnostic. " +
+          "Do not invent a real sensor or claim experimental evidence."
     )
     harness = LocalHarness(
         session=Session(f"world-{task_id}", root),
