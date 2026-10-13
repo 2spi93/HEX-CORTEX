@@ -91,7 +91,7 @@ def test_readonly_novel_pair_preflight_and_no_model_call(
     _inputs(tmp_path)
     import hex_cortex.memory.cortex_novel_visual_pair_v33 as module
 
-    original = build_frozen_encoder_descriptor()
+    original = build_frozen_encoder_descriptor(device="cpu")
     original["descriptor_hash"] = _hash("encoder")
     monkeypatch.setattr(module, "build_frozen_encoder_descriptor", lambda **kw: original)
     assert _evaluate(tmp_path, approve_read=False)["status"] == "blocked"
@@ -111,7 +111,8 @@ def test_real_torch_cpu_model_inference_and_encoder_runner_are_gated(
     _inputs(tmp_path)
     import hex_cortex.memory.cortex_novel_visual_pair_v33 as module
 
-    descriptor = build_frozen_encoder_descriptor()
+    descriptor = build_frozen_encoder_descriptor(device="cpu")
+    assert descriptor["device"] == "cpu"
     descriptor["descriptor_hash"] = _hash("encoder")
     monkeypatch.setattr(module, "build_frozen_encoder_descriptor", lambda **kw: descriptor)
     calls = []
