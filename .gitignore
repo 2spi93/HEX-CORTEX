@@ -38,3 +38,6 @@ bench_*_detached.txt
 bench_*_detached.err
 bench_*_validate.txt
 bench_*_validate.txt.err
+
+# Operator-local V25 experimental skill evidence, not source data
+cortex-procedural-transfer-evidence-v25.jsonl
