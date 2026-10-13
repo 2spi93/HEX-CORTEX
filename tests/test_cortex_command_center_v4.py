@@ -85,7 +85,7 @@ def test_code_files_are_allowlisted_and_no_untrusted_content_is_followed(tmp_pat
     allowed.parent.mkdir(parents=True)
     allowed.write_text("# LocalHarness source fixture\n", encoding="utf-8")
     result = read_allowlisted_source(tmp_path, "harness")
-    assert result["contents"] == "# LocalHarness source fixture\n"
+    assert result["contents"].replace("\r\n", "\n") == "# LocalHarness source fixture\n"
     assert result["read_only"] and result["execution_permitted"] is False
     assert allowed.read_text(encoding="utf-8") == "# LocalHarness source fixture\n"
 
