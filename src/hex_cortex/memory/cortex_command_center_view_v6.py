@@ -5,7 +5,6 @@ from hex_cortex.memory.cortex_command_center_view_v5 import (
     CSS as BASE_CSS, HTML as BASE_HTML,
 )
 from hex_cortex.memory.cortex_command_center_media_v4 import JS as MEDIA
-from hex_cortex.memory.cortex_command_center_runtime_v4 import JS as RUNTIME
 from hex_cortex.memory.cortex_command_center_view_v5 import (
     JS_KNOWLEDGE, RUNTIME_V5,
 )
