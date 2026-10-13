@@ -71,7 +71,8 @@ def test_injected_mask_exact_iou_and_no_implicit_file_writes(tmp_path: Path):
 def test_export_needs_explicit_write_and_never_overwrites(tmp_path: Path):
     mask, digest = _dataset(tmp_path)
     params = _params(tmp_path, digest)
-    infer = lambda image, boxes, checkpoint: {"cup": mask}
+    def infer(image, boxes, checkpoint):
+        return {"cup": mask}
     result = segment_boxes_cpu_v36(
         **params, approved_read=True, approved_model_load=True,
         export_dir="out", _infer=infer,
