@@ -42,8 +42,8 @@ HTML = (
         '<a href="#knowledge">◇ Connaissance & preuves</a><a href="#catalog">',
     )
     .replace(
-        '<section id="catalog">',
-        KNOWLEDGE + '<section id="catalog">',
+        '<section id="catalog"',
+        KNOWLEDGE + '<section id="catalog"',
     )
     .replace(
         "Non connectée — micro, STT et TTS isolés.",
