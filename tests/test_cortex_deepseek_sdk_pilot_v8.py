@@ -30,9 +30,8 @@ class _FakeHarness:
         assert self.kwargs["profile"] == "sdk-minimal"
         assert self.kwargs["request_timeout_seconds"] == 120
         work = Path(self.kwargs["cwd"])
-        (work / "calc.py").write_text(
-            "def add(a: int, b: int) -> int:\n    return a + b\n",
-            encoding="utf-8",
+        (work / "calc.py").write_bytes(
+            b"def add(a: int, b: int) -> int:\n    return a + b\n"
         )
         return _FakeResult()
 
