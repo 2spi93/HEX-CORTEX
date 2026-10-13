@@ -171,6 +171,21 @@ def evaluate_procedural_transfer(
     if len(set(evaluation_expressions)) != len(evaluation_expressions):
         raise ValueError("procedural_skill_duplicate_evaluation")
     root = Path(project_root).resolve(strict=True)
+    # A revoked or quarantined skill is not allowed to enter even a
+    # new trial without a separately reviewed version. No model call yet.
+    from hex_cortex.memory.cortex_procedural_skill_evidence_v25 import (
+        assess_skill_evidence,
+    )
+
+    prior = assess_skill_evidence(project_root=root, skill_id=skill_id)
+    if prior["status"] in {"revoked", "quarantined"}:
+        return {
+            "status": "blocked",
+            "reason": "skill_revoked_or_quarantined",
+            "model_calls": 0,
+            "skill_id": skill_id,
+            "evidence_status": prior["status"],
+        }
     train = [verify_procedural_skill(skill_id=skill_id, expression=x)
              for x in training_expressions]
     observations = []
