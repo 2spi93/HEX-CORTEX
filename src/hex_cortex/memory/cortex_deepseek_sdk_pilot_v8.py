@@ -163,8 +163,8 @@ def pilot_run(
     changed_bytes = (work / "calc.py").read_bytes()
     # This is a file-content diagnostic, NOT a trustworthy test pass.
     corrected = changed_bytes == (
-        "def add(a: int, b: int) -> int:\n    return a + b\n"
-    ).encode("utf-8")
+        b"def add(a: int, b: int) -> int:\n    return a + b\n"
+    )
     names = sorted(p.name for p in work.iterdir())  # no recursive scan
     allowed_events = {
         "turn/start", "turn/end", "step/start", "step/end",
