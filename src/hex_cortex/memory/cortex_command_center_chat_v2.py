@@ -34,6 +34,7 @@ def available_models(*, transport=default_local_transport) -> list[str]:
 
 def safe_cpu_chat(
     *, root, model: str, prompt: str, transport=default_local_transport,
+    history: tuple[tuple[str, str], ...] = (),
 ) -> dict:
     """One prompt, one model call, no tool dispatch or stored messages."""
     if not isinstance(prompt, str) or not 0 < len(prompt.strip()) <= 1600:
@@ -50,6 +51,7 @@ def safe_cpu_chat(
     brain = LocalOllamaBrain(
         endpoint=_ENDPOINT, timeout_seconds=45.0,
         max_predict_tokens=256, num_gpu=0, transport=transport,
+        history=history,
     )
     result = harness.execute(
         Task(task_id="ui-chat-" + uuid4().hex, domain="local_chat",
@@ -68,6 +70,7 @@ def safe_cpu_chat(
         "model_used": result["receipt"]["model_used"],
         "receipt_sha256": result["receipt"]["sha256"],
         "calls_used": 1,
+        "context_turns_used": len(history),
         "cpu_only_requested": True,
         "gpu_used": False,
         "tools_executed": False,
