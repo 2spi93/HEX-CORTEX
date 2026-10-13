@@ -12,7 +12,6 @@ import subprocess
 import threading
 
 import pytest
-from PIL import Image, ImageDraw
 
 from hex_cortex.memory.cortex_command_center_segmentation_v6 import (
     TRUSTED_CHECKPOINT_SHA256,
@@ -22,7 +21,14 @@ from hex_cortex.memory.cortex_command_center_v6 import CommandCenterV6Server, ma
 from hex_cortex.memory.cortex_command_center_view_v6 import HTML, JS
 
 
+def _pillow():
+    image = pytest.importorskip("PIL.Image")
+    draw = pytest.importorskip("PIL.ImageDraw")
+    return image, draw
+
+
 def _jpg():
+    Image, ImageDraw = _pillow()
     image = Image.new("RGB", (80, 60), "white")
     ink = ImageDraw.Draw(image)
     ink.rectangle((12, 9, 47, 41), fill="navy")
@@ -32,6 +38,7 @@ def _jpg():
 
 
 def _fake_infer(image, boxes, checkpoint):
+    Image, ImageDraw = _pillow()
     assert image.size == (80, 60)
     assert set(boxes) == {"object1"}
     mask = Image.new("L", image.size, 0)
@@ -73,6 +80,7 @@ def test_real_v36_predictor_contract_reused_without_writes(tmp_path, monkeypatch
     assert result["image_width"] == 80 and result["image_height"] == 60
     assert len(result["mask_binary_sha256"]) == 64
     assert result["mask_visible_pixels"] > 0
+    Image, _ = _pillow()
     with Image.open(io.BytesIO(base64.b64decode(result["mask_png_b64"]))) as mask:
         assert mask.size == (80, 60)
     with Image.open(io.BytesIO(base64.b64decode(result["overlay_png_b64"]))) as overlay:
