@@ -100,8 +100,11 @@ def test_sdk_pilot_uses_public_official_constructor_and_sanitizes_result(tmp_pat
         approved_model_and_shell=True, sdk_factory=_FakeHarness,
     )
     assert result["status"] == "sdk_turn_finished_without_accuracy_attestation"
-    assert result["model_called"] is True
-    assert result["external_sdk_runtime_launched"] is True
+    assert result["model_called"] is False  # fake provider only
+    assert result["external_sdk_runtime_launched"] is False
+    assert result["sdk_test_double_used"] is True
+    assert result["observed_tool_call_events"] == 1
+    assert result["observed_tool_result_events"] == 1
     assert result["root_event_count"] == 4
     assert result["notification_count"] == 1
     assert result["exact_expected_fix_found"] is True
