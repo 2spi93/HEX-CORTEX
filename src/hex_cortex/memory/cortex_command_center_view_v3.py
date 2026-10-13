@@ -143,3 +143,5 @@ chatForm.addEventListener('submit', async (event) => {
     chatForm.setAttribute('aria-busy', 'false');
   }
 });
+
+"""
