@@ -63,6 +63,15 @@ class CommandCenterV3Handler(CommandCenterV2Handler):
         else:
             super().do_GET()
 
+    def _invoke_cpu_chat(
+        self, *, model: str, prompt: str, history: tuple[tuple[str, str], ...],
+    ) -> dict:
+        """V3 unchanged default behavior; V5 may enrich trusted server facts."""
+        return safe_cpu_chat(
+            root=self.server.project_root, model=model,
+            prompt=prompt, history=history,
+        )
+
     def do_POST(self) -> None:  # noqa: N802
         parsed = urlsplit(self.path)
         if parsed.path != "/api/ollama/conversation" or parsed.query:
@@ -119,9 +128,8 @@ class CommandCenterV3Handler(CommandCenterV2Handler):
             })
             return
         try:
-            result = safe_cpu_chat(
-                root=self.server.project_root, model=payload["model"],
-                prompt=payload["prompt"], history=history,
+            result = self._invoke_cpu_chat(
+                model=payload["model"], prompt=payload["prompt"], history=history,
             )
         except (OSError, ValueError, RuntimeError, KeyError, TypeError):
             self._json(HTTPStatus.SERVICE_UNAVAILABLE, {
