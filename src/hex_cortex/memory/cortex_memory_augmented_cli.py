@@ -29,6 +29,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--project-root", type=Path, default=Path("."))
     parser.add_argument("--spine-file", required=True)
     parser.add_argument("--checkpoint")
+    parser.add_argument("--target-math-expression")
     parser.add_argument("--task-id", required=True)
     parser.add_argument("--instruction", required=True)
     parser.add_argument("--domain", default="general")
@@ -92,6 +93,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             approve_model=args.approve_model,
             approve_memory_use=args.approve_memory_use,
             query=RetrievalQuery(query=args.instruction[:512]),
+            target_math_expression=args.target_math_expression,
         )
     except (ValueError, PermissionError, OSError) as exc:
         print(json.dumps({"status": "blocked", "reason": str(exc)}))
