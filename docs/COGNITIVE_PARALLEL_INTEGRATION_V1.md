@@ -147,3 +147,42 @@ python -m hex_cortex.memory.cortex_science_brain_cli --domain mathematics --exam
 No model executes autonomously, no on-device action is allowed, the
 scientific request is bounded and validated, no raw model response is
 persisted, and GPU offload is disabled (`num_gpu=0`).
+
+## E. Verified science answers and math-fact admission hardening (V22)
+
+The scientific cell results and model responses have **different trust
+levels**. The local answer grader (`cortex_science_answer_grade_v22.py`)
+now checks an optional strict model-answer format against the already
+verified cell payload:
+
+- Mathematics: exact integer or `p/q`, for example `52451`.
+- Physics: exact rational followed by a single SI unit, for example `6 N`.
+- Chemistry: JSON with exact positive integer coefficient arrays, for example
+  `{"reactants":[2,1],"products":[2]}`.
+
+Prose, malformed JSON and incorrect values **do not pass**. A successful
+grade means agreement with the verified idealized cell calculation, **not**
+external physical truth, chemical feasibility or model general intelligence.
+Ordinary natural-language answers can still be returned without a strict
+grade (marked `invalid_answer_format`).
+
+CPU-only strict model answer with operator-authorized calculation and model
+call:
+
+```powershell
+python -m hex_cortex.memory.cortex_science_brain_cli --domain physics --example --model qwen2.5:3b --approve-science --approve-model --strict-answer --show-answer
+```
+
+Security change: `MemoryPromoter` now recomputes `math.exact_verified`
+source episodes *before* adding memories to the index, even if the
+CanonicalSpine hash chain is intact. A restored checkpoint re-enters the
+same promotion guard. Memory context injection also performs its own
+verification, guarding against a forged promotion manifest. Normal
+memory-free inference remains allowed: absence of a qualified memory is
+not the same as a rejected model call.
+
+Operator's first public batch observation (Qwen 2.5 3B, 3 pairs):
+baseline 0/3, ExactMathCell-assisted 3/3, McNemar two-sided exact p=1/4.
+The treatment supplies the **actual answer**, and the sample is small,
+public and order-unbalanced. Therefore neither statistical significance
+nor unassisted cognition enhancement has been established.
