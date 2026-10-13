@@ -135,6 +135,8 @@ def evaluate_new_visual_pair(
         "current_checkpoint_chain_verified": True,
         "action_schema_matched": True,
         "encoder_descriptor_hash": descriptor["descriptor_hash"],
+        "active_training_manifest_hash": manifest["manifest_hash"],
+        "legacy_dataset_domain": manifest.get("domain"),
         "model_forward_calls": 0,
         "encoder_calls": 0,
         "test_episode_and_scene_independence_attested": False,
