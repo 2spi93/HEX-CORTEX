@@ -129,6 +129,7 @@ def run_universal_world_advisory(
     approve_simulation: bool = False,
     approve_model: bool = False,
     task_id: str = "universal-world-v26",
+    observation_origin: str = "operator_supplied",
 ) -> dict[str, object]:
     """Real Spine/Harness integration, with NO real-world actuation path."""
     if not approve_simulation:
@@ -136,6 +137,8 @@ def run_universal_world_advisory(
                 "model_calls": 0, "physical_action_executed": False}
     if not isinstance(task_id, str) or not 1 <= len(task_id) <= 128:
         raise ValueError("world_task_id_invalid")
+    if observation_origin not in {"operator_supplied", "illustrative_fixture"}:
+        raise ValueError("world_observation_origin_invalid")
     receipts = _observation_receipts(observations)
     simulation = simulate_world_transition(
         state=state, action=action, dt_seconds=dt_seconds, approved=True
@@ -171,6 +174,7 @@ def run_universal_world_advisory(
                 "velocity_error_m_s": residual["velocity_error_m_s"],
                 "unexpected_motion": residual["unexpected_motion"],
                 "measurement_calibrated": False,
+                "observation_origin": observation_origin,
             },
         )
     report: dict[str, object] = {
@@ -178,6 +182,7 @@ def run_universal_world_advisory(
         "world_model": simulation["model_type"],
         "predicted_state": simulation["predicted_state"],
         "residual": residual,
+        "observed_transition_origin": observation_origin if residual is not None else None,
         "observation_count": len(receipts),
         "observed_modalities": sorted({x["modality"] for x in receipts}),
         "observation_receipt_hashes": [x["source_sha256"] for x in receipts],
@@ -205,7 +210,11 @@ def run_universal_world_advisory(
         "Idealized simulation: " + json.dumps(
             simulation["predicted_state"], sort_keys=True
         ) + "\n"
-        "Operator-measured residual: " + json.dumps(residual, sort_keys=True)
+        "Next state provenance: " + observation_origin + ". "
+        "When illustrative_fixture, this is an invented DEMONSTRATION, "
+        "not a physical sensor measurement. Do not suggest calibrating an "
+        "actual sensor based on a fictitious observation.\n"
+        "Comparison residual: " + json.dumps(residual, sort_keys=True)
         + "\nSuggest only a read-only next diagnostic."
     )
     harness = LocalHarness(
