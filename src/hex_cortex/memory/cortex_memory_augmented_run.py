@@ -11,6 +11,7 @@ from collections.abc import Callable
 
 from hex_cortex.memory.cortex_local_cognitive_cycle import run_clocked_local_task
 from hex_cortex.memory.cortex_local_harness_v2 import LocalHarness, Task
+from hex_cortex.memory.cortex_verified_math_memory import verify_math_fact_task
 from hex_cortex.memory.local_index import LocalKnowledgeIndex
 from hex_cortex.memory.memory_promotion import MemoryPromoter, PromotionStatus
 from hex_cortex.memory.retrieval_router import RetrievalRouter
@@ -45,6 +46,12 @@ def _verified_context(
             raise ValueError("memory_record_provenance_invalid")
         if task_id == task.task_id:
             continue
+        # A hash chain certifies lineage, not that a claimed calculation is true.
+        # Validate every exact-math proof against ExactMathCell before reuse.
+        source_events = learning.spine.events_for_task(task_id)
+        if any(event.event_type == "math.exact_verified" for event in source_events):
+            if not verify_math_fact_task(learning.spine, task_id):
+                raise ValueError("verified_math_fact_validation_failed")
         replay = ReplayEngine(spine=learning.spine).replay_task(task_id)
         if (
             replay.status != ReplayStatus.CONSOLIDATED
