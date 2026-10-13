@@ -57,6 +57,29 @@ def test_four_isolated_harness_arms_are_graded_separately(tmp_path: Path) -> Non
     assert result["files_written"] is False
 
 
+def test_detects_observed_training_answer_copy_as_negative_transfer(
+    tmp_path: Path,
+) -> None:
+    def brain(_model: str, task: Task) -> str:
+        if "verified_rational: 53213" in task.instruction:
+            return "53213"
+        if "Verified exact arithmetic: 127*413 = 52451" in task.instruction:
+            return "52451"
+        return "53813"
+
+    report = run_four_arm_math_eval(
+        **_arguments(tmp_path), brain=brain,
+        approve_model_calls=True, approve_memory=True,
+        approve_calculator=True, show_answers=True,
+    )
+    assert report["status"] == "four_arm_observations_recorded"
+    assert report["negative_transfer_training_answer_copy_observed"] is True
+    assert report["memory_only_accurate"] is False
+    assert report["cross_expression_prior_scalar_diagnostic_mode"] is True
+    assert report["arms"]["memory"]["answer_copied_from_training_fact"] is True
+    assert report["arms"]["calculator"]["correct"] is True
+
+
 def test_operator_denial_runs_no_model_or_math(tmp_path: Path) -> None:
     calls: list[str] = []
 
