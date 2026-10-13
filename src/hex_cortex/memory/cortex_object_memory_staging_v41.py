@@ -6,7 +6,6 @@ frames, semantics, ground truth and world-model efficacy remain unverified.
 from __future__ import annotations
 
 import hashlib
-import json
 import re
 from pathlib import Path
 
