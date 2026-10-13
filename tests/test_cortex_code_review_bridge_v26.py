@@ -151,3 +151,29 @@ def test_cli_local_cpu_model_adapter(
     assert report["status"] == "reviewed"
     assert report["source_sent_to_model"] is False
     assert configurations[0]["num_gpu"] == 0
+    assert configurations[0]["max_predict_tokens"] == 1536
+    assert configurations[0]["response_format"]["type"] == "object"
+    assert "summary" in configurations[0]["response_format"]["required"]
+
+
+
+def test_invalid_coder_reply_is_rejected_with_redacted_parse_reason(
+    tmp_path: Path,
+) -> None:
+    path = _file(tmp_path)
+
+    def brain(_model: str, _task: Task) -> str:
+        return "Thoughts about architecture, not JSON."
+
+    result = review_local_code(
+        project_root=tmp_path, file_path=path,
+        model_id="test", brain=brain,
+        approve_read=True, approve_model=True,
+    )
+    assert result["status"] == "blocked"
+    assert result["plan_status"] == "invalid"
+    assert result["plan_error_type"] == "structured_code_plan_validation_failed"
+    assert len(result["plan_error_hash"]) == 64
+    assert result["plan"] is None
+    assert result["model_calls"] == 1
+    assert "Thoughts about architecture" not in str(result)
