@@ -101,7 +101,7 @@ def test_substance_gate_flags_no_changes_and_does_not_certify_real_code() -> Non
     }, source_disclosed=True)["status"] == "source_informed_proposal_unverified"
 
 
-@pytest.mark.parametrize("text", ["def broken(", " " * 129000])
+@pytest.mark.parametrize("text", [pytest.param("def broken(", id="bad_syntax"), pytest.param(" " * 129000, id="oversized")])
 def test_static_context_refuses_invalid_or_oversized_code(text: str) -> None:
     with pytest.raises((ValueError, SyntaxError)):
         describe_python_structure(text)
