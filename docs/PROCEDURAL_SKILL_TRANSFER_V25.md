@@ -49,7 +49,9 @@ counts kept visible. Public fixtures are not independently held out.
   more unseen test cases have been evaluated, at least three skill-arm
   answers are correct, the skill arm outperforms baseline, and **zero**
   baseline-correct / skill-wrong regressions occur.
-- A regression yields a **quarantined** evidence receipt.
+- A regression yields a **quarantined** evidence receipt. Subsequent V25
+  model trials of that skill ID are **blocked before inference** until a
+  separately reviewed new skill/version is introduced.
 - An operator can append a **revoked** record; future evidence cannot
   silently reactivate that skill ID. No automatic promotion or model/tool
   activation occurs in any V25 CLI.
