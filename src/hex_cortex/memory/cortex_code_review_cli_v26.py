@@ -8,6 +8,7 @@ from pathlib import Path
 
 from hex_cortex.memory.cortex_code_review_bridge_v26 import review_local_code
 from hex_cortex.memory.cortex_local_ollama_brain import LocalOllamaBrain
+from hex_cortex.memory.cortex_structured_code_plan import code_plan_json_schema
 
 
 def main(argv: Sequence[str] | None = None) -> int:
@@ -16,7 +17,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     p.add_argument("--file", type=Path, required=True)
     p.add_argument("--model", default="qwen2.5-coder:7b")
     p.add_argument("--timeout", type=float, default=120)
-    p.add_argument("--max-tokens", type=int, default=600)
+    p.add_argument("--max-tokens", type=int, default=1536)
     p.add_argument("--approve-read", action="store_true")
     p.add_argument("--approve-model", action="store_true")
     p.add_argument("--approve-share-source", action="store_true")
@@ -35,6 +36,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                 endpoint="http://127.0.0.1:11434",
                 timeout_seconds=args.timeout,
                 max_predict_tokens=args.max_tokens, num_gpu=0,
+                response_format=code_plan_json_schema(),
             )
             if args.approve_model else None
         )
