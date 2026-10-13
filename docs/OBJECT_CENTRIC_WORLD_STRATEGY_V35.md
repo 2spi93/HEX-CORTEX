@@ -26,6 +26,7 @@ Do not train a new foundation model or replace DINOv2 weights.
 | Backend | What it actually produces | What it does NOT prove | Deployment now |
 | --- | --- | --- | --- |
 | **Microsoft Florence-2-base** | 0.23B multimodal caption, object boxes, OCR, region captions | exact alpha masks; faithful 3D; physical prediction | Test *as a separate opt-in CPU recognizer*, inspect remote-code requirements/license |
+| **MobileSAM / TinySAM** | Lightweight prompted CPU masks, with MobileSAM CPU demonstrations and Apache-2.0 sources | detection of every object *without* prompts, true 3D, hidden background | **First CPU segmentation benchmark** before heavyweight SAM 3.1 |
 | **Meta SAM 3.1** | Language/image-prompted object masks & multi-object video tracking | hidden pixels, physically accurate depth | Use licensed external/GPU service adapter later; don't install huge CUDA stack on broken RX 6700 XT |
 | **Qwen/Qwen-Image-Layered** | Generatively decomposes 2D RGB into multiple independent **RGBA layers**, supports editing/moving and PSD export | exact ground truth of hidden regions; sensor measurements | Use as separately approved capable GPU/cloud provider; official quick start uses **CUDA and bfloat16** |
 | **Meta SAM 3D Objects** | Plausible textured 3D object/scene reconstruction from image | physical dimensions from a monocular photo without calibration | Offline/specialist optional 3D stage |
@@ -37,6 +38,8 @@ Do not train a new foundation model or replace DINOv2 weights.
 Official sources:
 - https://huggingface.co/microsoft/Florence-2-base
 - https://ai.meta.com/blog/segment-anything-model-3/
+- https://github.com/ChaoningZhang/MobileSAM
+- https://github.com/xinghaochen/TinySAM
 - https://github.com/QwenLM/Qwen-Image-Layered
 - https://ai.meta.com/blog/sam-3d
 - https://github.com/ByteDance-Seed/Depth-Anything-3
@@ -154,9 +157,13 @@ remain transparent, NOT magically generated.
 2. Real Florence-2-base (or equivalent CPU VLM) in a separately managed
    optional environment, **without** uncontrolled remote-code execution:
    detect objects, emit bounding boxes/captions with confidence.
-3. Select an actually CPU-viable masked segmentation backend
-   after microbenchmarks. Do NOT silently substitute a slow/broken SAM
-   for the user hardware. Feed its masks to V35.
+3. **Prioritize MobileSAM then TinySAM on CPU**, after isolated
+   installation and small benchmark with operator-selected weights.
+   MobileSAM has an official CPU demo; TinySAM has smaller compressed
+   versions. Compare segmentation mask IoU vs manual masks, startup,
+   wall clock time and RAM. These are NOT yet installed/inferred by V35.
+   Do NOT silently substitute a slow/broken SAM3.1 CUDA stack for the
+   user's faulty RX 6700 XT. Feed the produced masks to V35.
 4. V33 independent novel pair with known action and cached DINOv2;
    compare active predictor vs identity baseline and per-object
    predictions over several independently sourced scenes.
