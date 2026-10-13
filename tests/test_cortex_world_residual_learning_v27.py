@@ -87,3 +87,15 @@ def test_cli_requires_approval_and_only_runs_demo_when_allowed(
     result = json.loads(capsys.readouterr().out)
     assert result["status"] == "candidate_for_manual_review"
     assert result["files_written"] is False
+
+
+def test_opt_in_world_bias_application_never_activates_device() -> None:
+    from hex_cortex.memory.cortex_world_residual_learning_v27 import simulate_with_reviewed_bias
+    candidate = fit_bounded_world_residual(transitions=_public_demo(), approved=True)
+    state = {"x": 100., "y": 20., "vx": 1.5, "vy": .25}
+    action = {"ax": 0., "ay": 0.}
+    assert simulate_with_reviewed_bias(candidate=candidate, state=state, action=action, dt_seconds=2)["status"] == "blocked"
+    result = simulate_with_reviewed_bias(candidate=candidate, state=state, action=action, dt_seconds=2, approved=True)
+    assert result["corrected_predicted_state"]["x"] == pytest.approx(103.8)
+    assert result["physical_action_executed"] is False
+    assert result["candidate_not_activated"] is True
