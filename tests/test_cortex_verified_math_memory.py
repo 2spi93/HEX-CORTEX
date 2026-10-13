@@ -120,14 +120,16 @@ def test_wrong_math_fact_in_valid_hash_chain_is_not_accepted_as_truth(
         budget=Budget(max_model_calls=1),
         spine=forged,
     )
-    with pytest.raises(ValueError, match="verified_math_fact_validation_failed"):
-        run_memory_augmented_task(
-            harness=harness, learning=learning,
-            task=Task("new_question", "math", "127*413"),
-            models=["test"], brain=brain,
-            approve_model=True, approve_memory_use=True,
-        )
-    assert calls == []
+    # Empty approved memory is safe: the Brain may answer *without* forged data.
+    ordinary = run_memory_augmented_task(
+        harness=harness, learning=learning,
+        task=Task("new_question", "math", "127*413"),
+        models=["test"], brain=brain,
+        approve_model=True, approve_memory_use=True,
+    )
+    assert ordinary["status"] == "complete"
+    assert ordinary["memory_context"]["retrieved_count"] == 0
+    assert calls == [True]
 
 
 def test_math_fact_requires_approval_and_unique_task() -> None:
