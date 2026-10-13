@@ -58,7 +58,7 @@ def _build_fixture(root: Path) -> Path:
     (state / "transitions.jsonl").write_text(
         "".join(json.dumps(row) + "\n" for row in rows), encoding="utf-8",
     )
-    manifest = build_transition_dataset_manifest(rows, min_train=2)
+    manifest = build_transition_dataset_manifest(rows, min_train=2, min_validation=1)
     assert manifest["manifest_allowed"] is True
     (state / "manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
     weights = b"standin-weights-not-validated-safetensors"
@@ -159,7 +159,7 @@ def test_exact_image_train_test_overlap_is_not_independent(tmp_path: Path) -> No
         "".join(json.dumps(row) + "\n" for row in records),
         encoding="utf-8",
     )
-    manifest = build_transition_dataset_manifest(records, min_train=2)
+    manifest = build_transition_dataset_manifest(records, min_train=2, min_validation=1)
     (state / "manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
     report = audit_active_compact_integrity(project_root=tmp_path, approved=True)
     assert report["integrity_ok"] is False
