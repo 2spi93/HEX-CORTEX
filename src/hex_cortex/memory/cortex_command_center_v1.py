@@ -234,17 +234,40 @@ class CommandCenterHandler(BaseHTTPRequestHandler):
         return  # avoid logging query contents
 
     def _allowed_request(self) -> bool:
-        # Browser-origin and DNS-rebinding controls: do not expose to LAN.
+        """Permit a cross-site *top-level page navigation*, never API access.
+
+        Following a local link from ChatGPT can set Sec-Fetch-Site=cross-site.
+        GET / is inert HTML and may be opened. Its subsequent /assets and
+        /api requests must come from the local document's own origin.
+        """
         host = self.headers.get("Host", "")
         port = self.server.server_address[1]
         allowed = {f"127.0.0.1:{port}", f"localhost:{port}"}
+        if host not in allowed:
+            self._json(HTTPStatus.FORBIDDEN, {
+                "status": "blocked", "reason": "host_not_allowed",
+            })
+            return False
         origin = self.headers.get("Origin")
-        if host not in allowed or (origin is not None and origin not in {f"http://{h}" for h in allowed}):
-            self._reply(HTTPStatus.FORBIDDEN, b'{"status":"blocked"}')
+        if origin is not None and origin not in {f"http://{h}" for h in allowed}:
+            self._json(HTTPStatus.FORBIDDEN, {
+                "status": "blocked", "reason": "origin_not_allowed",
+            })
             return False
         if self.headers.get("Sec-Fetch-Site") == "cross-site":
-            self._reply(HTTPStatus.FORBIDDEN, b'{"status":"blocked"}')
-            return False
+            target = urlsplit(self.path)
+            is_safe_entry = (
+                self.command == "GET"
+                and target.path == "/"
+                and not target.query
+                and self.headers.get("Sec-Fetch-Mode") == "navigate"
+                and self.headers.get("Sec-Fetch-Dest") == "document"
+            )
+            if not is_safe_entry:
+                self._json(HTTPStatus.FORBIDDEN, {
+                    "status": "blocked", "reason": "cross_site_request_denied",
+                })
+                return False
         return True
 
     def _reply(self, status: HTTPStatus, body: bytes, kind: str = "application/json") -> None:
