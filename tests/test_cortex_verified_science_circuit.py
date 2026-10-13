@@ -37,7 +37,7 @@ def test_scientific_cells_run_through_real_router_and_clock(
 
 
 def test_chemistry_cell_existing_balancer_is_routed() -> None:
-    request = json.dumps({"reactants": ["H2", "O2"], "products": ["H2O"]})
+    input_text = json.dumps({"reactants": ["H2", "O2"], "products": ["H2O"]})
     result = run_verified_science_circuit(
         domain="chemistry", task_id="science-task", request=input_text, approved=True
     )
