@@ -120,6 +120,15 @@ def stage_verified_object_candidates_v41(
     for item in audited["object_candidates"]:
         v39_by_scene.setdefault(item["scene_id"], {})[item["object_id"]] = item
 
+    manifest, _ = _read_json(
+        _checked_relative(root, "research/v38_uploaded/boxes.json", ext=".json", max_bytes=100_000),
+        100_000,
+    )
+    manifest_scenes = {
+        entry["scene_id"]: entry for entry in manifest["samples"]
+        if isinstance(entry, dict) and entry.get("type") == "photographic"
+    }
+
     scene_ids: set[str] = set()
     all_candidates: list[dict] = []
     relations: list[dict] = []
@@ -146,19 +155,7 @@ def stage_verified_object_candidates_v41(
             raise ValueError("v41_object_set_mismatch")
         expected_masks += len(objs)
 
-        original = audited["object_candidates"][0]  # v39 evidence structure reference
-        del original
-        # Image dimensions are supplied by the V38 box manifest; V39 has
-        # authenticated the source hashes and coordinates against that manifest.
-        manifest, _ = _read_json(
-            _checked_relative(
-                root, "research/v38_uploaded/boxes.json", ext=".json", max_bytes=100_000,
-            ), 100_000,
-        )
-        manifest_scenes = {
-            x["scene_id"]: x for x in manifest["samples"]
-            if isinstance(x, dict) and x.get("type") == "photographic"
-        }
+        # The checked V38 source manifest supplies measured pixel dimensions.
         source = manifest_scenes.get(scene_id)
         if source is None:
             raise ValueError("v41_no_verified_original_image")
