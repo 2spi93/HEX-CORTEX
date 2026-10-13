@@ -104,7 +104,10 @@ def test_wrong_math_fact_in_valid_hash_chain_is_not_accepted_as_truth(
         approve_promotion=True,
     )
     assert promoted.promotion is not None
-    assert promoted.promotion.status.value == "promoted"
+    assert promoted.promotion.status.value == "rejected"
+    assert promoted.promotion.details["reason"] == "math_fact_source_not_verified"
+    assert promoted.promotion.index_entry is None
+    assert not learning.index.entries
     calls: list[bool] = []
 
     def brain(_model: str, _task: Task) -> str:
