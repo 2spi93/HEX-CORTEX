@@ -79,19 +79,23 @@ jobs:
               request_timeout_seconds=20.0,
               shutdown_timeout_seconds=3.0,
           ) as harness:
+              # The pinned PyPI 0.1.5rc1 Session API does not yet expose the
+              # get_working_directory() method on upstream main. The successful
+              # context-manager entry has ALREADY performed the real JSON-RPC
+              # initialize request/acknowledgment to the bundled dsh runtime.
               session = harness.start_session(session_id)
-              returned = session.get_working_directory()
-          # Verify a read-only, fixed-shape SDK RPC reply. Never expose the path.
-          assert Path(returned).resolve() == workspace, "rpc_workspace_mismatch"
+              assert session.id == session_id, "session_handle_mismatch"
+          # No prompt, model call, tool invocation or workspace mutation.
           report = {
               "schema": "hex.deepseek_sdk_rpc_preflight.v9",
-              "status": "actual_sdk_runtime_jsonrpc_readonly_roundtrip_passed",
+              "status": "actual_sdk_runtime_jsonrpc_initialization_passed",
               "sdk_version": version,
               "runtime_version": metadata.version("deepseek-harness-runtime-bin"),
               "os": platform.system(),
               "architecture": platform.machine(),
               "session_id_sha256": hashlib.sha256(session_id.encode()).hexdigest(),
-              "working_directory_rpc_matches_fixture": True,
+              "working_directory_read_rpc_supported_in_pinned_sdk": False,
+              "session_handle_created": True,
               "sdk_runtime_process_started": True,
               "model_called": False,
               "agent_prompt_submitted": False,
