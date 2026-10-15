@@ -65,14 +65,16 @@ jobs:
           import platform
           import shutil
           from pathlib import Path
-          from deepseek_harness import DeepSeekHarness
+          from deepseek_harness import DeepSeekHarness, DeepSeekHarnessConfig
 
           version = os.environ["SDK_VERSION"]
           installed_sdk = md.version("deepseek-harness-sdk")
           installed_runtime = md.version("deepseek-harness-runtime-bin")
           assert installed_sdk == version, "sdk_wrong_version"
           assert installed_runtime == version, "native_runtime_wrong_version"
-          exposed = set(inspect.signature(DeepSeekHarness).parameters)
+          exposed = set(inspect.signature(DeepSeekHarnessConfig).parameters)
+          assert callable(getattr(DeepSeekHarness, 'run', None)), 'sdk_run_method_missing'
+          assert callable(getattr(DeepSeekHarness, '__enter__', None)), 'sdk_context_manager_missing'
           for argument in ("dsh_home", "cwd", "provider", "model", "profile"):
               assert argument in exposed, f"sdk_public_constructor_changed_{argument}"
           assert shutil.which("dsh"), "runtime_cli_missing"
