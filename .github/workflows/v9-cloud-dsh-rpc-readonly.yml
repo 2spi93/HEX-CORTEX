@@ -1,0 +1,117 @@
+name: V9 Cloud DSH JSON-RPC Handshake (No Model, No GPU)
+
+# Real SDK -> bundled dsh process -> JSON-RPC read-only session query.
+# Never run any LLM turn, agent tool, external repo checkout or injected PR code.
+on:
+  pull_request:
+    paths:
+      - .github/workflows/v9-cloud-dsh-rpc-readonly.yml
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  sdk-actual-jsonrpc-handshake:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    env:
+      PYTHONDONTWRITEBYTECODE: "1"
+      PIP_DISABLE_PIP_VERSION_CHECK: "1"
+      SDK_VERSION: "0.1.5rc1"
+      SDK_WHEEL_SHA256: "8d9897e97e8a95fd738cb2c3e2c563951d824e43847ec6f3b0fb172c0729b4d8"
+    steps:
+      - name: Python 3.11 on disposable hosted runner (no source checkout)
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Download and pin exact SDK wheel from PyPI
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/dsh-wheels"
+          python -m pip download --no-deps --only-binary=:all: \
+            --dest "$RUNNER_TEMP/dsh-wheels" \
+            "deepseek-harness-sdk==$SDK_VERSION"
+          python - <<'PY'
+          import hashlib, os
+          from pathlib import Path
+          wheels = list((Path(os.environ["RUNNER_TEMP"]) / "dsh-wheels").glob("*.whl"))
+          assert len(wheels) == 1
+          assert hashlib.sha256(wheels[0].read_bytes()).hexdigest() == os.environ["SDK_WHEEL_SHA256"]
+          print("Verified upstream Python SDK wheel SHA256")
+          PY
+
+      - name: Install pinned distribution and bundled runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --no-cache-dir "$RUNNER_TEMP"/dsh-wheels/*.whl
+
+      - name: Invoke actual local JSON-RPC runtime without any model turn
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/dsh-v9-work"
+          python - <<'PY'
+          from __future__ import annotations
+          import hashlib
+          import importlib.metadata as metadata
+          import json
+          import os
+          import platform
+          from pathlib import Path
+          from deepseek_harness import DeepSeekHarness
+
+          version = os.environ["SDK_VERSION"]
+          assert metadata.version("deepseek-harness-sdk") == version
+          assert metadata.version("deepseek-harness-runtime-bin") == version
+          temp = Path(os.environ["RUNNER_TEMP"])
+          workspace = (temp / "dsh-v9-work").resolve()
+          home = (temp / "dsh-v9-isolated-home").resolve()
+          # No provider key or secrets in the runner. No agent prompt.
+          session_id = "hex-v9-local-rpc-readonly"
+          with DeepSeekHarness(
+              dsh_home=str(home), cwd=str(workspace),
+              profile="sdk-minimal", provider="deepseek-official",
+              model="deepseek-v4-flash", max_tokens=64,
+              initialize_timeout_seconds=45.0,
+              request_timeout_seconds=20.0,
+              shutdown_timeout_seconds=3.0,
+          ) as harness:
+              session = harness.start_session(session_id)
+              returned = session.get_working_directory()
+          # Verify a read-only, fixed-shape SDK RPC reply. Never expose the path.
+          assert Path(returned).resolve() == workspace, "rpc_workspace_mismatch"
+          report = {
+              "schema": "hex.deepseek_sdk_rpc_preflight.v9",
+              "status": "actual_sdk_runtime_jsonrpc_readonly_roundtrip_passed",
+              "sdk_version": version,
+              "runtime_version": metadata.version("deepseek-harness-runtime-bin"),
+              "os": platform.system(),
+              "architecture": platform.machine(),
+              "session_id_sha256": hashlib.sha256(session_id.encode()).hexdigest(),
+              "working_directory_rpc_matches_fixture": True,
+              "sdk_runtime_process_started": True,
+              "model_called": False,
+              "agent_prompt_submitted": False,
+              "tool_commands_requested_by_probe": 0,
+              "external_credentials_provided": False,
+              "source_repository_checked_out": False,
+              "hex_cortex_repo_exposed": False,
+              "host_gpu_used": False,
+              "agent_task_completion_verified": False,
+              "isolation_security_audit": False,
+          }
+          receipt = Path("v9-dsh-sdk-rpc.json")
+          receipt.write_text(json.dumps(report, indent=2, sort_keys=True), encoding="utf-8")
+          print(json.dumps(report, sort_keys=True))
+          PY
+
+      - name: Export audit-safe metadata only
+        uses: actions/upload-artifact@v4
+        with:
+          name: hex-v9-deepseek-sdk-real-rpc-no-agent
+          path: v9-dsh-sdk-rpc.json
+          retention-days: 7
+          if-no-files-found: error
