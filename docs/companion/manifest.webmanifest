@@ -1,0 +1,19 @@
+{
+  "name": "HEX-CORTEX Compagnon mobile",
+  "short_name": "HEX Mobile",
+  "description": "Capture caméra et zones d'objets hors cloud, export manuel vers HEX-CORTEX.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#061824",
+  "theme_color": "#081a27",
+  "lang": "fr",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

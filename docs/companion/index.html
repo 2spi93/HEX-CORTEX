@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#081a27">
+<meta name="referrer" content="no-referrer">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' blob: data:; media-src 'self' blob:; connect-src 'self'; worker-src 'self'; manifest-src 'self'; base-uri 'none'; form-action 'none'">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="style.css">
+<title>HEX-CORTEX • Compagnon mobile</title>
+</head>
+<body>
+<header>
+  <div class="mark">⬡ <strong>HEX-CORTEX</strong><small>Compagnon mobile V9</small></div>
+  <div class="status"><span id="connection">Préparation…</span></div>
+</header>
+<main>
+<section class="hero">
+  <h1>Caméra · Objets · Photos</h1>
+  <p>Capture et sélectionne des objets depuis ton téléphone. Les images restent <strong>sur ton appareil</strong> jusqu'à ce que tu choisisses de les exporter ou partager.</p>
+  <div class="warning">Cette application est un capteur indépendant, pas un contrôle à distance du téléphone. Aucun accès au PC, drone ou robot ; aucun modèle DeepSeek n'est exécuté ici.</div>
+</section>
+<section class="panel">
+  <h2>1 · Acquérir une image</h2>
+  <div class="actions">
+    <button id="camera-start" type="button">Ouvrir caméra</button>
+    <button id="camera-snap" type="button" disabled>Capturer l'image</button>
+    <button id="camera-stop" type="button" disabled>Arrêter caméra</button>
+    <label class="picker" for="photo-choose">Choisir une photo
+      <input id="photo-choose" type="file" accept="image/jpeg,image/png,image/webp">
+    </label>
+    <label class="picker" for="camera-fallback">Prendre une photo (secours)
+      <input id="camera-fallback" type="file" accept="image/*" capture="environment">
+    </label>
+  </div>
+  <video id="camera-feed" muted autoplay playsinline hidden></video>
+  <p id="camera-state" role="status">Caméra inactive. La permission est demandée uniquement après clic.</p>
+</section>
+<section class="panel">
+  <h2>2 · Sélectionner un objet</h2>
+  <p class="muted">Glisse ton doigt sur la photo pour tracer un rectangle. Ce n'est pas une reconnaissance automatique ni un masque MobileSAM.</p>
+  <canvas id="photo" width="720" height="460" aria-label="Photo et boîte de sélection manuelle"></canvas>
+  <div class="actions">
+    <label for="object-name">Nom objet</label>
+    <input id="object-name" type="text" maxlength="48" value="object1" autocomplete="off">
+    <button id="selection-clear" type="button" disabled>Effacer la sélection</button>
+  </div>
+  <pre id="selection-state" role="status">Aucune photo chargée.</pre>
+</section>
+<section class="panel">
+  <h2>3 · Exporter vers HEX-CORTEX</h2>
+  <p class="muted">Exporte la photo et son fichier <code>.bbox.json</code>. Transfère-les à ton PC par USB ou via le partage Android. Dans le Command Center, charge ensuite la photo et utilise « Segmenter MobileSAM CPU » après avoir sélectionné la zone.</p>
+  <div class="actions">
+    <button id="export-photo" type="button" disabled>Photo JPEG</button>
+    <button id="export-box" type="button" disabled>Boîte JSON</button>
+    <button id="share" type="button" disabled>Partager les fichiers</button>
+  </div>
+  <p id="export-state" role="status">Aucun fichier transféré ni téléversé.</p>
+</section>
+<section class="panel">
+  <h2>État des capacités</h2>
+  <dl>
+    <dt>Caméra du téléphone</dt><dd>Opt-in, navigateur HTTPS sécurisé</dd>
+    <dt>Sélection d'objet</dt><dd>Manuelle, coordonnées de la photo source</dd>
+    <dt>Transfert</dt><dd>Téléchargement ou partage explicitement choisi</dd>
+    <dt>IA / Segmentation</dt><dd>Non exécutée ici : MobileSAM reste sur le PC CPU</dd>
+    <dt>Voix / DeepSeek / Drone</dt><dd>Non connectés à cette application</dd>
+  </dl>
+</section>
+</main>
+<footer>HEX-CORTEX • application statique locale • sans analytics • sans compte • sans accès aux secrets</footer>
+<script src="app.js" defer></script>
+</body>
+</html>
