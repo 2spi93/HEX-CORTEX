@@ -1,0 +1,112 @@
+name: V8 Cloud DeepSeek SDK Preflight (No Model or GPU)
+
+# Dependency/API smoke check, NOT a full DSH agent test.
+# PR trigger is intentionally secretless; NEVER pass provider tokens.
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/v8-cloud-deepseek-sdk-preflight.yml"
+      - "src/hex_cortex/memory/cortex_deepseek_sdk_pilot_v8.py"
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  verify-published-python-sdk:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      PYTHONDONTWRITEBYTECODE: "1"
+      PIP_DISABLE_PIP_VERSION_CHECK: "1"
+      SDK_VERSION: "0.1.5rc1"
+      SDK_WHEEL_SHA256: "8d9897e97e8a95fd738cb2c3e2c563951d824e43847ec6f3b0fb172c0729b4d8"
+    steps:
+      - name: Python-only external runner (no repository checkout, no token, no model)
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Download exactly pinned DeepSeek SDK wheel
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/dsh-packages"
+          python -m pip download \
+            --no-deps --only-binary=:all: \
+            --dest "$RUNNER_TEMP/dsh-packages" \
+            "deepseek-harness-sdk==$SDK_VERSION"
+          python - <<'PY'
+          import hashlib
+          import os
+          from pathlib import Path
+          wheel_dir = Path(os.environ["RUNNER_TEMP"]) / "dsh-packages"
+          wheels = list(wheel_dir.glob("*.whl"))
+          assert len(wheels) == 1, "unexpected_wheel_count"
+          digest = hashlib.sha256(wheels[0].read_bytes()).hexdigest()
+          assert digest == os.environ["SDK_WHEEL_SHA256"], "sdk_pypi_wheel_digest_mismatch"
+          print("Official PyPI wheel digest pinned and matched:", digest)
+          PY
+
+      - name: Install SDK and matching native runtime in temporary Linux runner
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --no-cache-dir "$RUNNER_TEMP"/dsh-packages/*.whl
+
+      - name: Verify import and parity; emit sanitized evidence only
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import importlib.metadata as md
+          import inspect
+          import json
+          import os
+          import platform
+          import shutil
+          from pathlib import Path
+          from deepseek_harness import DeepSeekHarness
+
+          version = os.environ["SDK_VERSION"]
+          installed_sdk = md.version("deepseek-harness-sdk")
+          installed_runtime = md.version("deepseek-harness-runtime-bin")
+          assert installed_sdk == version, "sdk_wrong_version"
+          assert installed_runtime == version, "native_runtime_wrong_version"
+          exposed = set(inspect.signature(DeepSeekHarness).parameters)
+          for argument in ("dsh_home", "cwd", "provider", "model", "profile"):
+              assert argument in exposed, f"sdk_public_constructor_changed_{argument}"
+          assert shutil.which("dsh"), "runtime_cli_missing"
+          receipt = {
+              "schema": "hex.deepseek_published_sdk_cloud_preflight.v8",
+              "status": "sdk_import_and_runtime_distribution_verified_no_agent",
+              "sdk_version": installed_sdk,
+              "native_runtime_version": installed_runtime,
+              "sdk_wheel_sha256": os.environ["SDK_WHEEL_SHA256"],
+              "os": platform.system(),
+              "architecture": platform.machine(),
+              "sdk_constructor_arguments_verified": sorted(
+                  exposed.intersection({"dsh_home", "cwd", "provider", "model", "profile"})
+              ),
+              "runtime_cli_exists": True,
+              "repository_checked_out": False,
+              "github_repository_write_permission": False,
+              "api_credential_supplied": False,
+              "model_called": False,
+              "runtime_process_started": False,
+              "agent_tools_called": False,
+              "host_windows_gpu_used": False,
+              "security_audit_completed": False,
+              "real_model_functionality_certified": False,
+          }
+          output = Path("v8-sdk-cloud-preflight.json")
+          output.write_text(json.dumps(receipt, sort_keys=True, indent=2), encoding="utf-8")
+          print(json.dumps(receipt, sort_keys=True))
+          PY
+
+      - name: Upload evidence JSON without logs, credentials or model text
+        uses: actions/upload-artifact@v4
+        with:
+          name: v8-deepseek-sdk-cloud-preflight-ubuntu
+          path: v8-sdk-cloud-preflight.json
+          retention-days: 7
+          if-no-files-found: error
