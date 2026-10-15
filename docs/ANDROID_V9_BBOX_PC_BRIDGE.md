@@ -20,9 +20,10 @@ Une image différente ou modifiée, même de mêmes dimensions, est rejetée lor
 Arrêter d'abord le serveur V8 (Ctrl+C). Dans PowerShell sous C:\Users\2spi\HEX-CORTEX, une commande par ligne :
 
     git fetch origin
-    git switch -c feature/v9-mobile-bbox-import-to-command-center --track origin/feature/v9-mobile-bbox-import-to-command-center
+    git switch feature/v9-mobile-bbox-import-to-command-center
+    git pull --ff-only origin feature/v9-mobile-bbox-import-to-command-center
     $VP = "$env:LOCALAPPDATA\HEX-CORTEX\vision-v36\Scripts\python.exe"
-    & $VP -m pytest -q tests/test_cortex_android_companion_v9.py tests/test_cortex_command_center_v9.py tests/test_cortex_command_center_v8.py
+    & $VP -m pytest -q tests/test_cortex_android_companion_v9.py tests/test_cortex_command_center_v9.py
     & $VP -m ruff check .
     & $VP -m hex_cortex.memory.cortex_command_center_v9 --project-root . --port 8777 --enable-cpu-chat --enable-cpu-vision
 
