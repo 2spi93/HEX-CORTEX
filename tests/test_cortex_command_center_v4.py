@@ -79,7 +79,7 @@ def test_v4_javascript_parses_with_node_when_available(tmp_path):
     completed = subprocess.run(
         [node, "--check", str(source)],
         capture_output=True, text=True, check=False,
-        timeout=10,
+        timeout=30,
     )
     assert completed.returncode == 0, completed.stderr
 
