@@ -1,0 +1,47 @@
+name: V8.2 Mobile Console CPU Security
+
+on:
+  push:
+    paths:
+      - "src/hex_cortex/memory/cortex_mobile_console_v82.py"
+      - "src/hex_cortex/memory/cortex_mobile_view_v82.py"
+      - "tests/test_cortex_mobile_console_v82.py"
+      - ".github/workflows/v82-mobile-console.yml"
+  pull_request:
+    paths:
+      - "src/hex_cortex/memory/cortex_mobile_console_v82.py"
+      - "src/hex_cortex/memory/cortex_mobile_view_v82.py"
+      - "tests/test_cortex_mobile_console_v82.py"
+      - ".github/workflows/v82-mobile-console.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  cpu-mobile-tests:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install lightweight development requirements
+        run: python -m pip install -e ".[dev]"
+      - name: Ruff, all repository files
+        run: python -m ruff check .
+      - name: Mobile console and V8 receipt regression (no model, no GPU, no secret)
+        run: >
+          python -m pytest -q
+          tests/test_cortex_mobile_console_v82.py
+          tests/test_cortex_deepseek_sdk_receipt_v8.py
+          tests/test_cortex_command_center_v7.py
+      - name: Validate bundled mobile JavaScript parses
+        run: |
+          python -c "from hex_cortex.memory.cortex_mobile_view_v82 import JS; open('mobile-ci.js', 'w', encoding='utf8').write(JS)"
+          node --check mobile-ci.js
